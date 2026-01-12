@@ -53,6 +53,12 @@ INSTALLED_APPS = [
     'notificaciones',
     'ventas',
     'roles',
+    'cliente',
+    'admins',
+    'planes',
+    'suscripciones',
+    'usuario_empresa',
+    'usuarios'
 ]
 
 MIDDLEWARE = [

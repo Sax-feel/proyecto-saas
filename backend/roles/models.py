@@ -21,5 +21,5 @@ class Rol(models.Model):
     estado = models.CharField(max_length=50, choices=ESTADOS, default=ESTADOS["INACTIVO"])
 
     class Meta:
-        db_table = "Rol"
+        db_table = "rol"
         ordering = ["id_rol"]

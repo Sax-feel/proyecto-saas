@@ -21,5 +21,5 @@ class Empresa(models.Model):
     fecha_actualizacion = models.DateTimeField(auto_now=True)
 
     class Meta:
-        db_table = "Empresa"
+        db_table = "empresa"
         ordering = ["id_empresa"]

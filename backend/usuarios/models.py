@@ -18,5 +18,5 @@ class Usuario(models.Model):
     ultimo_login = models.DateTimeField(null=True, blank=True)
 
     class Meta:
-        db_table = "Usuario"
+        db_table = "usuario"
         ordering = ["id_usuario"]

@@ -13,5 +13,5 @@ class Plan(models.Model):
     descripcion = models.CharField(max_length=300)
     
     class Meta:
-        db_table = "Plan"
+        db_table = "plan"
         ordering = ["id_plan"]

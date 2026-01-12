@@ -17,5 +17,5 @@ class Suscripcion(models.Model):
     estado = models.CharField(max_length=50, choices=ESTADOS, default=ESTADOS["INACTIVO"])
 
     class Meta:
-        db_table = "Suscripcion"
+        db_table = "suscripcion"
         ordering = ["id_suscripcion"]

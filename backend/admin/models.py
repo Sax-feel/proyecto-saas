@@ -1,7 +1,7 @@
 from django.db import models
 from usuarios.models import Usuario
 
-# Register your models here.
+# Register your models here!.
 class Admin(models.Model):
     nombre_admin = models.CharField(max_length=100)
     telefono_admin = models.CharField(max_length=15)

@@ -1,11 +1,11 @@
 from django.db import models
 
-#id_usuario(PK), email, password_hash, estado(activado, bloqueado), fecha_creación, fecha_modificacion, ultimo_login, rol_id (FK de Rol)
+#id_usuario(PK), email, password_hash, estado(acstivado, bloqueado), fecha_creación, fecha_modificacion, ultimo_login, rol_id (FK de Rol)
 class Usuario(models.Model):
 
     ESTADOS = {
-        "ACTIVO": "activo",
-        "INACTIVO": "inactivo",
+        ("ACTIVO", "activo"),
+        ("INACTIVO", "inactivo"),
     }
 
     id_usuario = models.AutoField(primary_key=True)

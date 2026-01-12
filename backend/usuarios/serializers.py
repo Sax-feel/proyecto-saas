@@ -78,3 +78,12 @@ class CambioPasswordSerializer(serializers.Serializer):
         user.password_hash = make_password(self.validated_data['nueva_password'])
         user.save()
         return user
+
+from rest_framework import serializers
+from .models import Usuario
+
+class UsuarioSerializer(serializers.ModelSerializer):
+
+    class Meta:
+        model = Usuario
+        fields = '__all__'

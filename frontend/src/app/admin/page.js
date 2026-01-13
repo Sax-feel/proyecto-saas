@@ -8,124 +8,524 @@ export default function DashboardAdmin() {
   const [empresas, setEmpresas] = useState([]);
   const [showEmpresaForm, setShowEmpresaForm] = useState(false);
   const [showAdminForm, setShowAdminForm] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+
+  // Estados para formularios
+  const [empresaForm, setEmpresaForm] = useState({
+    nombre: "",
+    nit: "",
+    direccion: "",
+    telefono: "",
+    email: ""
+  });
+
+  const [adminForm, setAdminForm] = useState({
+    email: "",
+    password: "",
+    empresa_id: ""
+  });
+
+  // Obtener token del localStorage
+  const getToken = () => {
+    if (typeof window !== 'undefined') {
+      return localStorage.getItem('access');
+    }
+    return null;
+  };
+
+  // Fetch usuarios desde la API
+  const fetchUsers = async () => {
+    try {
+      const token = getToken();
+      if (!token) {
+        setError("No hay token de autenticación");
+        setLoading(false);
+        return;
+      }
+
+      const response = await fetch('http://localhost:8000/api/usuarios/todos/', {
+        method: 'GET',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+      });
+
+      if (!response.ok) {
+        throw new Error(`Error ${response.status}: ${response.statusText}`);
+      }
+
+      const data = await response.json();
+      setUsers(data.usuarios || []);
+      setError(null);
+    } catch (err) {
+      setError(`Error al cargar usuarios: ${err.message}`);
+      console.error("Error fetching users:", err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Fetch empresas desde la API
+  const fetchEmpresas = async () => {
+    try {
+      const token = getToken();
+      if (!token) return;
+
+      const response = await fetch('http://localhost:8000/api/empresas/listar/', {
+        method: 'GET',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        setEmpresas(data || []);
+      }
+    } catch (err) {
+      console.error("Error fetching empresas:", err);
+    }
+  };
 
   useEffect(() => {
+    fetchUsers();
+    fetchEmpresas();
   }, []);
 
+  // Registrar nueva empresa
+  const handleRegistrarEmpresa = async (e) => {
+    e.preventDefault();
+    try {
+      const token = getToken();
+      if (!empresaForm.nombre || !empresaForm.nit || !empresaForm.email) {
+        alert("Por favor complete los campos obligatorios (*)");
+        return;
+      }
+      const response = await fetch('http://localhost:8000/api/empresas/registrar/', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(empresaForm),
+      });
+
+      const data = await response.json();
+
+      if (response.ok) {
+        alert("Empresa registrada exitosamente");
+        setEmpresaForm({
+          nombre: "",
+          nit: "",
+          direccion: "",
+          telefono: "",
+          email: "",
+        });
+        setShowEmpresaForm(false);
+        fetchEmpresas(); // Actualizar lista
+        fetchUsers();
+      } else {
+        alert(`Error: ${data.detail || data.error || 'Error desconocido'}`);
+      }
+    } catch (err) {
+      alert("Error al registrar empresa");
+      console.error(err);
+    }
+  };
+
+  // Registrar admin de empresa
+  const handleRegistrarAdminEmpresa = async (e) => {
+    e.preventDefault();
+    try {
+      const token = getToken();
+      const response = await fetch('http://localhost:8000/api/usuarios-empresa/registrar/', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          email: adminForm.email,
+          password: adminForm.password,
+          rol_nombre: "admin_empresa",
+          empresa_id: parseInt(adminForm.empresa_id)
+        }),
+      });
+
+      const data = await response.json();
+
+      if (response.ok) {
+        alert("Admin de empresa registrado exitosamente");
+        setAdminForm({
+          email: "",
+          password: "",
+          empresa_id: ""
+        });
+        setShowAdminForm(false);
+        fetchUsers(); // Actualizar lista de usuarios
+      } else {
+        alert(`Error: ${data.detail || data.error || 'Error desconocido'}`);
+      }
+    } catch (err) {
+      alert("Error al registrar admin de empresa");
+      console.error(err);
+    }
+  };
+
+  // Handlers para formularios
   const handleOpenEmpresaForm = () => setShowEmpresaForm(true);
-  const handleCloseEmpresaForm = () => setShowEmpresaForm(false);
+  const handleCloseEmpresaForm = () => {
+    setShowEmpresaForm(false);
+    setEmpresaForm({
+      nombre: "",
+      nit: "",
+      direccion: "",
+      telefono: "",
+      email: ""
+    });
+  };
 
   const handleOpenAdminForm = () => setShowAdminForm(true);
-  const handleCloseAdminForm = () => setShowAdminForm(false);
+  const handleCloseAdminForm = () => {
+    setShowAdminForm(false);
+    setAdminForm({
+      email: "",
+      password: "",
+      empresa_id: ""
+    });
+  };
+
+  const handleEmpresaFormChange = (e) => {
+    setEmpresaForm({
+      ...empresaForm,
+      [e.target.name]: e.target.value
+    });
+  };
+
+  const handleAdminFormChange = (e) => {
+    setAdminForm({
+      ...adminForm,
+      [e.target.name]: e.target.value
+    });
+  };
+
+  // Formatear fecha
+  const formatDate = (dateString) => {
+    if (!dateString) return "-";
+    const date = new Date(dateString);
+    return date.toLocaleDateString('es-ES', {
+      day: '2-digit',
+      month: '2-digit',
+      year: 'numeric'
+    });
+  };
+
+  // Obtener empresa del usuario
+  const getEmpresaUsuario = (user) => {
+    if (user.informacion_adicional?.empresa) {
+      return user.informacion_adicional.empresa.nombre;
+    }
+    if (user.usuario_empresa?.nombre_empresa) {
+      return user.usuario_empresa.nombre_empresa;
+    }
+    return "-";
+  };
 
   return (
     <div className={styles.container}>
       <h1 className={styles.title}>Dashboard Admin</h1>
 
+      {loading && <div className={styles.loading}>Cargando usuarios...</div>}
+
+      {error && (
+        <div className={styles.error}>
+          <p>{error}</p>
+          <button onClick={fetchUsers}>Reintentar</button>
+        </div>
+      )}
+
       {/* -------------------- TABLA USUARIOS -------------------- */}
       <section className={styles.section}>
-        <h2>Usuarios</h2>
-        <table className={styles.table}>
-          <thead>
-            <tr>
-              <th>Email</th>
-              <th>Rol</th>
-              <th>Estado</th>
-              <th>Empresa</th>
-            </tr>
-          </thead>
-          <tbody>
-            {users.length === 0 ? (
+        <div className={styles.sectionHeader}>
+          <h2>Usuarios ({users.length})</h2>
+          <button onClick={fetchUsers} className={styles.refreshButton}>
+            Actualizar
+          </button>
+        </div>
+        <div className={styles.tableContainer}>
+          <table className={styles.table}>
+            <thead>
               <tr>
-                <td colSpan="4" className={styles.empty}>
-                  No hay usuarios aún
-                </td>
+                <th>ID</th>
+                <th>Email</th>
+                <th>Rol</th>
+                <th>Estado</th>
+                <th>Empresa</th>
+                <th>Registro</th>
+                <th>Último Login</th>
               </tr>
-            ) : (
-              users.map((user) => (
-                <tr key={user.id_usuario}>
-                  <td>{user.email}</td>
-                  <td>{user.rol}</td>
-                  <td>{user.estado}</td>
-                  <td>{user.empresa ? user.empresa.nombre : "-"}</td>
+            </thead>
+            <tbody>
+              {users.length === 0 && !loading ? (
+                <tr>
+                  <td colSpan="7" className={styles.empty}>
+                    No hay usuarios registrados
+                  </td>
                 </tr>
-              ))
-            )}
-          </tbody>
-        </table>
+              ) : (
+                users.map((user) => (
+                  <tr key={user.id_usuario} className={styles.userRow}>
+                    <td>{user.id_usuario}</td>
+                    <td className={styles.emailCell}>{user.email}</td>
+                    <td>
+                      <span className={`${styles.rolBadge} ${styles[user.rol]}`}>
+                        {user.rol}
+                      </span>
+                    </td>
+                    <td>
+                      <span className={`${styles.estadoBadge} ${styles[user.estado]}`}>
+                        {user.estado}
+                      </span>
+                    </td>
+                    <td>{getEmpresaUsuario(user)}</td>
+                    <td>{formatDate(user.fecha_creacion)}</td>
+                    <td>{user.ultimo_login ? formatDate(user.ultimo_login) : "Nunca"}</td>
+                  </tr>
+                ))
+              )}
+            </tbody>
+          </table>
+        </div>
       </section>
 
       {/* -------------------- TABLA EMPRESAS -------------------- */}
       <section className={styles.section}>
-        <h2>Empresas</h2>
-        <table className={styles.table}>
-          <thead>
-            <tr>
-              <th>Nombre</th>
-              <th>NIT</th>
-              <th>Estado</th>
-              <th>Admin</th>
-            </tr>
-          </thead>
-          <tbody>
-            {empresas.length === 0 ? (
+        <div className={styles.sectionHeader}>
+          <h2>Empresas ({empresas.length})</h2>
+          <button onClick={fetchEmpresas} className={styles.refreshButton}>
+            Actualizar
+          </button>
+        </div>
+        <div className={styles.tableContainer}>
+          <table className={styles.table}>
+            <thead>
               <tr>
-                <td colSpan="4" className={styles.empty}>
-                  No hay empresas aún
-                </td>
+                <th>ID</th>
+                <th>Nombre</th>
+                <th>NIT</th>
+                <th>Email</th>
+                <th>Estado</th>
+                <th>Registro</th>
               </tr>
-            ) : (
-              empresas.map((empresa) => (
-                <tr key={empresa.id_empresa}>
-                  <td>{empresa.nombre}</td>
-                  <td>{empresa.nit}</td>
-                  <td>{empresa.estado}</td>
-                  <td>{empresa.admin ? empresa.admin.email : "-"}</td>
+            </thead>
+            <tbody>
+              {empresas.length === 0 ? (
+                <tr>
+                  <td colSpan="6" className={styles.empty}>
+                    No hay empresas registradas
+                  </td>
                 </tr>
-              ))
-            )}
-          </tbody>
-        </table>
+              ) : (
+                empresas.map((empresa) => (
+                  <tr key={empresa.id_empresa}>
+                    <td>{empresa.id_empresa}</td>
+                    <td>{empresa.nombre}</td>
+                    <td>{empresa.nit}</td>
+                    <td>{empresa.email}</td>
+                    <td>
+                      <span className={`${styles.estadoBadge} ${styles[empresa.estado]}`}>
+                        {empresa.estado}
+                      </span>
+                    </td>
+                    <td>{formatDate(empresa.fecha_creacion)}</td>
+                  </tr>
+                ))
+              )}
+            </tbody>
+          </table>
+        </div>
       </section>
 
+      {/* -------------------- ACCIONES -------------------- */}
       <section className={styles.actions}>
-        <button onClick={handleOpenEmpresaForm}>Registrar Empresa</button>
-        <button onClick={handleOpenAdminForm}>Registrar Admin de Empresa</button>
+        <button
+          onClick={handleOpenEmpresaForm}
+          className={styles.primaryButton}
+        >
+          + Registrar Nueva Empresa
+        </button>
+        <button
+          onClick={handleOpenAdminForm}
+          className={styles.secondaryButton}
+        >
+          + Registrar Admin de Empresa
+        </button>
       </section>
 
+      {/* -------------------- MODAL REGISTRAR EMPRESA -------------------- */}
       {showEmpresaForm && (
-        <div className={styles.modal}>
-          <h3>Registrar Nueva Empresa</h3>
-          <form>
-            <input type="text" placeholder="Nombre Empresa" />
-            <input type="text" placeholder="NIT" />
-            <button type="submit">Guardar</button>
-            <button type="button" onClick={handleCloseEmpresaForm}>
-              Cancelar
-            </button>
-          </form>
+        <div className={styles.modalOverlay}>
+          <div className={styles.modal}>
+            <div className={styles.modalHeader}>
+              <h3>Registrar Nueva Empresa</h3>
+              <button onClick={handleCloseEmpresaForm} className={styles.closeButton}>
+                &times;
+              </button>
+            </div>
+            <form onSubmit={handleRegistrarEmpresa} className={styles.form}>
+              <div className={styles.formGroup}>
+                <label>Nombre de la Empresa *</label>
+                <input
+                  type="text"
+                  name="nombre"
+                  placeholder="Ej: Mi Empresa SA"
+                  value={empresaForm.nombre}
+                  onChange={handleEmpresaFormChange}
+                  required
+                />
+              </div>
+
+              <div className={styles.formGroup}>
+                <label>NIT *</label>
+                <input
+                  type="text"
+                  name="nit"
+                  placeholder="Ej: 900123456-7"
+                  value={empresaForm.nit}
+                  onChange={handleEmpresaFormChange}
+                  required
+                />
+              </div>
+
+              <div className={styles.formGroup}>
+                <label>Dirección *</label>
+                <input
+                  type="text"
+                  name="direccion"
+                  placeholder="Ej: Calle 123 #45-67"
+                  value={empresaForm.direccion}
+                  onChange={handleEmpresaFormChange}
+                  required
+                />
+              </div>
+
+              <div className={styles.formGroup}>
+                <label>Teléfono *</label>
+                <input
+                  type="text"
+                  name="telefono"
+                  placeholder="Ej: 6012345678"
+                  value={empresaForm.telefono}
+                  onChange={handleEmpresaFormChange}
+                  required
+                />
+              </div>
+
+              <div className={styles.formGroup}>
+                <label>Email de la Empresa *</label>
+                <input
+                  type="email"
+                  name="email"
+                  placeholder="Ej: contacto@empresa.com"
+                  value={empresaForm.email}
+                  onChange={handleEmpresaFormChange}
+                  required
+                />
+              </div>
+
+              {/* Información */}
+              <div className={styles.infoBox}>
+                <p><strong>Registrada por:</strong> Tú (Admin del sistema)</p>
+                <p><strong>Nota:</strong> Después de registrar la empresa, asigne un administrador usando la opción "Registrar Admin de Empresa".</p>
+              </div>
+
+              <div className={styles.modalActions}>
+                <button type="submit" className={styles.submitButton}>
+                  Registrar Empresa
+                </button>
+                <button
+                  type="button"
+                  onClick={handleCloseEmpresaForm}
+                  className={styles.cancelButton}
+                >
+                  Cancelar
+                </button>
+              </div>
+            </form>
+          </div>
         </div>
       )}
 
+      {/* -------------------- MODAL REGISTRAR ADMIN EMPRESA -------------------- */}
       {showAdminForm && (
-        <div className={styles.modal}>
-          <h3>Registrar Admin de Empresa</h3>
-          <form>
-            <input type="email" placeholder="Email" />
-            <input type="password" placeholder="Password" />
-            <select>
-              <option value="">Seleccionar Empresa</option>
-              {empresas.map((e) => (
-                <option key={e.id_empresa} value={e.id_empresa}>
-                  {e.nombre}
-                </option>
-              ))}
-            </select>
-            <button type="submit">Guardar</button>
-            <button type="button" onClick={handleCloseAdminForm}>
-              Cancelar
-            </button>
-          </form>
+        <div className={styles.modalOverlay}>
+          <div className={styles.modal}>
+            <div className={styles.modalHeader}>
+              <h3>Registrar Admin de Empresa</h3>
+              <button onClick={handleCloseAdminForm} className={styles.closeButton}>
+                &times;
+              </button>
+            </div>
+            <form onSubmit={handleRegistrarAdminEmpresa} className={styles.form}>
+              <div className={styles.formGroup}>
+                <label>Email *</label>
+                <input
+                  type="email"
+                  name="email"
+                  placeholder="Ej: admin@nuevaempresa.com"
+                  value={adminForm.email}
+                  onChange={handleAdminFormChange}
+                  required
+                />
+              </div>
+
+              <div className={styles.formGroup}>
+                <label>Password *</label>
+                <input
+                  type="password"
+                  name="password"
+                  placeholder="Mínimo 8 caracteres"
+                  value={adminForm.password}
+                  onChange={handleAdminFormChange}
+                  required
+                  minLength="8"
+                />
+              </div>
+
+              <div className={styles.formGroup}>
+                <label>Empresa *</label>
+                <select
+                  name="empresa_id"
+                  value={adminForm.empresa_id}
+                  onChange={handleAdminFormChange}
+                  required
+                >
+                  <option value="">Seleccionar Empresa</option>
+                  {empresas.map((empresa) => (
+                    <option key={empresa.id_empresa} value={empresa.id_empresa}>
+                      {empresa.nombre} ({empresa.nit})
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div className={styles.modalActions}>
+                <button type="submit" className={styles.submitButton}>
+                  Registrar Admin
+                </button>
+                <button
+                  type="button"
+                  onClick={handleCloseAdminForm}
+                  className={styles.cancelButton}
+                >
+                  Cancelar
+                </button>
+              </div>
+            </form>
+          </div>
         </div>
       )}
     </div>

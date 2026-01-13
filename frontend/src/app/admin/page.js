@@ -1,3 +1,154 @@
-export default function AdminPage() {
-  return <h1>Dashboard Admin</h1>;
+// src/app/admin/DashboardAdmin.jsx
+"use client";
+
+import { useState, useEffect } from "react";
+import styles from "./DashboardAdmin.module.css"; // CSS separado
+// 👇 Marcadores para futuras integraciones
+// import { fetchUsers, fetchEmpresas, createEmpresa, createAdminEmpresa } from "../../services/api";
+
+export default function DashboardAdmin() {
+  // -------------------------
+  // ESTADOS LOCALES
+  // -------------------------
+  const [users, setUsers] = useState([]);          // Lista de usuarios
+  const [empresas, setEmpresas] = useState([]);    // Lista de empresas
+  const [showEmpresaForm, setShowEmpresaForm] = useState(false);
+  const [showAdminForm, setShowAdminForm] = useState(false);
+
+  // -------------------------
+  // USE EFFECT PARA BACKEND
+  // -------------------------
+  useEffect(() => {
+    // 👇 Aquí más adelante llamaremos al backend
+    // fetchUsers().then(setUsers);
+    // fetchEmpresas().then(setEmpresas);
+  }, []);
+
+  // -------------------------
+  // HANDLERS PARA MODALES
+  // -------------------------
+  const handleOpenEmpresaForm = () => setShowEmpresaForm(true);
+  const handleCloseEmpresaForm = () => setShowEmpresaForm(false);
+
+  const handleOpenAdminForm = () => setShowAdminForm(true);
+  const handleCloseAdminForm = () => setShowAdminForm(false);
+
+  // -------------------------
+  // RENDER
+  // -------------------------
+  return (
+    <div className={styles.container}>
+      <h1 className={styles.title}>Dashboard Admin</h1>
+
+      {/* -------------------- TABLA USUARIOS -------------------- */}
+      <section className={styles.section}>
+        <h2>Usuarios</h2>
+        <table className={styles.table}>
+          <thead>
+            <tr>
+              <th>Email</th>
+              <th>Rol</th>
+              <th>Estado</th>
+              <th>Empresa</th>
+            </tr>
+          </thead>
+          <tbody>
+            {users.length === 0 ? (
+              <tr>
+                <td colSpan="4" className={styles.empty}>
+                  No hay usuarios aún
+                </td>
+              </tr>
+            ) : (
+              users.map((user) => (
+                <tr key={user.id_usuario}>
+                  <td>{user.email}</td>
+                  <td>{user.rol}</td>
+                  <td>{user.estado}</td>
+                  <td>{user.empresa ? user.empresa.nombre : "-"}</td>
+                </tr>
+              ))
+            )}
+          </tbody>
+        </table>
+      </section>
+
+      {/* -------------------- TABLA EMPRESAS -------------------- */}
+      <section className={styles.section}>
+        <h2>Empresas</h2>
+        <table className={styles.table}>
+          <thead>
+            <tr>
+              <th>Nombre</th>
+              <th>NIT</th>
+              <th>Estado</th>
+              <th>Admin</th>
+            </tr>
+          </thead>
+          <tbody>
+            {empresas.length === 0 ? (
+              <tr>
+                <td colSpan="4" className={styles.empty}>
+                  No hay empresas aún
+                </td>
+              </tr>
+            ) : (
+              empresas.map((empresa) => (
+                <tr key={empresa.id_empresa}>
+                  <td>{empresa.nombre}</td>
+                  <td>{empresa.nit}</td>
+                  <td>{empresa.estado}</td>
+                  <td>{empresa.admin ? empresa.admin.email : "-"}</td>
+                </tr>
+              ))
+            )}
+          </tbody>
+        </table>
+      </section>
+
+      {/* -------------------- BOTONES -------------------- */}
+      <section className={styles.actions}>
+        <button onClick={handleOpenEmpresaForm}>Registrar Empresa</button>
+        <button onClick={handleOpenAdminForm}>Registrar Admin de Empresa</button>
+      </section>
+
+      {/* -------------------- MODALES (solo visual) -------------------- */}
+      {showEmpresaForm && (
+        <div className={styles.modal}>
+          <h3>Registrar Nueva Empresa</h3>
+          <form>
+            <input type="text" placeholder="Nombre Empresa" />
+            <input type="text" placeholder="NIT" />
+            <button type="submit">Guardar</button>
+            <button type="button" onClick={handleCloseEmpresaForm}>
+              Cancelar
+            </button>
+          </form>
+        </div>
+      )}
+
+      {showAdminForm && (
+        <div className={styles.modal}>
+          <h3>Registrar Admin de Empresa</h3>
+          <form>
+            <input type="email" placeholder="Email" />
+            <input type="password" placeholder="Password" />
+            <select>
+              <option value="">Seleccionar Empresa</option>
+              {/* 👇 Aquí se llenará con las empresas disponibles */}
+              {empresas.map((e) => (
+                <option key={e.id_empresa} value={e.id_empresa}>
+                  {e.nombre}
+                </option>
+              ))}
+            </select>
+            <button type="submit">Guardar</button>
+            <button type="button" onClick={handleCloseAdminForm}>
+              Cancelar
+            </button>
+          </form>
+        </div>
+      )}
+    </div>
+  );
 }

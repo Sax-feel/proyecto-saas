@@ -1,0 +1,137 @@
+/* Contenedor principal */
+.container {
+  padding: 2rem;
+  font-family: Arial, sans-serif;
+  background-color: #1e293b; /* Azul grisáceo medio, elegante y oscuro pero no negro */
+  min-height: 100vh;
+  color: #e2e8f0; /* Gris claro para texto general */
+}
+
+/* Títulos principales */
+.title {
+  text-align: center;
+  font-size: 2rem;
+  margin-bottom: 2rem;
+  color: #f8fafc; /* Gris muy claro para destacar */
+  font-weight: bold;
+}
+
+/* Secciones / tarjetas */
+.section {
+  background-color: #2e3b55; /* Azul grisáceo medio para tarjetas, nada de blanco */
+  padding: 1rem 2rem;
+  border-radius: 8px;
+  margin-bottom: 2rem;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2); /* Sombra elegante */
+  color: #f1f5f9; /* Texto claro para buena legibilidad */
+}
+
+/* Tablas */
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 1rem;
+  background-color: #2e3b55; /* Fondo de la tabla igual que sección */
+  color: #f1f5f9; /* Texto legible */
+}
+
+.table th, .table td {
+  border: 1px solid #4b5563; /* Gris azulado medio */
+  padding: 0.75rem;
+  text-align: left;
+}
+
+.table th {
+  background-color: #3b82f6; /* Azul acento elegante */
+  color: #f8fafc; /* Texto contrastante */
+}
+
+.table tr:nth-child(even) {
+  background-color: #374b6a; /* Filas alternas para mejorar legibilidad */
+}
+
+/* Botones principales */
+.button {
+  margin-top: 1rem;
+  background-color: #2563eb; /* Azul sofisticado */
+  color: #f8fafc;
+  border: none;
+  padding: 0.5rem 1rem;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.button:hover {
+  background-color: #1e40af;
+}
+
+/* Botón logout / alerta */
+.logout {
+  background-color: #ef4444; /* Rojo elegante */
+  color: #f8fafc;
+  padding: 0.5rem 1rem;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  display: block;
+  margin: 2rem auto 0;
+}
+
+.logout:hover {
+  background-color: #b91c1c;
+}
+
+/* Modal */
+.modalOverlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(30, 41, 59, 0.7); /* Fondo semitransparente azul grisáceo */
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.modal {
+  background-color: #2e3b55; /* Fondo de modal igual que tarjetas */
+  padding: 2rem;
+  border-radius: 8px;
+  width: 400px;
+  max-width: 90%;
+  color: #f1f5f9;
+}
+
+.modalButtons {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 1rem;
+}
+
+.buttonCancel {
+  background-color: #6b7280; /* Gris medio elegante */
+  color: #f8fafc;
+}
+
+.buttonCancel:hover {
+  background-color: #4b5563;
+}
+
+/* Formularios */
+.form label {
+  display: block;
+  margin-top: 0.5rem;
+  color: #e2e8f0; /* Texto legible */
+}
+
+.form input, .form select {
+  width: 100%;
+  padding: 0.5rem;
+  margin-top: 0.25rem;
+  border-radius: 4px;
+  border: 1px solid #4b5563; /* Gris medio */
+  background-color: #374b6a; /* Gris azulado medio para inputs */
+  color: #f1f5f9; /* Texto claro dentro de inputs */
+}

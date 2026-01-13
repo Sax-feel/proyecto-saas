@@ -56,8 +56,7 @@ INSTALLED_APPS = [
     'admins',
     'planes',
     'suscripciones',
-    
-    
+    'relacion_tiene',
 ]
 
 MIDDLEWARE = [

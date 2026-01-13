@@ -9,12 +9,19 @@ services:
       - POSTGRES_USER=saadmin
       - POSTGRES_PASSWORD=(password!)
     ports:
-      - "5435:5432" # El puerto 5435 es para que tú entres desde afuera si quieres
+      - "5435:5432"
+    # Añadir healthcheck
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U saadmin -d saas_db"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
 
   backend:
     build: ./backend
     command: >
-      sh -c "python manage.py migrate && python manage.py runserver 0.0.0.0:8000"
+      sh -c "python manage.py runserver 0.0.0.0:8000"
     volumes:
       - ./backend:/app
     ports:
@@ -23,10 +30,11 @@ services:
       - DB_NAME=saas_db
       - DB_USER=saadmin
       - DB_PASS=(password!)
-      - DB_HOST=db # Nombre del servicio de arriba
+      - DB_HOST=db
       - DB_PORT=5432
     depends_on:
-      - db
+      db:
+        condition: service_healthy  # Esperar que db esté healthy
 
   frontend:
     build: ./frontend

@@ -5,3 +5,4 @@ psycopg2-binary==2.9.9
 python-dotenv>=1.0
 djangorestframework-simplejwt==5.5.1
 djangorestframework-simplejwt[token_blacklist]==5.5.1
+django-filter==23.5

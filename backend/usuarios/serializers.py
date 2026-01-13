@@ -151,6 +151,17 @@ class CambioPasswordSerializer(serializers.Serializer):
 
 
 class UserSerializer(serializers.ModelSerializer):
+    rol = serializers.CharField(source='rol.rol', read_only=True)
+    rol_id = serializers.IntegerField(source='rol.id_rol', read_only=True)
+    
     class Meta:
         model = User
-        fields = '__all__'
+        fields = [
+            'id_usuario', 'email', 'estado', 'rol', 'rol_id',
+            'fecha_creacion', 'fecha_modificacion', 'ultimo_login',
+            'is_staff', 'is_superuser', 'is_active'
+        ]
+        read_only_fields = [
+            'id_usuario', 'fecha_creacion', 'fecha_modificacion',
+            'ultimo_login', 'is_staff', 'is_superuser'
+        ]

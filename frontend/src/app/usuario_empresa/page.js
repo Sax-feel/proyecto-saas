@@ -7,7 +7,6 @@ import styles from "./DashboardUsuarioEmpresa.module.css";
 export default function EmpresaPage() {
   const router = useRouter();
   
-  // Mock data
   const [empresa, setEmpresa] = useState({
     nombre: "SuperTienda",
     nit: "123456",
@@ -83,7 +82,6 @@ export default function EmpresaPage() {
         <button className={styles.button} onClick={() => setShowModal(true)}>Agregar Empleado</button>
       </section>
 
-      {/* Modal para nuevo empleado */}
       {showModal && (
         <div className={styles.modalOverlay}>
           <div className={styles.modal}>
@@ -120,7 +118,6 @@ export default function EmpresaPage() {
         </div>
       )}
 
-      {/* Sección Productos */}
       <section className={styles.section}>
         <h2>Productos Existentes</h2>
         <table className={styles.table}>

@@ -7,7 +7,6 @@ import styles from "./DashboardVendedor.module.css";
 export default function VendedorPage() {
   const router = useRouter();
 
-  // Mock data
   const [empresa, setEmpresa] = useState({
     nombre: "SuperTienda",
     nit: "123456",
@@ -41,7 +40,6 @@ export default function VendedorPage() {
     <div className={styles.container}>
       <h1 className={styles.title}>Dashboard Vendedor</h1>
 
-      {/* Información empresa */}
       <section className={styles.section}>
         <h2>Empresa</h2>
         <p><strong>Nombre:</strong> {empresa.nombre}</p>
@@ -49,7 +47,6 @@ export default function VendedorPage() {
         <p><strong>Estado:</strong> {empresa.estado}</p>
       </section>
 
-      {/* Clientes */}
       <section className={styles.section}>
         <h2>Clientes</h2>
         <table className={styles.table}>
@@ -72,7 +69,6 @@ export default function VendedorPage() {
         </table>
       </section>
 
-      {/* Productos */}
       <section className={styles.section}>
         <h2>Productos</h2>
         <table className={styles.table}>

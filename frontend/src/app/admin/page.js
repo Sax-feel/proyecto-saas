@@ -1,41 +1,23 @@
-// src/app/admin/DashboardAdmin.jsx
 "use client";
 
 import { useState, useEffect } from "react";
-import styles from "./DashboardAdmin.module.css"; // CSS separado
-// 👇 Marcadores para futuras integraciones
-// import { fetchUsers, fetchEmpresas, createEmpresa, createAdminEmpresa } from "../../services/api";
+import styles from "./DashboardAdmin.module.css";
 
 export default function DashboardAdmin() {
-  // -------------------------
-  // ESTADOS LOCALES
-  // -------------------------
-  const [users, setUsers] = useState([]);          // Lista de usuarios
-  const [empresas, setEmpresas] = useState([]);    // Lista de empresas
+  const [users, setUsers] = useState([]);
+  const [empresas, setEmpresas] = useState([]);
   const [showEmpresaForm, setShowEmpresaForm] = useState(false);
   const [showAdminForm, setShowAdminForm] = useState(false);
 
-  // -------------------------
-  // USE EFFECT PARA BACKEND
-  // -------------------------
   useEffect(() => {
-    // 👇 Aquí más adelante llamaremos al backend
-    // fetchUsers().then(setUsers);
-    // fetchEmpresas().then(setEmpresas);
   }, []);
 
-  // -------------------------
-  // HANDLERS PARA MODALES
-  // -------------------------
   const handleOpenEmpresaForm = () => setShowEmpresaForm(true);
   const handleCloseEmpresaForm = () => setShowEmpresaForm(false);
 
   const handleOpenAdminForm = () => setShowAdminForm(true);
   const handleCloseAdminForm = () => setShowAdminForm(false);
 
-  // -------------------------
-  // RENDER
-  // -------------------------
   return (
     <div className={styles.container}>
       <h1 className={styles.title}>Dashboard Admin</h1>
@@ -106,13 +88,11 @@ export default function DashboardAdmin() {
         </table>
       </section>
 
-      {/* -------------------- BOTONES -------------------- */}
       <section className={styles.actions}>
         <button onClick={handleOpenEmpresaForm}>Registrar Empresa</button>
         <button onClick={handleOpenAdminForm}>Registrar Admin de Empresa</button>
       </section>
 
-      {/* -------------------- MODALES (solo visual) -------------------- */}
       {showEmpresaForm && (
         <div className={styles.modal}>
           <h3>Registrar Nueva Empresa</h3>
@@ -135,7 +115,6 @@ export default function DashboardAdmin() {
             <input type="password" placeholder="Password" />
             <select>
               <option value="">Seleccionar Empresa</option>
-              {/* 👇 Aquí se llenará con las empresas disponibles */}
               {empresas.map((e) => (
                 <option key={e.id_empresa} value={e.id_empresa}>
                   {e.nombre}

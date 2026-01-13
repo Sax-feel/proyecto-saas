@@ -40,25 +40,23 @@ INSTALLED_APPS = [
     'django.contrib.contenttypes',
     'django.contrib.sessions',
     'django.contrib.messages',
+    'rest_framework_simplejwt.token_blacklist',
     'django.contrib.staticfiles',
     'rest_framework',
-    'rest_framework.authtoken',  # Si usas tokens
+    'rest_framework.authtoken',
     'corsheaders',
-    'catalogo',
-    'clientes',
+    'roles',
+    'usuarios',
+    'usuario_empresa',
+    'empresas',
     'core',
     'cuentas',
-    'empresas',
-    'inventario',
-    'notificaciones',
-    'ventas',
-    'roles',
     'cliente',
     'admins',
     'planes',
     'suscripciones',
-    'usuario_empresa',
-    'usuarios'
+    
+    
 ]
 
 MIDDLEWARE = [
@@ -164,7 +162,30 @@ REST_FRAMEWORK = {
     ],
 }
 
+AUTH_USER_MODEL = 'usuarios.User'
 SIMPLE_JWT = {
     'ACCESS_TOKEN_LIFETIME': timedelta(minutes=60),
-    'REFRESH_TOKEN_LIFETIME': timedelta(days=1),
+    'REFRESH_TOKEN_LIFETIME': timedelta(days=7),
+    'ROTATE_REFRESH_TOKENS': True,  # Cambiar a True
+    'BLACKLIST_AFTER_ROTATION': True,
+    
+    'ALGORITHM': 'HS256',
+    'SIGNING_KEY': SECRET_KEY,
+    'VERIFYING_KEY': None,
+    'AUDIENCE': None,
+    'ISSUER': None,
+    
+    'AUTH_HEADER_TYPES': ('Bearer',),
+    
+    'USER_ID_FIELD': 'id_usuario',  # Cambia de 'id' a 'id_usuario'
+    'USER_ID_CLAIM': 'user_id',     # Claim en el token
+    'USER_AUTHENTICATION_RULE': 'rest_framework_simplejwt.authentication.default_user_authentication_rule',
+    'AUTH_TOKEN_CLASSES': ('rest_framework_simplejwt.tokens.AccessToken',),
+    'TOKEN_TYPE_CLAIM': 'token_type',
+    
+    'JTI_CLAIM': 'jti',
+    'TOKEN_USER_CLASS': 'rest_framework_simplejwt.models.TokenUser',
+    'SLIDING_TOKEN_REFRESH_EXP_CLAIM': 'refresh_exp',
+    'SLIDING_TOKEN_LIFETIME': timedelta(minutes=5),
+    'SLIDING_TOKEN_REFRESH_LIFETIME': timedelta(days=1),
 }

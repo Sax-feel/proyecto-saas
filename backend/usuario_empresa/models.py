@@ -1,19 +1,16 @@
 from django.db import models
-
-
-#id_usuario(PK), estado, fecha_asignación, id_empresa(FK)
+from usuarios.models import User
 
 class Usuario_Empresa(models.Model):
 
-    ESTADOS = {
-        "ACTIVO": "activo",
-        "INACTIVO": "inactivo",
-    }
+    ESTADOS = [
+        ('activo', 'Activo'),
+        ('inactivo', 'Inactivo'),
+    ]
 
-    id_usuario = models.OneToOneField('usuarios.usuario',on_delete=models.CASCADE, primary_key=True)
+    id_usuario = models.OneToOneField(User,on_delete=models.CASCADE, primary_key=True)
     empresa_id = models.ForeignKey('empresas.Empresa', on_delete=models.CASCADE, db_column='id_empresa')
-    estado = models.CharField(max_length=50, choices=ESTADOS, default=ESTADOS["INACTIVO"])
-    fecha_asignacion = models.DateTimeField(auto_now_add=True)
+    estado = models.CharField(max_length=50, choices=ESTADOS, default='inactivo')
     fecha_modificacion = models.DateTimeField(auto_now=True)
 
     class Meta:

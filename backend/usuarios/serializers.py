@@ -1,64 +1,134 @@
+from django.utils import timezone
 from rest_framework import serializers
+from django.contrib.auth import get_user_model
 from django.contrib.auth.hashers import make_password, check_password
-from .models import Usuario
 from roles.models import Rol
 
+User = get_user_model()
+
 # Registrar nuevo usuario
-class RegistroUsuarioSerializer(serializers.Serializer):
-    email = serializers.EmailField()
-    password = serializers.CharField(write_only=True)
-    rol_id = serializers.IntegerField()
-
-    def validate(self, data):
-        rol = Rol.objects.filter(id_rol=data['rol_id'], estado='activo').first()
-
-        if not rol:
-            raise serializers.ValidationError("Rol inválido o inactivo")
-
-        data['rol_obj'] = rol
-        return data
-
+class RegistroUsuarioSerializer(serializers.ModelSerializer):
+    """Serializador para registro de usuarios usando nombres de rol"""
+    password = serializers.CharField(write_only=True, required=True)
+    rol_nombre = serializers.CharField(write_only=True, required=True, max_length=50)  # ← Nombre del rol
+    
+    class Meta:
+        model = User
+        fields = ['email', 'password', 'rol_nombre']  # ← Campo: rol_nombre
+        extra_kwargs = {
+            'email': {'required': True},
+        }
+    
+    def validate_rol_nombre(self, value):
+        """Validar que el rol exista y esté activo por nombre"""
+        value = value.lower()  # Convertir a minúsculas para consistencia
+        
+        # Validar que el valor sea uno de los roles permitidos
+        roles_permitidos = ['cliente', 'admin', 'admin_empresa', 'vendedor']
+        if value not in roles_permitidos:
+            raise serializers.ValidationError(f"Rol '{value}' no es válido. Roles permitidos: {', '.join(roles_permitidos)}")
+        
+        try:
+            rol = Rol.objects.get(rol=value, estado='activo')
+            return value
+        except Rol.DoesNotExist:
+            raise serializers.ValidationError(f"Rol '{value}' no existe o no está activo")
+    
+    def validate_email(self, value):
+        """Validar que el email no esté registrado"""
+        if User.objects.filter(email=value).exists():
+            raise serializers.ValidationError("Este email ya está registrado")
+        return value
+    
     def create(self, validated_data):
-        return Usuario.objects.create(
+        """Crear usuario con rol correspondiente"""
+        rol_nombre = validated_data.pop('rol_nombre')
+        password = validated_data.pop('password')
+        
+        # Buscar el rol por nombre
+        rol = Rol.objects.get(rol=rol_nombre)
+        
+        # Crear el usuario
+        usuario = User.objects.create_user(
             email=validated_data['email'],
-            rol_id=validated_data['rol_obj'],
-            password_hash=make_password(validated_data['password']),
+            password=password,
+            rol=rol,
             estado='activo'
         )
+        
+        return usuario
+
 
 # Inicio de sesión
 class LoginSerializer(serializers.Serializer):
-    email = serializers.EmailField()
-    password = serializers.CharField(write_only=True)
-
+    """
+    Serializador para inicio de sesión.
+    """
+    email = serializers.EmailField(required=True)
+    password = serializers.CharField(write_only=True, required=True)
+    
     def validate(self, data):
+        """
+        Valida las credenciales y retorna datos con el usuario.
+        """
+        email = data.get('email')
+        password = data.get('password')
+        
         try:
-            user = Usuario.objects.get(email=data['email'])
-        except Usuario.DoesNotExist:
-            raise serializers.ValidationError("Credenciales inválidas")
+            user = User.objects.get(email=email)
+        except User.DoesNotExist:
+            raise serializers.ValidationError({
+                'email': 'Credenciales inválidas'
+            })
+            
+        if not user.check_password(password):
+            raise serializers.ValidationError({
+                'password': 'Credenciales inválidas'
+            })
+                
+        if user.estado != 'activo':
+            raise serializers.ValidationError({
+                'email': f'Usuario {user.estado}. Contacte al administrador.'
+            })
+        
+        if not user.rol or user.rol.estado != 'activo':
+            raise serializers.ValidationError({
+                'email': 'Rol no disponible.'
+            })
+        
+        user.ultimo_login = timezone.now()
+        user.save(update_fields=['ultimo_login'])
+        
+        return {
+            'user': user,
+            'email': user.email,
+            'rol': user.rol.rol if user.rol else None
+        }
 
-        if not check_password(data['password'], user.password_hash):
-            raise serializers.ValidationError("Credenciales inválidas")
-
-        if user.estado == "bloqueado":
-            raise serializers.ValidationError("Usuario bloqueado")
-
-        return user
 
 # Perfil de usuario
 class PerfilUsuarioSerializer(serializers.ModelSerializer):
-    rol = serializers.CharField(source='rol_id.rol')
-
+    """Serializador para perfil"""
+    rol = serializers.CharField(source='rol.rol')
+    rol_id = serializers.IntegerField(source='rol.id_rol')
+    rol_display = serializers.CharField(source='rol.get_rol_display')
+    
     class Meta:
-        model = Usuario
+        model = User
         fields = [
             'id_usuario',
             'email',
             'estado',
             'rol',
+            'rol_id',
+            'rol_display',
             'fecha_creacion',
-            'ultimo_login'
+            'ultimo_login',
+            'is_staff',
+            'is_superuser'
         ]
+        read_only_fields = fields
+
 
 # Cambio de contraseña
 class CambioPasswordSerializer(serializers.Serializer):
@@ -68,22 +138,19 @@ class CambioPasswordSerializer(serializers.Serializer):
     def validate(self, data):
         user = self.context['request'].user
 
-        if not check_password(data['password_actual'], user.password_hash):
+        if not user.check_password(data['password_actual']):
             raise serializers.ValidationError("Contraseña actual incorrecta")
 
         return data
 
     def save(self):
         user = self.context['request'].user
-        user.password_hash = make_password(self.validated_data['nueva_password'])
+        user.set_password(self.validated_data['nueva_password'])
         user.save()
         return user
 
-from rest_framework import serializers
-from .models import Usuario
 
-class UsuarioSerializer(serializers.ModelSerializer):
-
+class UserSerializer(serializers.ModelSerializer):
     class Meta:
-        model = Usuario
+        model = User
         fields = '__all__'

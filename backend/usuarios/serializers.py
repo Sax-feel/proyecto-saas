@@ -150,18 +150,89 @@ class CambioPasswordSerializer(serializers.Serializer):
         return user
 
 
+# usuarios/serializers.py
 class UserSerializer(serializers.ModelSerializer):
     rol = serializers.CharField(source='rol.rol', read_only=True)
     rol_id = serializers.IntegerField(source='rol.id_rol', read_only=True)
+    empresas_nombres = serializers.SerializerMethodField()  # Solo nombres
     
     class Meta:
         model = User
         fields = [
             'id_usuario', 'email', 'estado', 'rol', 'rol_id',
-            'fecha_creacion', 'fecha_modificacion', 'ultimo_login',
-            'is_staff', 'is_superuser', 'is_active'
+            'fecha_creacion', 'ultimo_login', 'empresas_nombres'
         ]
-        read_only_fields = [
-            'id_usuario', 'fecha_creacion', 'fecha_modificacion',
-            'ultimo_login', 'is_staff', 'is_superuser'
-        ]
+    
+    def get_empresas_nombres(self, obj):
+        """
+        Retorna solo los nombres de las empresas
+        """
+        empresas = self.get_empresas(obj)
+        return [empresa['nombre'] for empresa in empresas] if empresas else []
+    
+    def get_empresas(self, obj):
+        """
+        Obtiene las empresas relacionadas según el rol del usuario
+        """
+        empresas_info = []
+        rol_nombre = obj.rol.rol if obj.rol else None
+        
+        if rol_nombre == 'admin':
+            # Admin: empresas que ha registrado (desde tabla Empresa)
+            try:
+                from empresas.models import Empresa
+                empresas_registradas = Empresa.objects.filter(admin_id__id_usuario=obj)
+                
+                for empresa in empresas_registradas:
+                    empresas_info.append({
+                        'id_empresa': empresa.id_empresa,
+                        'nombre': empresa.nombre,
+                        'nit': empresa.nit,
+                        'relacion': 'registrada_por'  # Indica que el admin registró esta empresa
+                    })
+            except Exception:
+                pass
+        
+        elif rol_nombre == 'cliente':
+            # Cliente: empresas a las que está registrado (desde tabla Tiene)
+            try:
+                from cliente.models import Cliente
+                from relacion_tiene.models import Tiene
+                
+                # Obtener el cliente asociado al usuario
+                cliente = Cliente.objects.get(id_usuario=obj)
+                
+                # Obtener empresas a través de la tabla 'tiene'
+                relaciones = Tiene.objects.filter(id_cliente=cliente).select_related('id_empresa')
+                
+                for relacion in relaciones:
+                    empresa = relacion.id_empresa
+                    empresas_info.append({
+                        'id_empresa': empresa.id_empresa,
+                        'nombre': empresa.nombre,
+                        'nit': empresa.nit,
+                        'fecha_registro': relacion.fecha_registro,
+                        'relacion': 'cliente_registrado'
+                    })
+            except Exception:
+                pass
+        
+        elif rol_nombre in ['admin_empresa', 'vendedor']:
+            # Admin_empresa y Vendedor: empresa asignada (desde tabla Usuario_Empresa)
+            try:
+                from usuario_empresa.models import Usuario_Empresa
+                
+                usuario_empresa = Usuario_Empresa.objects.get(id_usuario=obj)
+                empresa = usuario_empresa.empresa_id
+                
+                empresas_info.append({
+                    'id_empresa': empresa.id_empresa,
+                    'nombre': empresa.nombre,
+                    'nit': empresa.nit,
+                    'fecha_asignacion': usuario_empresa.fecha_modificacion,
+                    'relacion': 'administrador' if rol_nombre == 'admin_empresa' else 'vendedor'
+                })
+            except Exception:
+                pass
+        
+        return empresas_info if empresas_info else None

@@ -6,3 +6,5 @@ python-dotenv>=1.0
 djangorestframework-simplejwt==5.5.1
 djangorestframework-simplejwt[token_blacklist]==5.5.1
 django-filter==23.5
+drf-spectacular==0.29.0
+drf-spectacular-sidecar==2026.1.1

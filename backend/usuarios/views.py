@@ -12,6 +12,7 @@ import logging
 logger = logging.getLogger(__name__)
 
 
+# usuarios/views.py
 class ListaUsuariosView(generics.ListAPIView):
     """
     Vista para listar TODOS los usuarios del sistema
@@ -39,8 +40,9 @@ class ListaUsuariosView(generics.ListAPIView):
     
     def get_queryset(self):
         """
-        Retorna todos los usuarios con información relacionada
+        Retorna todos los usuarios con información relacionada optimizada
         """
+        # Optimización: select_related para rol, prefetch para relaciones
         return User.objects.select_related('rol').all()
     
     def list(self, request, *args, **kwargs):
@@ -88,9 +90,17 @@ class ListaUsuariosView(generics.ListAPIView):
         
         # Contar por rol
         usuarios_por_rol = {}
+        usuarios_con_empresa_por_rol = {}
+        
         for user in queryset:
             rol_nombre = user.rol.rol if user.rol else 'sin_rol'
             usuarios_por_rol[rol_nombre] = usuarios_por_rol.get(rol_nombre, 0) + 1
+            
+            # Contar usuarios con empresa por rol
+            serializer = self.get_serializer(user)
+            empresas = serializer.data.get('empresas', [])
+            if empresas:
+                usuarios_con_empresa_por_rol[rol_nombre] = usuarios_con_empresa_por_rol.get(rol_nombre, 0) + 1
         
         # Contar por estado
         usuarios_por_estado = {}
@@ -101,6 +111,7 @@ class ListaUsuariosView(generics.ListAPIView):
         return {
             'total_usuarios': total,
             'por_rol': usuarios_por_rol,
+            'con_empresa_por_rol': usuarios_con_empresa_por_rol,
             'por_estado': usuarios_por_estado,
             'ultima_actualizacion': timezone.now().isoformat()
         }

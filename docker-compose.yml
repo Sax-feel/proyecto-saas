@@ -32,6 +32,12 @@ services:
       - DB_PASS=(password!)
       - DB_HOST=db
       - DB_PORT=5432
+      - EMAIL_HOST=smtp.gmail.com
+      - EMAIL_PORT=587
+      - EMAIL_USE_TLS=True
+      - EMAIL_HOST_USER=saasproyecto737@gmail.com
+      - EMAIL_HOST_PASSWORD=uied zhyf vvor kwou
+      - DEFAULT_FROM_EMAIL=saasproyecto737@gmail.com
     depends_on:
       db:
         condition: service_healthy  # Esperar que db esté healthy

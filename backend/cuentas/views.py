@@ -1,15 +1,25 @@
 from django.utils import timezone
+from django.conf import settings
+from django.core.mail import send_mail
+from django.template.loader import render_to_string
+from django.utils.html import strip_tags
 from rest_framework import generics, status, serializers
 from rest_framework.response import Response
-from rest_framework.permissions import IsAuthenticated
+from rest_framework.permissions import IsAuthenticated, AllowAny
 from rest_framework_simplejwt.tokens import RefreshToken
 from rest_framework_simplejwt.exceptions import TokenError
 from rest_framework_simplejwt.tokens import RefreshToken
 from rest_framework.permissions import AllowAny
-from usuarios.models import User
-from cuentas.serializers import LogoutSerializer
 from usuarios.serializers import RegistroUsuarioSerializer, PerfilUsuarioSerializer, LoginSerializer
+from cuentas.serializers import (
+    PasswordResetRequestSerializer,
+    PasswordResetConfirmSerializer,
+    PasswordResetValidateTokenSerializer
+)
+from datetime import timedelta
 import logging
+import jwt
+
 
 logger = logging.getLogger(__name__)
 
@@ -333,3 +343,209 @@ class LogoutView(generics.GenericAPIView):
         response['Access-Control-Allow-Headers'] = 'Authorization, Content-Type'
         response['Access-Control-Allow-Methods'] = 'POST, OPTIONS'
         return response
+    
+
+class PasswordResetRequestView(generics.GenericAPIView):
+    """
+    Vista para solicitar restablecimiento de contraseña
+    Envía email con enlace de restablecimiento
+    """
+    serializer_class = PasswordResetRequestSerializer
+    permission_classes = [AllowAny]
+    
+    def post(self, request, *args, **kwargs):
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        
+        email = serializer.validated_data['email']
+        user = serializer.get_user()
+        
+        # Por seguridad, siempre devolver éxito aunque el email no exista
+        if not user:
+            logger.info(f"Intento de reset para email no registrado: {email}")
+            return Response({
+                'message': 'Si el email existe en nuestro sistema, recibirás un enlace para restablecer tu contraseña.',
+                'status': 'success'
+            }, status=status.HTTP_200_OK)
+        
+        try:
+            # Generar token JWT para password reset
+            token = self._generate_password_reset_token(user)
+            
+            # Construir URL de frontend
+            reset_url = self._build_reset_url(request, token)
+            
+            # Enviar email
+            self._send_password_reset_email(user, reset_url)
+            
+            logger.info(f"Email de reset enviado a: {user.email}")
+            
+            return Response({
+                'message': 'Si el email existe en nuestro sistema, recibirás un enlace para restablecer tu contraseña.',
+                'status': 'success',
+                'metadata': {
+                    'email_sent_to': email,
+                    'user_id': user.id_usuario,
+                    'timestamp': timezone.now().isoformat()
+                }
+            }, status=status.HTTP_200_OK)
+            
+        except Exception as e:
+            logger.error(f"Error enviando email de reset a {email}: {str(e)}", exc_info=True)
+            
+            # Por seguridad, no revelar el error real
+            return Response({
+                'message': 'Si el email existe en nuestro sistema, recibirás un enlace para restablecer tu contraseña.',
+                'status': 'success'
+            }, status=status.HTTP_200_OK)
+    
+    def _generate_password_reset_token(self, user):
+        """
+        Generar token JWT para password reset
+        """
+        payload = {
+            'type': 'password_reset',
+            'user_id': user.id_usuario,
+            'email': user.email,
+            'exp': (timezone.now() + timedelta(hours=24)).timestamp(),  # 24 horas
+            'iat': timezone.now().timestamp(),
+            'jti': f'pwd_reset_{user.id_usuario}_{timezone.now().timestamp()}'
+        }
+        
+        token = jwt.encode(payload, settings.SECRET_KEY, algorithm='HS256')
+        return token
+    
+    def _build_reset_url(self, request, token):
+        """
+        Construir URL para frontend
+        """
+        # URL para frontend Next.js
+        frontend_url = 'http://localhost:3000'  # Cambiar según tu frontend
+        
+        # Si tienes variable de entorno, úsala
+        frontend_url = getattr(settings, 'FRONTEND_URL', frontend_url)
+        
+        reset_url = f"{frontend_url}/reset-password?token={token}"
+        return reset_url
+    
+    def _send_password_reset_email(self, user, reset_url):
+        """
+        Enviar email con enlace de restablecimiento
+        """
+        subject = 'Restablecimiento de contraseña - Tu SAAS'
+        
+        # Contexto para template
+        context = {
+            'user': user,
+            'reset_url': reset_url,
+            'expiry_hours': 24,
+            'support_email': getattr(settings, 'SUPPORT_EMAIL', 'soporte@tudominio.com'),
+            'current_year': timezone.now().year
+        }
+        
+        # Renderizar template HTML
+        html_message = render_to_string('emails/password_reset.html', context)
+        plain_message = strip_tags(html_message)
+        
+        send_mail(
+            subject=subject,
+            message=plain_message,
+            from_email=settings.DEFAULT_FROM_EMAIL,
+            recipient_list=[user.email],
+            html_message=html_message,
+            fail_silently=False
+        )
+
+
+class PasswordResetConfirmView(generics.GenericAPIView):
+    """
+    Vista para confirmar restablecimiento de contraseña
+    """
+    serializer_class = PasswordResetConfirmSerializer
+    permission_classes = [AllowAny]
+    
+    def post(self, request, *args, **kwargs):
+        serializer = self.get_serializer(data=request.data)
+        
+        try:
+            serializer.is_valid(raise_exception=True)
+            
+            user = serializer.validated_data['user']
+            new_password = serializer.validated_data['new_password']
+            
+            # Cambiar contraseña
+            user.set_password(new_password)
+            user.save()
+            
+            # Invalidar tokens JWT existentes (opcional)
+            # Podrías agregar el token actual a una blacklist
+            
+            logger.info(f"Contraseña actualizada para usuario: {user.email}")
+            
+            return Response({
+                'message': 'Contraseña actualizada exitosamente',
+                'status': 'success',
+                'metadata': {
+                    'user_id': user.id_usuario,
+                    'email': user.email,
+                    'password_changed_at': timezone.now().isoformat()
+                }
+            }, status=status.HTTP_200_OK)
+            
+        except Exception as e:
+            logger.error(f"Error actualizando contraseña: {str(e)}", exc_info=True)
+            return Response({
+                'error': 'Error al actualizar contraseña',
+                'detail': str(e),
+                'status': 'error'
+            }, status=status.HTTP_400_BAD_REQUEST)
+
+
+class PasswordResetValidateTokenView(generics.GenericAPIView):
+    """
+    Vista para validar token de restablecimiento
+    """
+    serializer_class = PasswordResetValidateTokenSerializer
+    permission_classes = [AllowAny]
+    
+    def post(self, request, *args, **kwargs):
+        serializer = self.get_serializer(data=request.data)
+        
+        try:
+            serializer.is_valid(raise_exception=True)
+            
+            user = serializer.validated_data['user']
+            payload = serializer.validated_data['payload']
+            email = serializer.validated_data['email']
+            
+            # Calcular tiempo restante
+            exp_timestamp = payload.get('exp')
+            if exp_timestamp:
+                remaining_time = exp_timestamp - timezone.now().timestamp()
+                remaining_hours = max(0, remaining_time / 3600)
+            else:
+                remaining_hours = 0
+            
+            return Response({
+                'message': 'Token válido',
+                'status': 'success',
+                'data': {
+                    'valid': True,
+                    'email': email,
+                    'user_id': user.id_usuario,
+                    'token_type': payload.get('type'),
+                    'expires_in_hours': round(remaining_hours, 2),
+                    'is_expired': remaining_hours <= 0
+                }
+            }, status=status.HTTP_200_OK)
+            
+        except Exception as e:
+            logger.warning(f"Token de reset inválido: {str(e)}")
+            return Response({
+                'message': 'Token inválido o expirado',
+                'status': 'error',
+                'data': {
+                    'valid': False,
+                    'error': str(e)
+                }
+            }, status=status.HTTP_400_BAD_REQUEST)

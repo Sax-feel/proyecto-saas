@@ -31,24 +31,28 @@ class SolicitarSuscripcionView(generics.GenericAPIView):
     permission_classes = [IsAuthenticated]
     
     def post(self, request, *args, **kwargs):
-        serializer = self.get_serializer(data=request.data)
+        # Pasar el request en el contexto del serializer
+        serializer = self.get_serializer(data=request.data, context={'request': request})
         
         try:
             serializer.is_valid(raise_exception=True)
             
-            admin_empresa = request.user
-            plan = serializer.validated_data['plan_nombre']
+            admin_empresa_user = request.user  # User object
+            plan = serializer.validated_data['plan_nombre']  # Plan object
             comprobante_pago = serializer.validated_data.get('comprobante_pago')
             observaciones = serializer.validated_data.get('observaciones', '')
             
-            # 1. Obtener empresa del admin_empresa
-            empresa = self._obtener_empresa_del_admin(admin_empresa)
+            # 1. Obtener empresa del contexto (ya validada en el serializer)
+            empresa = serializer.context.get('empresa')
             if not empresa:
-                return Response({
-                    'error': 'Empresa no encontrada',
-                    'detail': 'El usuario no está asociado a ninguna empresa',
-                    'status': 'error'
-                }, status=status.HTTP_400_BAD_REQUEST)
+                # Si no está en contexto, obtenerla directamente
+                empresa = self._obtener_empresa_del_admin(admin_empresa_user)
+                if not empresa:
+                    return Response({
+                        'error': 'Empresa no encontrada',
+                        'detail': 'El usuario no está asociado a ninguna empresa',
+                        'status': 'error'
+                    }, status=status.HTTP_400_BAD_REQUEST)
             
             # 2. Calcular fecha de fin según duración del plan
             fecha_inicio = timezone.now()
@@ -56,8 +60,8 @@ class SolicitarSuscripcionView(generics.GenericAPIView):
             
             # 3. Crear suscripción en estado 'pendiente'
             suscripcion = Suscripcion.objects.create(
-                plan_id=plan,
-                empresa_id=empresa,
+                plan_id=plan,        # Plan object
+                empresa_id=empresa,  # Empresa object
                 fecha_inicio=fecha_inicio,
                 fecha_fin=fecha_fin,
                 estado='pendiente',
@@ -69,7 +73,7 @@ class SolicitarSuscripcionView(generics.GenericAPIView):
             logger.info(f"Suscripción solicitada: {suscripcion.id_suscripcion} - Empresa: {empresa.nombre} - Plan: {plan.nombre}")
             
             # 4. Enviar correo a administradores
-            self._enviar_correo_a_admins(suscripcion, admin_empresa)
+            self._enviar_correo_a_admins(suscripcion, admin_empresa_user)
             
             # 5. Preparar respuesta
             response_data = {
@@ -98,12 +102,17 @@ class SolicitarSuscripcionView(generics.GenericAPIView):
                 'status': 'error'
             }, status=status.HTTP_400_BAD_REQUEST)
     
-    def _obtener_empresa_del_admin(self, admin_empresa):
+    def _obtener_empresa_del_admin(self, admin_empresa_user):
         """Obtiene la empresa asociada al admin_empresa"""
         try:
             from usuario_empresa.models import Usuario_Empresa
-            usuario_empresa = Usuario_Empresa.objects.get(id_usuario=admin_empresa)
-            return usuario_empresa.empresa_id
+            usuario_empresa_rel = Usuario_Empresa.objects.select_related('empresa_id').get(
+                id_usuario=admin_empresa_user
+            )
+            return usuario_empresa_rel.empresa_id  # Instancia de Empresa
+        except Usuario_Empresa.DoesNotExist:
+            logger.error(f"Usuario {admin_empresa_user.email} no tiene relación Usuario_Empresa")
+            return None
         except Exception as e:
             logger.error(f"Error obteniendo empresa del admin: {str(e)}")
             return None

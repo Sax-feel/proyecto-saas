@@ -51,27 +51,49 @@ class SolicitudSuscripcionSerializer(serializers.Serializer):
     
     def validate(self, data):
         """Validaciones adicionales"""
-        empresa = self.context['request'].user
+        request = self.context.get('request')
+        if not request:
+            raise serializers.ValidationError("Request no disponible en contexto")
+        
+        user = request.user  # Esto es un objeto User, NO una Empresa
         
         # Verificar que el usuario sea admin_empresa
-        if not empresa.rol or empresa.rol.rol != 'admin_empresa':
+        if not user.rol or user.rol.rol != 'admin_empresa':
             raise serializers.ValidationError({
                 'error': 'Solo administradores de empresa pueden solicitar suscripciones'
             })
         
-        # Verificar si ya tiene una suscripción activa o pendiente
-        from .models import Suscripcion
-        suscripcion_activa = Suscripcion.objects.filter(
-            empresa_id=empresa,
-            estado__in=['activo', 'pendiente']
-        ).exists()
-        
-        if suscripcion_activa:
+        # Obtener la empresa del admin_empresa
+        try:
+            from usuario_empresa.models import Usuario_Empresa
+            usuario_empresa_rel = Usuario_Empresa.objects.get(id_usuario=user)
+            empresa = usuario_empresa_rel.empresa_id  # Esto SÍ es una instancia de Empresa
+            
+            # Verificar si ya tiene una suscripción activa o pendiente
+            from .models import Suscripcion
+            suscripcion_activa = Suscripcion.objects.filter(
+                empresa_id=empresa,  # Usar la instancia de Empresa
+                estado__in=['activo', 'pendiente']
+            ).exists()
+            
+            if suscripcion_activa:
+                raise serializers.ValidationError({
+                    'error': 'Ya tienes una suscripción activa o pendiente'
+                })
+            
+            # Guardar la empresa en el contexto para usarla después
+            self.context['empresa'] = empresa
+            
+        except Usuario_Empresa.DoesNotExist:
             raise serializers.ValidationError({
-                'error': 'Ya tienes una suscripción activa o pendiente'
+                'error': 'No estás asociado a ninguna empresa como administrador'
             })
         
         return data
+    
+    def create(self, validated_data):
+        """Este método no se usa realmente, pero Django lo espera"""
+        pass
 
 
 class SuscripcionSerializer(serializers.ModelSerializer):

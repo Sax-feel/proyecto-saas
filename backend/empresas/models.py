@@ -11,7 +11,7 @@ class Empresa(models.Model):
     ]
 
     id_empresa = models.AutoField(primary_key=True)
-    admin_id = models.ForeignKey(Admin, on_delete=models.CASCADE, db_column='id_usuario', null=True, blank=True)
+    admin_id = models.ForeignKey(Admin, on_delete=models.CASCADE, db_column='admin_id', null=True, blank=True)
     nombre = models.CharField(max_length=100)
     nit = models.CharField(max_length=20,unique=True)
     direccion = models.CharField(max_length=200)

@@ -6,6 +6,7 @@ from django.template.loader import render_to_string
 from django.conf import settings
 from rest_framework import generics, status, filters
 from rest_framework.response import Response
+from rest_framework.exceptions import ValidationError
 from rest_framework.permissions import IsAuthenticated, AllowAny
 from django_filters.rest_framework import DjangoFilterBackend
 from .models import Suscripcion
@@ -31,21 +32,19 @@ class SolicitarSuscripcionView(generics.GenericAPIView):
     permission_classes = [IsAuthenticated]
     
     def post(self, request, *args, **kwargs):
-        # Pasar el request en el contexto del serializer
         serializer = self.get_serializer(data=request.data, context={'request': request})
         
         try:
             serializer.is_valid(raise_exception=True)
             
-            admin_empresa_user = request.user  # User object
-            plan = serializer.validated_data['plan_nombre']  # Plan object
+            admin_empresa_user = request.user
+            plan = serializer.validated_data['plan_nombre']
             comprobante_pago = serializer.validated_data.get('comprobante_pago')
             observaciones = serializer.validated_data.get('observaciones', '')
             
-            # 1. Obtener empresa del contexto (ya validada en el serializer)
+            # 1. Obtener empresa del contexto
             empresa = serializer.context.get('empresa')
             if not empresa:
-                # Si no está en contexto, obtenerla directamente
                 empresa = self._obtener_empresa_del_admin(admin_empresa_user)
                 if not empresa:
                     return Response({
@@ -60,8 +59,8 @@ class SolicitarSuscripcionView(generics.GenericAPIView):
             
             # 3. Crear suscripción en estado 'pendiente'
             suscripcion = Suscripcion.objects.create(
-                plan_id=plan,        # Plan object
-                empresa_id=empresa,  # Empresa object
+                plan_id=plan,
+                empresa_id=empresa,
                 fecha_inicio=fecha_inicio,
                 fecha_fin=fecha_fin,
                 estado='pendiente',
@@ -70,12 +69,16 @@ class SolicitarSuscripcionView(generics.GenericAPIView):
                 fecha_solicitud=fecha_inicio
             )
             
-            logger.info(f"Suscripción solicitada: {suscripcion.id_suscripcion} - Empresa: {empresa.nombre} - Plan: {plan.nombre}")
+            # 4. ACTUALIZAR ESTADO DE LA EMPRESA A 'pendiente' ← NUEVO
+            empresa.estado = 'pendiente'
+            empresa.save()
             
-            # 4. Enviar correo a administradores
+            logger.info(f"Suscripción solicitada: {suscripcion.id_suscripcion} - Empresa: {empresa.nombre} (estado actualizado a 'pendiente') - Plan: {plan.nombre}")
+            
+            # 5. Enviar correo a administradores
             self._enviar_correo_a_admins(suscripcion, admin_empresa_user)
             
-            # 5. Preparar respuesta
+            # 6. Preparar respuesta
             response_data = {
                 'message': 'Solicitud de suscripción enviada exitosamente',
                 'detail': 'Se ha enviado un correo a los administradores con el comprobante de pago',
@@ -89,11 +92,24 @@ class SolicitarSuscripcionView(generics.GenericAPIView):
                     'estado': 'pendiente',
                     'comprobante': comprobante_pago.name if comprobante_pago else None
                 },
+                'empresa_actualizada': {
+                    'id': empresa.id_empresa,
+                    'nombre': empresa.nombre,
+                    'estado': empresa.estado,
+                    'fecha_actualizacion': empresa.fecha_actualizacion.isoformat()
+                },
                 'status': 'success'
             }
             
             return Response(response_data, status=status.HTTP_201_CREATED)
             
+        except ValidationError as e:
+            # Manejar errores de validación del serializer
+            return Response({
+                'error': 'Error de validación',
+                'detail': e.detail,
+                'status': 'error'
+            }, status=status.HTTP_400_BAD_REQUEST)
         except Exception as e:
             logger.error(f"Error solicitando suscripción: {str(e)}", exc_info=True)
             return Response({
@@ -106,10 +122,10 @@ class SolicitarSuscripcionView(generics.GenericAPIView):
         """Obtiene la empresa asociada al admin_empresa"""
         try:
             from usuario_empresa.models import Usuario_Empresa
-            usuario_empresa_rel = Usuario_Empresa.objects.select_related('empresa_id').get(
+            usuario_empresa_rel = Usuario_Empresa.objects.select_related('empresa').get(
                 id_usuario=admin_empresa_user
             )
-            return usuario_empresa_rel.empresa_id  # Instancia de Empresa
+            return usuario_empresa_rel.empresa
         except Usuario_Empresa.DoesNotExist:
             logger.error(f"Usuario {admin_empresa_user.email} no tiene relación Usuario_Empresa")
             return None
@@ -207,14 +223,14 @@ class ListaSuscripcionesView(generics.ListAPIView):
     permission_classes = [AllowAny]
     filter_backends = [DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter]
     filterset_fields = ['estado', 'plan_id', 'empresa_id']
-    search_fields = ['empresa_id__nombre', 'plan_id__nombre', 'observaciones']
+    search_fields = ['empresa__nombre', 'plan_id__nombre', 'observaciones']
     ordering_fields = ['fecha_solicitud', 'fecha_inicio', 'fecha_fin', 'plan_id__precio']
     ordering = ['-fecha_solicitud']
     
     
     def get_queryset(self):
         """Retorna todas las suscripciones"""
-        return Suscripcion.objects.select_related('plan_id', 'empresa_id').all()
+        return Suscripcion.objects.select_related('plan_id', 'empresa').all()
     
     def list(self, request, *args, **kwargs):
         """Lista con estadísticas"""
@@ -361,7 +377,7 @@ class DetalleSuscripcionView(generics.RetrieveAPIView):
         
         # Obtener suscripciones anteriores de la misma empresa
         anteriores = Suscripcion.objects.filter(
-            empresa_id=suscripcion.empresa_id
+            empresa=suscripcion.empresa_id
         ).exclude(id_suscripcion=suscripcion.id_suscripcion).order_by('-fecha_solicitud')
         
         if anteriores.exists():
@@ -404,7 +420,7 @@ class MisSuscripcionesView(generics.ListAPIView):
             empresa = usuario_empresa.empresa_id
             
             return Suscripcion.objects.filter(
-                empresa_id=empresa
-            ).select_related('plan_id', 'empresa_id').order_by('-fecha_solicitud')
+                empresa=empresa
+            ).select_related('plan_id', 'empresa').order_by('-fecha_solicitud')
         except Exception:
             return Suscripcion.objects.none()

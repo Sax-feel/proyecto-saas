@@ -55,7 +55,7 @@ class SolicitudSuscripcionSerializer(serializers.Serializer):
         if not request:
             raise serializers.ValidationError("Request no disponible en contexto")
         
-        user = request.user  # Esto es un objeto User, NO una Empresa
+        user = request.user
         
         # Verificar que el usuario sea admin_empresa
         if not user.rol or user.rol.rol != 'admin_empresa':
@@ -67,21 +67,33 @@ class SolicitudSuscripcionSerializer(serializers.Serializer):
         try:
             from usuario_empresa.models import Usuario_Empresa
             usuario_empresa_rel = Usuario_Empresa.objects.get(id_usuario=user)
-            empresa = usuario_empresa_rel.empresa_id  # Esto SÍ es una instancia de Empresa
+            empresa = usuario_empresa_rel.empresa_id
             
-            # Verificar si ya tiene una suscripción activa o pendiente
+            # CORRECCIÓN: Usar empresa_id, no id_empresa
             from .models import Suscripcion
             suscripcion_activa = Suscripcion.objects.filter(
-                empresa_id=empresa,  # Usar la instancia de Empresa
+                empresa_id=empresa,  # ← CORREGIDO: usar empresa_id (instancia), no id_empresa
                 estado__in=['activo', 'pendiente']
             ).exists()
             
             if suscripcion_activa:
+                # Obtener info de la suscripción existente
+                suscripcion = Suscripcion.objects.filter(
+                    empresa_id=empresa,
+                    estado__in=['activo', 'pendiente']
+                ).first()
+                
                 raise serializers.ValidationError({
-                    'error': 'Ya tienes una suscripción activa o pendiente'
+                    'error': 'Ya tienes una suscripción existente',
+                    'detalle': {
+                        'id': suscripcion.id_suscripcion,
+                        'plan': suscripcion.plan_id.nombre,
+                        'estado': suscripcion.estado,
+                        'fecha_solicitud': suscripcion.fecha_solicitud.strftime('%d/%m/%Y')
+                    }
                 })
             
-            # Guardar la empresa en el contexto para usarla después
+            # Guardar la empresa en el contexto
             self.context['empresa'] = empresa
             
         except Usuario_Empresa.DoesNotExist:
@@ -90,10 +102,6 @@ class SolicitudSuscripcionSerializer(serializers.Serializer):
             })
         
         return data
-    
-    def create(self, validated_data):
-        """Este método no se usa realmente, pero Django lo espera"""
-        pass
 
 
 class SuscripcionSerializer(serializers.ModelSerializer):
@@ -101,7 +109,7 @@ class SuscripcionSerializer(serializers.ModelSerializer):
     Serializador completo para suscripciones
     """
     plan = PlanSerializer(source='plan_id', read_only=True)
-    empresa = EmpresaSerializer(source='empresa_id', read_only=True)
+    empresa_id = EmpresaSerializer(read_only=True)
     admin_aprobador_info = PerfilUsuarioSerializer(source='admin_aprobador', read_only=True)
     dias_restantes = serializers.SerializerMethodField()
     comprobante_url = serializers.SerializerMethodField()
@@ -111,7 +119,7 @@ class SuscripcionSerializer(serializers.ModelSerializer):
         fields = [
             'id_suscripcion',
             'plan',
-            'empresa',
+            'empresa_id',
             'fecha_inicio',
             'fecha_fin',
             'estado',
@@ -157,7 +165,7 @@ class SuscripcionResumenSerializer(serializers.ModelSerializer):
     Serializador resumido para listar suscripciones
     """
     plan_nombre = serializers.CharField(source='plan_id.nombre')
-    empresa_nombre = serializers.CharField(source='empresa_id.nombre')
+    empresa_nombre = serializers.CharField(source='empresa.nombre')
     precio_plan = serializers.FloatField(source='plan_id.precio')
     
     class Meta:

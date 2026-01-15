@@ -77,7 +77,7 @@ class RegistroEmpresaView(generics.CreateAPIView):
                 direccion=validated_data['direccion'],
                 telefono=validated_data['telefono'],
                 email=validated_data['email'],
-                estado='activo'
+                estado='inactivo'
             )
             
             logger.info(f"Empresa registrada exitosamente: {empresa.nombre}")
@@ -163,7 +163,7 @@ class RegistroEmpresaView(generics.CreateAPIView):
         # Determinar estado inicial
         # Si el plan es gratuito, activar inmediatamente
         # Si es de pago, poner como pendiente hasta el pago
-        estado = 'activo' if plan.precio == 0 else 'pendiente'
+        estado = 'inactivo' if plan.precio == 0 else 'pendiente'
         
         suscripcion = Suscripcion.objects.create(
             plan_id=plan,

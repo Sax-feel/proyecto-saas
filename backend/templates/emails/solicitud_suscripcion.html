@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Nueva Solicitud de Suscripción</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            max-width: 700px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        .header {
+            background-color: #4f46e5;
+            color: white;
+            padding: 20px;
+            text-align: center;
+            border-radius: 8px 8px 0 0;
+        }
+        .content {
+            background-color: #f9fafb;
+            padding: 30px;
+            border: 1px solid #e5e7eb;
+            border-top: none;
+            border-radius: 0 0 8px 8px;
+        }
+        .info-box {
+            background-color: #e0f2fe;
+            border: 1px solid #38bdf8;
+            padding: 15px;
+            border-radius: 6px;
+            margin: 20px 0;
+        }
+        .details-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 20px 0;
+        }
+        .details-table th, .details-table td {
+            border: 1px solid #d1d5db;
+            padding: 10px;
+            text-align: left;
+        }
+        .details-table th {
+            background-color: #f3f4f6;
+            font-weight: bold;
+        }
+        .alert {
+            background-color: #fef3c7;
+            border: 1px solid #f59e0b;
+            padding: 15px;
+            border-radius: 6px;
+            margin: 20px 0;
+        }
+        .footer {
+            margin-top: 30px;
+            padding-top: 20px;
+            border-top: 1px solid #e5e7eb;
+            font-size: 12px;
+            color: #6b7280;
+        }
+        .button {
+            display: inline-block;
+            background-color: #10b981;
+            color: white;
+            text-decoration: none;
+            padding: 12px 24px;
+            border-radius: 6px;
+            font-weight: bold;
+            margin-top: 20px;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>📋 Nueva Solicitud de Suscripción</h1>
+    </div>
+    
+    <div class="content">
+        <p>Hola <strong>{{ admin_principal.email }}</strong>,</p>
+        
+        <p>Se ha recibido una nueva solicitud de suscripción que requiere tu revisión.</p>
+        
+        <div class="info-box">
+            <h3>📌 Resumen de la Solicitud</h3>
+            <p><strong>ID de Solicitud:</strong> #{{ suscripcion.id_suscripcion }}</p>
+            <p><strong>Fecha y Hora:</strong> {{ fecha_solicitud|date:"d/m/Y H:i" }}</p>
+        </div>
+        
+        <h3>📊 Detalles de la Empresa</h3>
+        <table class="details-table">
+            <tr>
+                <th>Empresa</th>
+                <td>{{ empresa.nombre }}</td>
+            </tr>
+            <tr>
+                <th>NIT</th>
+                <td>{{ empresa.nit }}</td>
+            </tr>
+            <tr>
+                <th>Email de Contacto</th>
+                <td>{{ empresa.email }}</td>
+            </tr>
+            <tr>
+                <th>Teléfono</th>
+                <td>{{ empresa.telefono }}</td>
+            </tr>
+            <tr>
+                <th>Solicitante</th>
+                <td>{{ admin_solicitante.email }}</td>
+            </tr>
+        </table>
+        
+        <h3>💼 Detalles del Plan Solicitado</h3>
+        <table class="details-table">
+            <tr>
+                <th>Plan</th>
+                <td>{{ plan.nombre }}</td>
+            </tr>
+            <tr>
+                <th>Precio</th>
+                <td>${{ plan.precio|floatformat:2 }} USD</td>
+            </tr>
+            <tr>
+                <th>Duración</th>
+                <td>{{ plan.duracion_dias }} días</td>
+            </tr>
+            <tr>
+                <th>Límite de Productos</th>
+                <td>{{ plan.limite_productos }}</td>
+            </tr>
+            <tr>
+                <th>Límite de Usuarios</th>
+                <td>{{ plan.limite_usuarios }}</td>
+            </tr>
+        </table>
+        
+        {% if suscripcion.observaciones %}
+        <h3>📝 Observaciones del Solicitante</h3>
+        <div class="alert">
+            <p>{{ suscripcion.observaciones }}</p>
+        </div>
+        {% endif %}
+        
+        <div class="alert">
+            <h3>📎 Comprobante Adjunto</h3>
+            <p>Se ha adjuntado el comprobante de pago en formato PDF a este correo.</p>
+            <p><strong>Nombre del archivo:</strong> comprobante_pago_{{ suscripcion.id_suscripcion }}.pdf</p>
+        </div>
+        
+        <div style="text-align: center; margin-top: 30px;">
+            <a href="{{ admin_url }}" class="button">
+                👁️ Revisar Solicitud en el Panel
+            </a>
+            <p style="margin-top: 10px; font-size: 12px; color: #6b7280;">
+                <em>O accede manualmente al panel de administración</em>
+            </p>
+        </div>
+        
+        <div class="footer">
+            <p><strong>Información Adicional:</strong></p>
+            <ul>
+                <li>Esta notificación fue enviada al administrador principal y a {{ total_admins|add:"-1" }} administrador(es) adicional(es)</li>
+                <li>La suscripción permanecerá en estado "Pendiente" hasta su aprobación</li>
+                <li>Fecha de inicio programada: {{ suscripcion.fecha_inicio|date:"d/m/Y" }}</li>
+                <li>Fecha de vencimiento: {{ suscripcion.fecha_fin|date:"d/m/Y" }}</li>
+            </ul>
+            <p style="margin-top: 20px;">
+                © {{ fecha_solicitud|date:"Y" }} Tu SAAS Platform. 
+                Este es un correo automático, por favor no responder.
+            </p>
+        </div>
+    </div>
+</body>
+</html>

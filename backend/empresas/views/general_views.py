@@ -1,8 +1,12 @@
+from datetime import datetime, timedelta
+from django.utils import timezone
 from rest_framework import generics, status
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
 from admins.models import Admin
 from empresas.models import Empresa
+from planes.models import Plan
+from suscripciones.models import Suscripcion
 from empresas.serializers import RegistroEmpresaSerializer, EmpresaSerializer
 import logging
 
@@ -13,7 +17,7 @@ class RegistroEmpresaView(generics.CreateAPIView):
     Vista para que un administrador registre una empresa
     - Solo admin puede registrar
     - El admin que registra se guarda en admin_id automáticamente
-    - NO se asigna admin_empresa automáticamente
+    - Crea automáticamente una suscripción según el plan seleccionado
     """
     serializer_class = RegistroEmpresaSerializer
     permission_classes = [IsAuthenticated]
@@ -32,6 +36,7 @@ class RegistroEmpresaView(generics.CreateAPIView):
     def create(self, request, *args, **kwargs):
         """
         Registra una nueva empresa con el admin autenticado
+        y crea suscripción automáticamente
         """
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
@@ -52,6 +57,19 @@ class RegistroEmpresaView(generics.CreateAPIView):
                     status=status.HTTP_400_BAD_REQUEST
                 )
             
+            # 1. Obtener plan seleccionado
+            plan_seleccionado = self._obtener_plan(request.data.get('plan_nombre'))
+            if not plan_seleccionado:
+                return Response(
+                    {
+                        'error': 'Plan no válido',
+                        'detail': 'El plan especificado no existe. Planes disponibles: Free, Startup, Business, Enterprise',
+                        'status': 'error'
+                    },
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+            
+            # 2. Crear empresa
             empresa = Empresa.objects.create(
                 admin_id=admin_sistema, 
                 nombre=validated_data['nombre'],
@@ -62,17 +80,23 @@ class RegistroEmpresaView(generics.CreateAPIView):
                 estado='activo'
             )
             
-            logger.info(f"Empresa registrada exitosamente: {empresa.nombre} por admin: {request.user.email}")
+            logger.info(f"Empresa registrada exitosamente: {empresa.nombre}")
             
-            # 3. Preparar respuesta
+            # 3. Crear suscripción automáticamente
+            suscripcion = self._crear_suscripcion(empresa, plan_seleccionado)
+            
+            logger.info(f"Suscripción creada: Empresa {empresa.nombre} -> Plan {plan_seleccionado.nombre}")
+            
+            # 4. Preparar respuesta
             response_data = {
-                'message': 'Empresa registrada exitosamente',
+                'message': 'Empresa registrada exitosamente con suscripción activa',
                 'empresa': EmpresaSerializer(empresa).data,
                 'admin_registrador': {
                     'id': admin_sistema.id_usuario.id_usuario,
                     'email': request.user.email,
                     'nombre': admin_sistema.nombre_admin
                 },
+                'suscripcion': self._serializar_suscripcion(suscripcion),
                 'nota': 'Para asignar un administrador de empresa, use la opción "Registrar Admin de Empresa"',
                 'status': 'success'
             }
@@ -81,6 +105,11 @@ class RegistroEmpresaView(generics.CreateAPIView):
             
         except Exception as e:
             logger.error(f"Error en registro de empresa: {str(e)}", exc_info=True)
+            
+            # Si hubo error después de crear empresa, revertir
+            if 'empresa' in locals():
+                empresa.delete()
+                logger.info(f"Empresa {empresa.nombre} eliminada por error")
             
             return Response(
                 {
@@ -107,6 +136,64 @@ class RegistroEmpresaView(generics.CreateAPIView):
                 telefono_admin="0000000000"
             )
             return admin
+    
+    def _obtener_plan(self, plan_nombre):
+        """
+        Obtiene el plan por nombre
+        """
+        if not plan_nombre:
+            # Por defecto, usar plan Free
+            plan_nombre = 'Free'
+        
+        try:
+            plan = Plan.objects.get(nombre=plan_nombre)
+            return plan
+        except Plan.DoesNotExist:
+            logger.error(f"Plan '{plan_nombre}' no encontrado")
+            return None
+    
+    def _crear_suscripcion(self, empresa, plan):
+        """
+        Crea una suscripción para la empresa
+        """
+        # Calcular fecha de fin (hoy + duración del plan)
+        fecha_inicio = timezone.now()
+        fecha_fin = fecha_inicio + timedelta(days=plan.duracion_dias)
+        
+        # Determinar estado inicial
+        # Si el plan es gratuito, activar inmediatamente
+        # Si es de pago, poner como pendiente hasta el pago
+        estado = 'activo' if plan.precio == 0 else 'pendiente'
+        
+        suscripcion = Suscripcion.objects.create(
+            plan_id=plan,
+            empresa_id=empresa,
+            fecha_inicio=fecha_inicio,
+            fecha_fin=fecha_fin,
+            estado=estado
+        )
+        
+        return suscripcion
+    
+    def _serializar_suscripcion(self, suscripcion):
+        """
+        Serializa los datos de la suscripción para la respuesta
+        """
+        return {
+            'id_suscripcion': suscripcion.id_suscripcion,
+            'plan': {
+                'nombre': suscripcion.plan_id.nombre,
+                'precio': suscripcion.plan_id.precio,
+                'duracion_dias': suscripcion.plan_id.duracion_dias,
+                'limite_productos': suscripcion.plan_id.limite_productos,
+                'limite_usuarios': suscripcion.plan_id.limite_usuarios,
+                'descripcion': suscripcion.plan_id.descripcion
+            },
+            'fecha_inicio': suscripcion.fecha_inicio.isoformat(),
+            'fecha_fin': suscripcion.fecha_fin.isoformat(),
+            'estado': suscripcion.estado,
+            'dias_restantes': (suscripcion.fecha_fin - timezone.now()).days
+        }
         
 class ListaEmpresasView(generics.ListAPIView):
     """

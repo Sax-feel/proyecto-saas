@@ -1,7 +1,5 @@
 from django.db import models
 
-#id_plan(PK), nombre, precio, duracion_dias, limite_productos, limite_usuarios, descripcion
-
 class Plan(models.Model):
 
     id_plan = models.AutoField(primary_key=True)

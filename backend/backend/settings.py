@@ -213,7 +213,7 @@ SPECTACULAR_SETTINGS = {
     # Para que el botón de "Authorize" funcione con Bearer Token
     'COMPONENT_SPLIT_REQUEST': True,
 }
-FRONTEND_URL = 'http://localhost:3000'
+#FRONTEND_URL = 'http://localhost:3000'
 USE_TZ = True
 TIME_ZONE = 'America/Bogota'
 SUPPORT_EMAIL = 'saasproyecto737@gmail.com'
@@ -224,3 +224,7 @@ EMAIL_USE_TLS = os.environ.get('EMAIL_USE_TLS', 'True') == 'True'
 EMAIL_HOST_USER = os.environ.get('EMAIL_HOST_USER')
 EMAIL_HOST_PASSWORD = os.environ.get('EMAIL_HOST_PASSWORD')
 DEFAULT_FROM_EMAIL = os.environ.get('DEFAULT_FROM_EMAIL', EMAIL_HOST_USER)
+MEDIA_URL = '/media/'
+MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
+FILE_UPLOAD_MAX_MEMORY_SIZE = 5242880  # 5MB
+DATA_UPLOAD_MAX_MEMORY_SIZE = 5242880  # 5MB

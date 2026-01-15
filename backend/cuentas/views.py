@@ -422,9 +422,6 @@ class PasswordResetRequestView(generics.GenericAPIView):
         # URL para frontend Next.js
         frontend_url = 'http://localhost:3000'  # Cambiar según tu frontend
         
-        # Si tienes variable de entorno, úsala
-        frontend_url = getattr(settings, 'FRONTEND_URL', frontend_url)
-        
         reset_url = f"{frontend_url}/reset-password?token={token}"
         return reset_url
     

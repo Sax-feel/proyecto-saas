@@ -49,15 +49,20 @@ class EmpresaSerializer(serializers.ModelSerializer):
         except Exception:
             return 0
 
-
 class RegistroEmpresaSerializer(serializers.Serializer):
-    """Serializador para registro de empresa - SIN admin_empresa_email"""
+    """Serializador para registro de empresa - CON plan"""
     # Datos de empresa SOLAMENTE
     nombre = serializers.CharField(max_length=100, required=True)
     nit = serializers.CharField(max_length=20, required=True)
     direccion = serializers.CharField(max_length=200, required=True)
     telefono = serializers.CharField(max_length=15, required=True)
     email = serializers.EmailField(required=True)
+    plan_nombre = serializers.CharField(
+        max_length=100, 
+        required=False, 
+        default='Free',
+        help_text="Nombre del plan: Free, Startup, Business, Enterprise"
+    )
     
     def validate_nit(self, value):
         """Validar que el NIT no esté registrado"""
@@ -69,4 +74,17 @@ class RegistroEmpresaSerializer(serializers.Serializer):
         """Validar que el email de empresa no esté registrado"""
         if Empresa.objects.filter(email=value).exists():
             raise serializers.ValidationError("Este email de empresa ya está registrado")
+        return value
+    
+    def validate_plan_nombre(self, value):
+        """Validar que el plan exista"""
+        if value:
+            try:
+                from planes.models import Plan
+                Plan.objects.get(nombre=value)
+                return value
+            except Plan.DoesNotExist:
+                raise serializers.ValidationError(
+                    f"Plan '{value}' no existe. Planes disponibles: Free, Startup, Business, Enterprise"
+                )
         return value

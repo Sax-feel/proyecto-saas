@@ -420,9 +420,9 @@ class PasswordResetRequestView(generics.GenericAPIView):
         Construir URL para frontend
         """
         # URL para frontend Next.js
-        frontend_url = 'http://localhost:3000'  # Cambiar según tu frontend
+        frontend_url = 'http://localhost:3000/login/nueva-password/'  # Cambiar según tu frontend
         
-        reset_url = f"{frontend_url}/reset-password?token={token}"
+        reset_url = f"{frontend_url}?token={token}"
         return reset_url
     
     def _send_password_reset_email(self, user, reset_url):

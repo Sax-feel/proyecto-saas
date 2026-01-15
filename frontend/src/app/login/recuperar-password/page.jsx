@@ -17,7 +17,7 @@ export default function RecuperarPasswordPage() {
     setIsLoading(true)
 
     try {
-      const res = await fetch("http://localhost:8000/api/auth/recuperar-password/", {
+      const res = await fetch("http://localhost:8000/api/auth/password-reset/", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email }),

@@ -59,7 +59,6 @@ export default function Suscripciones() {
       return;
     }
 
-    // Cargar suscripciones actuales
     cargarSuscripcionesActuales();
   }, [router]);
 
@@ -78,7 +77,6 @@ export default function Suscripciones() {
       if (res.ok) {
         const data = await res.json();
         if (data.suscripciones && data.suscripciones.length > 0) {
-          // Buscar suscripción activa o pendiente
           const activa = data.suscripciones.find(s => s.estado === 'activo');
           const pendiente = data.suscripciones.find(s => s.estado === 'pendiente');
 
@@ -103,7 +101,6 @@ export default function Suscripciones() {
   };
 
   const abrirModal = (plan) => {
-    // Verificar si ya tiene suscripción
     if (suscripcionActual) {
       if (suscripcionActual.tipo === 'activa') {
         alert(`Ya tienes una suscripción activa: ${suscripcionActual.plan_nombre}.\nPara cambiar de plan, contacta a soporte.`);
@@ -161,14 +158,11 @@ export default function Suscripciones() {
     }
 
     if (!res.ok) {
-      // EXTRAER MENSAJE DE ERROR CORRECTAMENTE
       let errorMessage = "Error enviando la suscripción";
       
       if (data.detail) {
-        // Si es un objeto con 'error' dentro de 'detail'
         if (typeof data.detail === 'object' && data.detail.error) {
           errorMessage = data.detail.error;
-          // Si también tiene detalle adicional
           if (data.detail.detalle) {
             errorMessage += `\n\nDetalles:\n`;
             if (typeof data.detail.detalle === 'object') {
@@ -180,15 +174,12 @@ export default function Suscripciones() {
             }
           }
         } 
-        // Si es un string simple
         else if (typeof data.detail === 'string') {
           errorMessage = data.detail;
         }
-        // Si es un array de errores
         else if (Array.isArray(data.detail)) {
           errorMessage = data.detail.map(err => err.toString()).join('\n');
         }
-        // Si es un objeto genérico
         else if (typeof data.detail === 'object') {
           errorMessage = Object.entries(data.detail)
             .map(([key, value]) => `${key}: ${value}`)
@@ -212,13 +203,11 @@ export default function Suscripciones() {
     
     cerrarModal();
     
-    // Recargar suscripciones
     await cargarSuscripcionesActuales();
     
   } catch (err) {
     console.error("Error detallado:", err);
     
-    // Mostrar el mensaje de error correctamente
     const errorMsg = err.message || err.toString();
     alert(`❌ Error al enviar la suscripción:\n\n${errorMsg}`);
     
@@ -253,7 +242,6 @@ export default function Suscripciones() {
     if (input) input.value = "";
   };
 
-  // Si está cargando
   if (cargandoSuscripciones) {
     return (
       <div className={styles.container}>

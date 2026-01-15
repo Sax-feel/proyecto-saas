@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import styles from "./DashboardAdmin.module.css";
 
 export default function DashboardAdmin() {
+  // ----------------- Estados -----------------
   const [users, setUsers] = useState([]);
   const [empresas, setEmpresas] = useState([]);
   const [showEmpresaForm, setShowEmpresaForm] = useState(false);
@@ -11,82 +12,81 @@ export default function DashboardAdmin() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
-  // Estados para formularios
+  // Formularios
   const [empresaForm, setEmpresaForm] = useState({
     nombre: "",
     nit: "",
     direccion: "",
     telefono: "",
-    email: ""
+    email: "",
   });
 
   const [adminForm, setAdminForm] = useState({
     email: "",
     password: "",
-    empresa_id: ""
+    empresa_id: "",
   });
 
-  // Obtener token del localStorage
-  const getToken = () => {
-    if (typeof window !== 'undefined') {
-      return localStorage.getItem('access');
-    }
-    return null;
+  // ----------------- Funciones básicas -----------------
+  const getToken = () => (typeof window !== "undefined" ? localStorage.getItem("access") : null);
+
+  const formatDate = (dateString) => {
+    if (!dateString) return "-";
+    const date = new Date(dateString);
+    return date.toLocaleDateString("es-ES", {
+      day: "2-digit",
+      month: "2-digit",
+      year: "numeric",
+    });
   };
 
-  // Fetch usuarios desde la API
+  const getEmpresaUsuario = (user) => user.empresas_nombres || "-";
+
+  // ----------------- Fetch API -----------------
   const fetchUsers = async () => {
-    try {
-      const token = getToken();
-      if (!token) {
-        setError("No hay token de autenticación");
-        setLoading(false);
-        return;
-      }
+  setLoading(true);
+  try {
+    const token = getToken();
+    if (!token) throw new Error("No hay token de autenticación");
 
-      const response = await fetch('http://localhost:8000/api/usuarios/todos/', {
-        method: 'GET',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json',
-        },
-      });
+    const res = await fetch("http://localhost:8000/api/usuarios/todos/", {
+      method: "GET",
+      headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+    });
 
-      if (!response.ok) {
-        throw new Error(`Error ${response.status}: ${response.statusText}`);
-      }
+    if (!res.ok) throw new Error(`Error ${res.status}`);
+    const data = await res.json();
 
-      const data = await response.json();
-      setUsers(data.usuarios || []);
-      setError(null);
-    } catch (err) {
-      setError(`Error al cargar usuarios: ${err.message}`);
-      console.error("Error fetching users:", err);
-    } finally {
-      setLoading(false);
-    }
-  };
+    // Asegurarse de que users sea un array
+    const usersArray = Array.isArray(data) ? data : data.usuarios ? data.usuarios : [data];
+    setUsers(usersArray);
 
-  // Fetch empresas desde la API
+    setError(null);
+  } catch (err) {
+    console.error(err);
+    setError(`Error al cargar usuarios: ${err.message}`);
+  } finally {
+    setLoading(false);
+  }
+};
+
+
   const fetchEmpresas = async () => {
     try {
       const token = getToken();
       if (!token) return;
 
-      const response = await fetch('http://localhost:8000/api/empresas/listar/', {
-        method: 'GET',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json',
-        },
+      const res = await fetch("http://localhost:8000/api/empresas/listar/", {
+        method: "GET",
+        headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
       });
 
-      if (response.ok) {
-        const data = await response.json();
+      if (res.ok) {
+        const data = await res.json();
         setEmpresas(data || []);
       }
     } catch (err) {
-      console.error("Error fetching empresas:", err);
+      console.error(err);
     }
   };
 
@@ -95,144 +95,184 @@ export default function DashboardAdmin() {
     fetchEmpresas();
   }, []);
 
-  // Registrar nueva empresa
-  const handleRegistrarEmpresa = async (e) => {
-    e.preventDefault();
-    try {
-      const token = getToken();
-      if (!empresaForm.nombre || !empresaForm.nit || !empresaForm.email) {
-        alert("Por favor complete los campos obligatorios (*)");
-        return;
-      }
-      const response = await fetch('http://localhost:8000/api/empresas/registrar/', {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(empresaForm),
-      });
-
-      const data = await response.json();
-
-      if (response.ok) {
-        alert("Empresa registrada exitosamente");
-        setEmpresaForm({
-          nombre: "",
-          nit: "",
-          direccion: "",
-          telefono: "",
-          email: "",
-        });
-        setShowEmpresaForm(false);
-        fetchEmpresas(); // Actualizar lista
-        fetchUsers();
-      } else {
-        alert(`Error: ${data.detail || data.error || 'Error desconocido'}`);
-      }
-    } catch (err) {
-      alert("Error al registrar empresa");
-      console.error(err);
-    }
+  // ----------------- Formularios -----------------
+  const handleEmpresaFormChange = (e) => {
+    setEmpresaForm({ ...empresaForm, [e.target.name]: e.target.value });
+  };
+  const handleAdminFormChange = (e) => {
+    setAdminForm({ ...adminForm, [e.target.name]: e.target.value });
   };
 
-  // Registrar admin de empresa
-  const handleRegistrarAdminEmpresa = async (e) => {
-    e.preventDefault();
-    try {
-      const token = getToken();
-      const response = await fetch('http://localhost:8000/api/usuarios-empresa/registrar/', {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          email: adminForm.email,
-          password: adminForm.password,
-          rol_nombre: "admin_empresa",
-          empresa_id: parseInt(adminForm.empresa_id)
-        }),
-      });
-
-      const data = await response.json();
-
-      if (response.ok) {
-        alert("Admin de empresa registrado exitosamente");
-        setAdminForm({
-          email: "",
-          password: "",
-          empresa_id: ""
-        });
-        setShowAdminForm(false);
-        fetchUsers(); // Actualizar lista de usuarios
-      } else {
-        alert(`Error: ${data.detail || data.error || 'Error desconocido'}`);
-      }
-    } catch (err) {
-      alert("Error al registrar admin de empresa");
-      console.error(err);
-    }
-  };
-
-  // Handlers para formularios
   const handleOpenEmpresaForm = () => setShowEmpresaForm(true);
   const handleCloseEmpresaForm = () => {
     setShowEmpresaForm(false);
-    setEmpresaForm({
-      nombre: "",
-      nit: "",
-      direccion: "",
-      telefono: "",
-      email: ""
-    });
+    setEmpresaForm({ nombre: "", nit: "", direccion: "", telefono: "", email: "" });
   };
 
   const handleOpenAdminForm = () => setShowAdminForm(true);
   const handleCloseAdminForm = () => {
     setShowAdminForm(false);
-    setAdminForm({
-      email: "",
-      password: "",
-      empresa_id: ""
-    });
+    setAdminForm({ email: "", password: "", empresa_id: "" });
   };
 
-  const handleEmpresaFormChange = (e) => {
-    setEmpresaForm({
-      ...empresaForm,
-      [e.target.name]: e.target.value
-    });
-  };
+  const handleRegistrarEmpresa = async (e) => {
+    e.preventDefault();
+    try {
+      const token = getToken();
+      if (!empresaForm.nombre || !empresaForm.nit || !empresaForm.email) {
+        alert("Complete los campos obligatorios (*)");
+        return;
+      }
 
-  const handleAdminFormChange = (e) => {
-    setAdminForm({
-      ...adminForm,
-      [e.target.name]: e.target.value
-    });
-  };
+      const res = await fetch("http://localhost:8000/api/empresas/registrar/", {
+        method: "POST",
+        headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+        body: JSON.stringify(empresaForm),
+      });
 
-  // Formatear fecha
-  const formatDate = (dateString) => {
-    if (!dateString) return "-";
-    const date = new Date(dateString);
-    return date.toLocaleDateString('es-ES', {
-      day: '2-digit',
-      month: '2-digit',
-      year: 'numeric'
-    });
-  };
-
-  // Obtener empresa del usuario
-  const getEmpresaUsuario = (user) => {
-    if (user.informacion_adicional?.empresa) {
-      return user.informacion_adicional.empresa.nombre;
+      const data = await res.json();
+      if (res.ok) {
+        alert("Empresa registrada exitosamente");
+        handleCloseEmpresaForm();
+        fetchEmpresas();
+        fetchUsers();
+      } else {
+        alert(`Error: ${data.detail || data.error || "Desconocido"}`);
+      }
+    } catch (err) {
+      console.error(err);
+      alert("Error al registrar empresa");
     }
-    if (user.usuario_empresa?.nombre_empresa) {
-      return user.usuario_empresa.nombre_empresa;
-    }
-    return "-";
   };
+
+  const handleRegistrarAdminEmpresa = async (e) => {
+    e.preventDefault();
+    try {
+      const token = getToken();
+
+      const res = await fetch("http://localhost:8000/api/usuarios-empresa/registrar/", {
+        method: "POST",
+        headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+        body: JSON.stringify({
+          email: adminForm.email,
+          password: adminForm.password,
+          rol_nombre: "admin_empresa",
+          empresa_id: parseInt(adminForm.empresa_id),
+        }),
+      });
+
+      const data = await res.json();
+      if (res.ok) {
+        alert("Admin de empresa registrado exitosamente");
+        handleCloseAdminForm();
+        fetchUsers();
+      } else {
+        alert(`Error: ${data.detail || data.error || "Desconocido"}`);
+      }
+    } catch (err) {
+      console.error(err);
+      alert("Error al registrar admin de empresa");
+    }
+  };
+
+  // ----------------- Cambiar estado -----------------
+  const toggleUserEstado = async (id, currentEstado) => {
+    try {
+      const token = getToken();
+      const nuevoEstado = currentEstado === "activo" ? "inactivo" : "activo";
+
+      const res = await fetch(`http://localhost:8000/api/usuarios/${id}/`, {
+        method: "PATCH",
+        headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+        body: JSON.stringify({ estado: nuevoEstado }),
+      });
+
+      if (res.ok) fetchUsers();
+      else {
+        const data = await res.json();
+        alert(`Error al cambiar estado: ${data.detail || data.error || "Desconocido"}`);
+      }
+    } catch (err) {
+      console.error(err);
+      alert("Error al cambiar estado del usuario");
+    }
+  };
+
+  const toggleEmpresaEstado = async (id, currentEstado) => {
+    try {
+      const token = getToken();
+      const nuevoEstado = currentEstado === "activo" ? "inactivo" : "activo";
+
+      const res = await fetch(`http://localhost:8000/api/empresas/${id}/`, {
+        method: "PATCH",
+        headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+        body: JSON.stringify({ estado: nuevoEstado }),
+      });
+
+      if (res.ok) fetchEmpresas();
+      else {
+        const data = await res.json();
+        alert(`Error al cambiar estado: ${data.detail || data.error || "Desconocido"}`);
+      }
+    } catch (err) {
+      console.error(err);
+      alert("Error al cambiar estado de la empresa");
+    }
+  };
+
+  // ----------------- Eliminar usuario -----------------
+const deleteUser = async (id_usuario) => {
+  if (!confirm("¿Seguro quieres eliminar este usuario? Esta acción no se puede deshacer.")) return;
+
+  try {
+    const token = getToken();
+    const res = await fetch(`http://localhost:8000/api/usuarios/${id_usuario}/`, {
+      method: "DELETE",
+      headers: {
+        Authorization: `Bearer ${token}`,
+        "Content-Type": "application/json", // Algunas APIs no requieren Content-Type en DELETE, pero no hace daño
+      },
+    });
+
+    if (res.ok) {
+      alert("Usuario eliminado correctamente");
+      fetchUsers(); // Refresca la tabla
+    } else {
+      const data = await res.json();
+      alert(`Error al eliminar usuario: ${data.detail || data.error || "Desconocido"}`);
+    }
+  } catch (err) {
+    console.error(err);
+    alert("Error al eliminar usuario");
+  }
+};
+
+
+// ----------------- Eliminar empresa -----------------
+const deleteEmpresa = async (id_empresa) => {
+  if (!confirm("¿Seguro quieres eliminar esta empresa?")) return;
+
+  try {
+    const token = getToken();
+    const res = await fetch(`http://localhost:8000/api/empresas/${id_empresa}/`, {
+      method: "DELETE",
+      headers: { Authorization: `Bearer ${token}` },
+    });
+
+    if (res.ok) {
+      alert("Empresa eliminada correctamente");
+      fetchEmpresas();
+    } else {
+      const data = await res.json();
+      alert(`Error al eliminar empresa: ${data.detail || data.error || "Desconocido"}`);
+    }
+  } catch (err) {
+    console.error(err);
+    alert("Error al eliminar empresa");
+  }
+};
+
+
 
   return (
     <div className={styles.container}>
@@ -251,52 +291,67 @@ export default function DashboardAdmin() {
       <section className={styles.section}>
         <div className={styles.sectionHeader}>
           <h2>Usuarios ({users.length})</h2>
-          <button onClick={fetchUsers} className={styles.refreshButton}>
+          <button onClick={fetchUsers} className={styles.primaryBtn}>
             Actualizar
           </button>
         </div>
         <div className={styles.tableContainer}>
           <table className={styles.table}>
             <thead>
-              <tr>
-                <th>ID</th>
-                <th>Email</th>
-                <th>Rol</th>
-                <th>Estado</th>
-                <th>Empresa</th>
-                <th>Registro</th>
-                <th>Último Login</th>
-              </tr>
-            </thead>
-            <tbody>
-              {users.length === 0 && !loading ? (
-                <tr>
-                  <td colSpan="7" className={styles.empty}>
-                    No hay usuarios registrados
-                  </td>
-                </tr>
-              ) : (
-                users.map((user) => (
-                  <tr key={user.id_usuario} className={styles.userRow}>
-                    <td>{user.id_usuario}</td>
-                    <td className={styles.emailCell}>{user.email}</td>
-                    <td>
-                      <span className={`${styles.rolBadge} ${styles[user.rol]}`}>
-                        {user.rol}
-                      </span>
-                    </td>
-                    <td>
-                      <span className={`${styles.estadoBadge} ${styles[user.estado]}`}>
-                        {user.estado}
-                      </span>
-                    </td>
-                    <td>{getEmpresaUsuario(user)}</td>
-                    <td>{formatDate(user.fecha_creacion)}</td>
-                    <td>{user.ultimo_login ? formatDate(user.ultimo_login) : "Nunca"}</td>
-                  </tr>
-                ))
-              )}
-            </tbody>
+  <tr>
+    <th>ID</th>
+    <th>Email</th>
+    <th>Rol</th>
+    <th>Estado</th>
+    <th>Empresa</th>
+    <th>Registro</th>
+    <th>Último Login</th>
+    <th>Eliminar</th> {/* Nueva columna */}
+  </tr>
+</thead>
+<tbody>
+  {users.length === 0 && !loading ? (
+    <tr>
+      <td colSpan="8" className={styles.empty}>
+        No hay usuarios registrados
+      </td>
+    </tr>
+  ) : (
+    users.map((user) => (
+      <tr key={user.id_usuario} className={styles.userRow}>
+        <td>{user.id_usuario}</td>
+        <td>{user.email}</td>
+        <td>
+          <span className={`${styles.rolBadge} ${styles[user.rol]}`}>{user.rol}</span>
+        </td>
+        <td>
+          <span className={`${styles.estadoBadge} ${styles[user.estado]}`}>
+            {user.estado}
+          </span>
+          <button
+            className={styles.primaryBtn}
+            style={{ marginLeft: "0.5rem", padding: "0.3rem 0.5rem", fontSize: "0.75rem" }}
+            onClick={() => toggleUserEstado(user.id_usuario, user.estado)}
+          >
+            {user.estado === "activo" ? "Inactivar" : "Activar"}
+          </button>
+        </td>
+        <td>{getEmpresaUsuario(user)}</td>
+        <td>{formatDate(user.fecha_creacion)}</td>
+        <td>{user.ultimo_login ? formatDate(user.ultimo_login) : "Nunca"}</td>
+        <td>
+          <button
+            className={styles.deleteBtn}
+            style={{ backgroundColor: "#e53e3e", color: "#fff", padding: "0.3rem 0.5rem", fontSize: "0.75rem" }}
+            onClick={() => deleteUser(user.id_usuario)}
+          >
+            Eliminar
+          </button>
+        </td>
+      </tr>
+    ))
+  )}
+</tbody>
           </table>
         </div>
       </section>
@@ -305,46 +360,63 @@ export default function DashboardAdmin() {
       <section className={styles.section}>
         <div className={styles.sectionHeader}>
           <h2>Empresas ({empresas.length})</h2>
-          <button onClick={fetchEmpresas} className={styles.refreshButton}>
+          <button onClick={fetchEmpresas} className={styles.primaryBtn}>
             Actualizar
           </button>
         </div>
         <div className={styles.tableContainer}>
           <table className={styles.table}>
             <thead>
-              <tr>
-                <th>ID</th>
-                <th>Nombre</th>
-                <th>NIT</th>
-                <th>Email</th>
-                <th>Estado</th>
-                <th>Registro</th>
-              </tr>
-            </thead>
-            <tbody>
-              {empresas.length === 0 ? (
-                <tr>
-                  <td colSpan="6" className={styles.empty}>
-                    No hay empresas registradas
-                  </td>
-                </tr>
-              ) : (
-                empresas.map((empresa) => (
-                  <tr key={empresa.id_empresa}>
-                    <td>{empresa.id_empresa}</td>
-                    <td>{empresa.nombre}</td>
-                    <td>{empresa.nit}</td>
-                    <td>{empresa.email}</td>
-                    <td>
-                      <span className={`${styles.estadoBadge} ${styles[empresa.estado]}`}>
-                        {empresa.estado}
-                      </span>
-                    </td>
-                    <td>{formatDate(empresa.fecha_creacion)}</td>
-                  </tr>
-                ))
-              )}
-            </tbody>
+  <tr>
+    <th>ID</th>
+    <th>Nombre</th>
+    <th>NIT</th>
+    <th>Email</th>
+    <th>Estado</th>
+    <th>Registro</th>
+    <th>Eliminar</th> {/* Nueva columna */}
+  </tr>
+</thead>
+<tbody>
+  {empresas.length === 0 ? (
+    <tr>
+      <td colSpan="7" className={styles.empty}>
+        No hay empresas registradas
+      </td>
+    </tr>
+  ) : (
+    empresas.map((empresa) => (
+      <tr key={empresa.id_empresa}>
+        <td>{empresa.id_empresa}</td>
+        <td>{empresa.nombre}</td>
+        <td>{empresa.nit}</td>
+        <td>{empresa.email}</td>
+        <td>
+          <span className={`${styles.estadoBadge} ${styles[empresa.estado]}`}>
+            {empresa.estado}
+          </span>
+          <button
+            className={styles.primaryBtn}
+            style={{ marginLeft: "0.5rem", padding: "0.3rem 0.5rem", fontSize: "0.75rem" }}
+            onClick={() => toggleEmpresaEstado(empresa.id_empresa, empresa.estado)}
+          >
+            {empresa.estado === "activo" ? "Inactivar" : "Activar"}
+          </button>
+        </td>
+        <td>{formatDate(empresa.fecha_creacion)}</td>
+        <td>
+          <button
+            className={styles.deleteBtn}
+            style={{ backgroundColor: "#e53e3e", color: "#fff", padding: "0.3rem 0.5rem", fontSize: "0.75rem" }}
+            onClick={() => deleteEmpresa(empresa.id_empresa)}
+          >
+            Eliminar
+          </button>
+        </td>
+      </tr>
+    ))
+  )}
+</tbody>
           </table>
         </div>
       </section>
@@ -436,7 +508,6 @@ export default function DashboardAdmin() {
                 />
               </div>
 
-              {/* Información */}
               <div className={styles.infoBox}>
                 <p><strong>Registrada por:</strong> Tú (Admin del sistema)</p>
                 <p><strong>Nota:</strong> Después de registrar la empresa, asigne un administrador usando la opción "Registrar Admin de Empresa".</p>

@@ -1,0 +1,70 @@
+.tableContainer {
+  overflow-x: auto;
+}
+
+.table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.table th,
+.table td {
+  padding: 0.75rem 1rem;
+  text-align: left;
+}
+
+.table th {
+  font-weight: 600;
+  color: #1f2937;
+  border-bottom: 2px solid #e5e7eb;
+}
+
+.table td {
+  color: #374151;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.row:hover {
+  background-color: #f9fafb;
+}
+
+.empty {
+  text-align: center;
+  padding: 1rem;
+  color: #6b7280;
+}
+
+.loading {
+  text-align: center;
+  padding: 1rem;
+  color: #4b5563;
+}
+
+.name {
+  font-weight: 500;
+}
+
+/* Badge de estado */
+.badge {
+  padding: 0.25rem 0.5rem;
+  border-radius: 6px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: white;
+}
+
+.activo {
+  background-color: #10b981;
+}
+
+.inactivo {
+  background-color: #ef4444;
+}
+
+.pendiente {
+  background-color: #f59e0b;
+}
+
+.bloqueado {
+  background-color: #6b7280;
+}

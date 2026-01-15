@@ -241,13 +241,7 @@ class DetalleEmpresaView(generics.RetrieveUpdateDestroyAPIView):
                     code=status.HTTP_403_FORBIDDEN
                 )
     
-    def perform_destroy(self, instance):
-        """
-        Sobrescribir eliminación para cambiar estado en lugar de borrar
-        """
-        instance.estado = 'inactivo'
-        instance.save()
-        logger.info(f"Empresa {instance.nombre} desactivada por {self.request.user.email}")
+    
 
 
 class CambiarEstadoEmpresaView(generics.UpdateAPIView):

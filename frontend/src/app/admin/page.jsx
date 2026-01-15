@@ -182,7 +182,7 @@ export default function DashboardAdmin() {
       const nuevoEstado = currentEstado === "activo" ? "inactivo" : "activo";
 
       const res = await fetch(`http://localhost:8000/api/usuarios/${id}/`, {
-        method: "PATCH",
+        method: "PUT",
         headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
         body: JSON.stringify({ estado: nuevoEstado }),
       });

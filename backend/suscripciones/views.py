@@ -212,6 +212,14 @@ class SolicitarSuscripcionView(generics.GenericAPIView):
         except Exception as e:
             logger.error(f"Error enviando correo a admins: {str(e)}", exc_info=True)
             raise
+    def _build_reset_url(self, request, token):
+        """
+        Construir URL para frontend
+        """
+        # URL para frontend Next.js
+        reset_url = 'http://localhost:3000/admin'  # Cambiar según tu frontend
+        
+        return reset_url
 
 
 class ListaSuscripcionesView(generics.ListAPIView):

@@ -4,6 +4,7 @@ from rest_framework import generics, status, permissions, filters
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
 from django_filters.rest_framework import DjangoFilterBackend
+from django.db.models.deletion import ProtectedError
 from .models import User
 from .serializers import UserSerializer, PerfilUsuarioSerializer
 from roles.models import Rol
@@ -201,43 +202,59 @@ class DetalleUsuarioCompletoView(generics.RetrieveUpdateDestroyAPIView):
     
     def destroy(self, request, *args, **kwargs):
         """
-        Desactiva un usuario (no elimina físicamente)
+        Elimina físicamente un usuario de la base de datos
         """
         try:
             instance = self.get_object()
-            
-            # No permitir desactivarse a sí mismo
+        
+        # No permitir eliminarse a sí mismo
             if instance.id_usuario == request.user.id_usuario:
                 return Response(
                     {
                         'error': 'Acción no permitida',
-                        'detail': 'No puedes desactivar tu propia cuenta',
+                        'detail': 'No puedes eliminar tu propia cuenta',
                         'status': 'error'
                     },
-                    status=status.HTTP_400_BAD_REQUEST
-                )
-            
-            # Cambiar estado a inactivo
-            instance.estado = 'inactivo'
-            instance.save()
-            
-            logger.info(f"Usuario {instance.email} desactivado por admin {request.user.email}")
-            
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        # Guardar información del usuario antes de eliminarlo
+            usuario_info = {
+                'id': instance.id_usuario,
+                'email': instance.email,
+                'rol': instance.rol.rol if instance.rol else 'sin_rol',
+                'fecha_creacion': instance.fecha_creacion,
+                'estado': instance.estado
+            }
+        
+        # Eliminar el usuario físicamente de la base de datos
+            instance.delete()
+        
+            logger.info(f"Usuario {usuario_info['email']} eliminado físicamente por admin {request.user.email}")
+        
             return Response({
-                'message': 'Usuario desactivado exitosamente',
-                'usuario': {
-                    'id': instance.id_usuario,
-                    'email': instance.email,
-                    'estado': instance.estado
-                },
+                'message': 'Usuario eliminado exitosamente de la base de datos',
+                'usuario_eliminado': usuario_info,
                 'status': 'success'
-            })
-            
-        except Exception as e:
-            logger.error(f"Error desactivando usuario: {str(e)}", exc_info=True)
+            }, status=status.HTTP_200_OK)
+        
+        except ProtectedError as e:
+            # Manejar error de integridad referencial
+            logger.error(f"Error de integridad al eliminar usuario: {str(e)}", exc_info=True)
             return Response(
                 {
-                    'error': 'Error al desactivar usuario',
+                    'error': 'No se puede eliminar el usuario',
+                    'detail': 'El usuario tiene registros relacionados (empresa, suscripciones, etc.)',
+                    'sugerencia': 'Elimina primero los registros asociados o cambia el estado a inactivo',
+                    'status': 'error'
+                },
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        except Exception as e:
+            logger.error(f"Error eliminando usuario: {str(e)}", exc_info=True)
+            return Response(
+                {
+                    'error': 'Error al eliminar usuario',
                     'detail': str(e),
                     'status': 'error'
                 },

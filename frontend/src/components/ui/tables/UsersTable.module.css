@@ -1,0 +1,59 @@
+.tableContainer {
+  overflow-x: auto;
+}
+
+.table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.table th,
+.table td {
+  padding: 0.75rem 1rem;
+}
+
+.table th {
+  border-bottom: 2px solid #e5e7eb;
+}
+
+.table td {
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.userRow:hover {
+  background-color: #f9fafb;
+}
+
+.empty {
+  text-align: center;
+  color: #6b7280;
+}
+
+.email {
+  font-weight: 500;
+}
+
+/* Badges */
+.badge {
+  padding: 0.25rem 0.5rem;
+  border-radius: 6px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: white;
+}
+
+.admin_empresa {
+  background-color: #6366f1;
+}
+
+.cliente {
+  background-color: #10b981;
+}
+
+.activo {
+  background-color: #10b981;
+}
+
+.inactivo {
+  background-color: #ef4444;
+}

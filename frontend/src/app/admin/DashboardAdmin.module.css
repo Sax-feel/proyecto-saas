@@ -1,13 +1,11 @@
-/* src/app/admin/DashboardAdmin.module.css */
-
 /* ----------------- CONTENEDOR PRINCIPAL ----------------- */
 .container {
   max-width: 1200px;
   margin: 2rem auto;
   padding: 1rem 2rem;
   font-family: 'Inter', sans-serif;
-  color: #f1f5f9; /* Texto claro sobre fondo oscuro */
-  background-color: #1e293b; /* Fondo azul grisáceo medio */
+  color: #f1f5f9;
+  background-color: #1e293b;
 }
 
 /* ----------------- TITULOS ----------------- */
@@ -30,68 +28,82 @@
 }
 
 /* ----------------- TABLAS ----------------- */
+.tableContainer {
+  overflow-x: auto;
+}
+
 .table {
   width: 100%;
   border-collapse: collapse;
-  background-color: #2e3b55; /* Gris azulado medio */
+  background-color: #2e3b55;
   border-radius: 0.5rem;
   overflow: hidden;
   box-shadow: 0 4px 12px rgba(0,0,0,0.2);
   color: #f1f5f9;
 }
 
-.table th,
-.table td {
+.table th, .table td {
   padding: 0.75rem 1rem;
   text-align: left;
-  border-bottom: 1px solid #374b6a; /* Separador suave gris azulado */
+  border-bottom: 1px solid #374b6a;
 }
 
 .table th {
-  background-color: #2563eb; /* Azul elegante para encabezados */
+  background-color: #2563eb;
   font-weight: 600;
   color: #f1f5f9;
 }
 
 .table tr:nth-child(even) {
-  background-color: #374b6a; /* Filas alternas gris azulado */
+  background-color: #374b6a;
 }
 
 .table tr:hover {
-  background-color: #2563eb; /* Hover azul elegante */
+  background-color: #2563eb;
   color: #f1f5f9;
   transition: background 0.2s ease-in-out;
+}
+
+.userRow:hover {
+  background-color: #2b3a54;
 }
 
 .empty {
   text-align: center;
   padding: 1rem;
   font-style: italic;
-  color: #cbd5e1; /* Gris claro para textos secundarios */
+  color: #cbd5e1;
 }
 
 /* ----------------- BOTONES ----------------- */
-.actions {
-  display: flex;
-  gap: 1rem;
-  margin-bottom: 2rem;
-}
-
-.actions button {
-  background-color: #2563eb; /* Azul elegante */
-  color: #f1f5f9;
-  border: none;
-  padding: 0.6rem 1.2rem;
-  border-radius: 6px;
+.primaryBtn {
+  padding: 0.75rem;
+  background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%);
+  color: white;
+  border-radius: 8px;
   font-weight: 600;
+  font-size: 0.875rem;
   cursor: pointer;
-  transition: all 0.2s ease-in-out;
+  transition: all 0.2s;
 }
 
-.actions button:hover {
-  background-color: #1e40af; /* Azul más profundo al hover */
-  box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+.primaryBtn:hover {
+  background: linear-gradient(135deg, #4338ca 0%, #6d28d9 100%);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(79,70,229,0.2);
 }
+
+/* ----------------- BADGES ----------------- */
+.estadoBadge {
+  padding: 0.25rem 0.5rem;
+  border-radius: 6px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: white;
+}
+
+.activo { background-color: #10b981; }
+.inactivo { background-color: #ef4444; }
 
 /* ----------------- MODALES ----------------- */
 .modal {
@@ -99,7 +111,7 @@
   top: 50%;
   left: 50%;
   transform: translate(-50%, -50%);
-  background-color: #2e3b55; /* Gris azulado medio */
+  background-color: #2e3b55;
   padding: 2rem;
   width: 400px;
   max-width: 90%;
@@ -109,83 +121,30 @@
   color: #f1f5f9;
 }
 
-.modal h3 {
-  font-size: 1.25rem;
-  margin-bottom: 1rem;
-  color: #e2e8f0;
-}
-
 .modal form {
   display: flex;
   flex-direction: column;
   gap: 1rem;
 }
 
-.modal input,
-.modal select {
+.modal input, .modal select {
   padding: 0.6rem 0.8rem;
   border: 1px solid #374b6a;
   border-radius: 6px;
   font-size: 1rem;
-  background-color: #374b6a; /* Gris azulado medio */
+  background-color: #374b6a;
   color: #f1f5f9;
   outline: none;
-  transition: border 0.2s, box-shadow 0.2s;
 }
 
-.modal input:focus,
-.modal select:focus {
+.modal input:focus, .modal select:focus {
   border-color: #2563eb;
-  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.3);
-}
-
-.modal button {
-  padding: 0.6rem;
-  border-radius: 6px;
-  font-weight: 600;
-  cursor: pointer;
-  border: none;
-  transition: all 0.2s ease;
-}
-
-.modal button[type="submit"] {
-  background-color: #2563eb; /* Azul elegante para confirmar */
-  color: #f1f5f9;
-}
-
-.modal button[type="submit"]:hover {
-  background-color: #1e40af;
-}
-
-.modal button[type="button"] {
-  background-color: #ef4444; /* Rojo alerta */
-  color: #f1f5f9;
-}
-
-.modal button[type="button"]:hover {
-  background-color: #b91c1c;
-}
-
-/* ----------------- OVERLAY PARA MODAL ----------------- */
-.modal::before {
-  content: '';
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: 100vw;
-  height: 100vh;
-  background-color: rgba(0,0,0,0.4);
-  z-index: -1;
+  box-shadow: 0 0 0 3px rgba(37,99,235,0.3);
 }
 
 /* ----------------- RESPONSIVE ----------------- */
 @media (max-width: 768px) {
-  .actions {
-    flex-direction: column;
-  }
-
-  .table th,
-  .table td {
+  .table th, .table td {
     font-size: 0.9rem;
   }
 }

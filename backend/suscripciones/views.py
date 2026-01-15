@@ -9,6 +9,7 @@ from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated, AllowAny
 from django_filters.rest_framework import DjangoFilterBackend
 from .models import Suscripcion
+from admins.models import Admin
 from .serializers import (
     SolicitudSuscripcionSerializer,
     SuscripcionSerializer,
@@ -114,7 +115,7 @@ class SolicitarSuscripcionView(generics.GenericAPIView):
             admins = User.objects.filter(
                 rol__rol='admin',
                 estado='activo'
-            ).order_by('fecha_creacion')
+            ).select_related('rol').order_by('fecha_creacion')
             
             if not admins.exists():
                 logger.warning("No hay administradores registrados para enviar correo")
@@ -122,17 +123,38 @@ class SolicitarSuscripcionView(generics.GenericAPIView):
             
             # 2. Tomar el primer admin (más antiguo)
             admin_principal = admins.first()
+            try:
+                admin_objeto = Admin.objects.get(id_usuario=admin_principal)
+                nombre_admin = admin_objeto.nombre_admin
+            except Admin.DoesNotExist:
+                nombre_admin = admin_principal.email.split('@')[0]
+                logger.warning(f"Admin {admin_principal.email} no tiene registro en tabla Admin")
+        
+        # 3. Obtener todos los objetos Admin para el CC
+            admin_emails = []
+            for admin_user in admins:
+                try:
+                    admin_obj = Admin.objects.get(id_usuario=admin_user)
+                    admin_emails.append(admin_user.email)
+                except Admin.DoesNotExist:
+                    # Si no tiene registro Admin, usar igualmente el email
+                    admin_emails.append(admin_user.email)
             
             # 3. Preparar datos para el correo
             contexto = {
-                'suscripcion': suscripcion,
-                'admin_solicitante': admin_solicitante,
-                'empresa': suscripcion.empresa_id,
-                'plan': suscripcion.plan_id,
-                'fecha_solicitud': timezone.now(),
-                'admin_principal': admin_principal,
-                'total_admins': admins.count()
-            }
+            'suscripcion': suscripcion,
+            'admin_solicitante': admin_solicitante,
+            'empresa': suscripcion.empresa_id,
+            'plan': suscripcion.plan_id,
+            'fecha_solicitud': timezone.now(),
+            'admin_principal': {
+                'email': admin_principal.email,
+                'nombre': nombre_admin,
+                'fecha_registro': admin_principal.fecha_creacion.strftime('%d/%m/%Y')
+            },
+            'total_admins': admins.count(),
+            'admin_url': f"{settings.FRONTEND_URL}/admin/suscripciones/{suscripcion.id_suscripcion}"
+        }
             
             # 4. Renderizar contenido del correo
             subject = f'💰 Nueva Solicitud de Suscripción - {suscripcion.empresa_id.nombre}'

@@ -1,7 +1,7 @@
-from django.utils import timezone
-from rest_framework import generics, status, permissions
+from django.db import transaction
+from rest_framework import generics, status
 from rest_framework.response import Response
-from rest_framework.permissions import IsAuthenticated
+from rest_framework.permissions import IsAuthenticated, AllowAny
 from usuarios.models import User
 from roles.models import Rol
 from relacion_tiene.models import Tiene
@@ -9,52 +9,34 @@ from .models import Cliente
 from .serializers import RegistroClienteSerializer, ClienteSerializer
 import logging
 
+
 logger = logging.getLogger(__name__)
 
 class RegistroClienteView(generics.CreateAPIView):
     """
-    Vista para que una empresa registre un cliente.
-    Solo accesible por usuarios con rol 'admin_empresa'
+    Vista pública para que un cliente se registre en una empresa específica.
+    Accesible por cualquiera (sin autenticación requerida)
     """
     serializer_class = RegistroClienteSerializer
-    permission_classes = [IsAuthenticated]
+    permission_classes = [AllowAny]  #  Acceso público
     
-    def check_permissions(self, request):
-        """
-        Verifica que el usuario tenga rol 'admin_empresa'
-        """
-        super().check_permissions(request)
-        
-        if not request.user.rol or request.user.rol.rol != 'admin_empresa':
-            self.permission_denied(
-                request,
-                message="Solo administradores de empresa pueden registrar clientes",
-                code=status.HTTP_403_FORBIDDEN
-            )
-    
+    @transaction.atomic
     def create(self, request, *args, **kwargs):
         """
-        Registra un nuevo cliente (crea usuario + datos de cliente + relación con empresa)
+        Registro público de cliente con selección de empresa.
+        Crea usuario + cliente + relación con empresa seleccionada.
         """
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         
         try:
-            logger.info(f"Intento de registro de cliente por empresa: {request.user.email}")
-            
-            # 1. Obtener la empresa del admin_empresa
-            empresa = self._obtener_empresa_usuario(request.user)
-            if not empresa:
-                return Response(
-                    {
-                        'error': 'Empresa no encontrada',
-                        'detail': 'El administrador no está asociado a una empresa',
-                        'status': 'error'
-                    },
-                    status=status.HTTP_400_BAD_REQUEST
-                )
+            logger.info(f"Intento de registro público de cliente: {request.data.get('email')}")
             
             validated_data = serializer.validated_data
+            
+            # 1. Obtener la empresa seleccionada
+            empresa = validated_data['empresa_nombre']
+            logger.info(f"Cliente se registra en empresa: {empresa.nombre}")
             
             # 2. Obtener rol 'cliente'
             try:
@@ -90,71 +72,64 @@ class RegistroClienteView(generics.CreateAPIView):
             
             logger.info(f"Cliente registrado exitosamente: {cliente.nit}")
             
-            # 5. Crear relación en tabla 'tiene'
+            # 5. Crear relación en tabla 'tiene' (cliente → empresa)
             tiene_relacion = Tiene.objects.create(
                 id_cliente=cliente,
-                id_empresa=empresa
+                id_empresa=empresa,
+                estado='activo'
             )
             
             logger.info(f"Relación creada: Cliente '{cliente.nombre_cliente}' - Empresa '{empresa.nombre}'")
             
-            # 6. Preparar respuesta
+            
+            # 7. Preparar respuesta completa
             response_data = {
-                'message': 'Cliente registrado exitosamente y asociado a la empresa',
-                'cliente': ClienteSerializer(cliente).data,
-                'usuario': {
-                    'id': user.id_usuario,
+                'message': 'Cliente registrado exitosamente',
+                'detail': f'Te has registrado en la empresa {empresa.nombre}',
+                'cliente': {
+                    'nit': cliente.nit,
+                    'nombre': cliente.nombre_cliente,
                     'email': user.email,
-                    'rol': user.rol.rol,
-                    'estado': user.estado
+                    'telefono': cliente.telefono_cliente
                 },
-                'empresa_asociada': {
+                'empresa': {
                     'id': empresa.id_empresa,
                     'nombre': empresa.nombre,
-                    'nit': empresa.nit
+                    'nit': empresa.nit,
+                    'telefono': empresa.telefono,
+                    'direccion': empresa.direccion
                 },
-                'relacion_tiene': {
-                    'id': tiene_relacion.id_tiene if hasattr(tiene_relacion, 'id_tiene') else 'compuesta',
-                    'fecha_registro': tiene_relacion.fecha_registro.isoformat()
+                'registro': {
+                    'fecha': tiene_relacion.fecha_registro.isoformat(),
+                    'estado': tiene_relacion.estado
                 },
-                'registrado_por': request.user.email,
+                'instrucciones': {
+                    'login': 'Usa tus credenciales para iniciar sesión',
+                    'empresa': 'Puedes registrarte en otras empresas desde tu panel',
+                    'contacto': f'Contacta a {empresa.nombre}: {empresa.telefono}'
+                },
                 'status': 'success'
             }
             
             return Response(response_data, status=status.HTTP_201_CREATED)
             
         except Exception as e:
-            logger.error(f"Error en registro de cliente: {str(e)}", exc_info=True)
+            logger.error(f"Error en registro público de cliente: {str(e)}", exc_info=True)
             
-            # Rollback: eliminar lo creado
+            # Rollback en caso de error
             if 'user' in locals():
                 user.delete()
                 logger.info(f"Usuario {user.email} eliminado por error")
-            if 'cliente' in locals() and Cliente.objects.filter(id_usuario=user).exists():
-                cliente.delete()
-                logger.info(f"Cliente eliminado por error")
             
             return Response(
                 {
-                    'error': 'Error en el registro del cliente',
+                    'error': 'Error en el registro',
                     'detail': str(e),
+                    'sugerencia': 'Verifica los datos e intenta nuevamente',
                     'status': 'error'
                 },
                 status=status.HTTP_400_BAD_REQUEST
             )
-    
-    def _obtener_empresa_usuario(self, user):
-        """
-        Obtiene la empresa asociada al usuario admin_empresa
-        """
-        try:
-            from usuario_empresa.models import Usuario_Empresa
-            usuario_empresa = Usuario_Empresa.objects.get(id_usuario=user)
-            return usuario_empresa.empresa_id
-        except Exception as e:
-            logger.warning(f"No se pudo obtener empresa para usuario {user.email}: {str(e)}")
-            return None
-
 
 class ListaClientesView(generics.ListAPIView):
     """

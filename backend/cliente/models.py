@@ -1,7 +1,6 @@
 from django.db import models
 from usuarios.models import User
 
-# Create your models here.
 class Cliente(models.Model):
     id_usuario =  models.OneToOneField(User, on_delete=models.CASCADE, primary_key=True)
     nit = models.CharField(max_length=20, unique=True)

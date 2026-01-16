@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation"
 import Button from "../../components/ui/Button/Button"
 import FormField from "../../components/ui/FormField/FormField"
 import styles from "./DashboardUsuarioEmpresa.module.css"
+import Sidebar from "../../components/layout/Sidebar/Sidebar"
 
 export default function EmpresaPage() {
   const router = useRouter()
@@ -30,7 +31,7 @@ export default function EmpresaPage() {
 
   useEffect(() => {
     const rolGuardado = localStorage.getItem("rol")
-    if (rolGuardado !== "admin_empresa") router.push("/login")
+    //if (rolGuardado !== "admin_empresa") router.push("/login")
   }, [])
 
   /* ====== HANDLERS ====== */
@@ -86,6 +87,11 @@ export default function EmpresaPage() {
   }
 
   return (
+
+    <div className={styles.container}>
+      {/* Sidebar fijo */}
+      <Sidebar />
+
     <div className={styles.container}>
       <h1 className={styles.title}>Dashboard Admin Empresa</h1>
       <p className={styles.role}>Rol: {rol}</p>
@@ -222,5 +228,6 @@ export default function EmpresaPage() {
         )}
       </section>
     </div>
+</div>
   )
 }

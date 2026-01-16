@@ -42,9 +42,10 @@ class SolicitarSuscripcionView(generics.GenericAPIView):
             comprobante_pago = serializer.validated_data.get('comprobante_pago')
             observaciones = serializer.validated_data.get('observaciones', '')
             
-            # 1. Obtener empresa del contexto
+            # 1. Obtener empresa del contexto del serializer
             empresa = serializer.context.get('empresa')
             if not empresa:
+                # Si no está en el contexto, obtener del admin
                 empresa = self._obtener_empresa_del_admin(admin_empresa_user)
                 if not empresa:
                     return Response({
@@ -59,8 +60,8 @@ class SolicitarSuscripcionView(generics.GenericAPIView):
             
             # 3. Crear suscripción en estado 'pendiente'
             suscripcion = Suscripcion.objects.create(
-                plan_id=plan,
-                empresa_id=empresa,
+                plan=plan,  # Cambiado de plan_id
+                empresa=empresa,
                 fecha_inicio=fecha_inicio,
                 fecha_fin=fecha_fin,
                 estado='pendiente',
@@ -69,14 +70,14 @@ class SolicitarSuscripcionView(generics.GenericAPIView):
                 fecha_solicitud=fecha_inicio
             )
             
-            # 4. ACTUALIZAR ESTADO DE LA EMPRESA A 'pendiente' ← NUEVO
+            # 4. ACTUALIZAR ESTADO DE LA EMPRESA A 'pendiente'
             empresa.estado = 'pendiente'
             empresa.save()
             
             logger.info(f"Suscripción solicitada: {suscripcion.id_suscripcion} - Empresa: {empresa.nombre} (estado actualizado a 'pendiente') - Plan: {plan.nombre}")
             
             # 5. Enviar correo a administradores
-            self._enviar_correo_a_admins(suscripcion, admin_empresa_user)
+            self._enviar_correo_a_admins(suscripcion, admin_empresa_user, empresa)
             
             # 6. Preparar respuesta
             response_data = {
@@ -133,7 +134,7 @@ class SolicitarSuscripcionView(generics.GenericAPIView):
             logger.error(f"Error obteniendo empresa del admin: {str(e)}")
             return None
     
-    def _enviar_correo_a_admins(self, suscripcion, admin_solicitante):
+    def _enviar_correo_a_admins(self, suscripcion, admin_solicitante, empresa):
         """Envía correo a administradores del sistema"""
         try:
             # 1. Obtener todos los administradores del sistema
@@ -154,8 +155,8 @@ class SolicitarSuscripcionView(generics.GenericAPIView):
             except Admin.DoesNotExist:
                 nombre_admin = admin_principal.email.split('@')[0]
                 logger.warning(f"Admin {admin_principal.email} no tiene registro en tabla Admin")
-        
-        # 3. Obtener todos los objetos Admin para el CC
+            
+            # 3. Obtener todos los objetos Admin para el CC
             admin_emails = []
             for admin_user in admins:
                 try:
@@ -165,27 +166,27 @@ class SolicitarSuscripcionView(generics.GenericAPIView):
                     # Si no tiene registro Admin, usar igualmente el email
                     admin_emails.append(admin_user.email)
             
-            # 3. Preparar datos para el correo
+            # 4. Preparar datos para el correo
             contexto = {
-            'suscripcion': suscripcion,
-            'admin_solicitante': admin_solicitante,
-            'empresa': suscripcion.empresa_id,
-            'plan': suscripcion.plan_id,
-            'fecha_solicitud': timezone.now(),
-            'admin_principal': {
-                'email': admin_principal.email,
-                'nombre': nombre_admin,
-                'fecha_registro': admin_principal.fecha_creacion.strftime('%d/%m/%Y')
-            },
-            'total_admins': admins.count(),
-            'admin_url': f"{settings.FRONTEND_URL}/admin/suscripciones/{suscripcion.id_suscripcion}"
-        }
+                'suscripcion': suscripcion,
+                'admin_solicitante': admin_solicitante,
+                'empresa': empresa,
+                'plan': suscripcion.plan,
+                'fecha_solicitud': timezone.now(),
+                'admin_principal': {
+                    'email': admin_principal.email,
+                    'nombre': nombre_admin,
+                    'fecha_registro': admin_principal.fecha_creacion.strftime('%d/%m/%Y')
+                },
+                'total_admins': admins.count(),
+                'admin_url': f"{settings.FRONTEND_URL}/admin/suscripciones/{suscripcion.id_suscripcion}"
+            }
             
-            # 4. Renderizar contenido del correo
-            subject = f'💰 Nueva Solicitud de Suscripción - {suscripcion.empresa_id.nombre}'
+            # 5. Renderizar contenido del correo
+            subject = f'💰 Nueva Solicitud de Suscripción - {empresa.nombre}'
             html_message = render_to_string('emails/solicitud_suscripcion.html', contexto)
             
-            # 5. Crear email con archivo adjunto
+            # 6. Crear email con archivo adjunto
             email = EmailMessage(
                 subject=subject,
                 body=html_message,
@@ -195,7 +196,7 @@ class SolicitarSuscripcionView(generics.GenericAPIView):
             )
             email.content_subtype = "html"
             
-            # 6. Adjuntar archivo PDF si existe
+            # 7. Adjuntar archivo PDF si existe
             if suscripcion.comprobante_pago and os.path.exists(suscripcion.comprobante_pago.path):
                 with open(suscripcion.comprobante_pago.path, 'rb') as pdf_file:
                     email.attach(
@@ -204,7 +205,7 @@ class SolicitarSuscripcionView(generics.GenericAPIView):
                         'application/pdf'
                     )
             
-            # 7. Enviar correo
+            # 8. Enviar correo
             email.send()
             
             logger.info(f"Correo enviado a {admin_principal.email} y {len(admins)-1} CCs")
@@ -212,12 +213,13 @@ class SolicitarSuscripcionView(generics.GenericAPIView):
         except Exception as e:
             logger.error(f"Error enviando correo a admins: {str(e)}", exc_info=True)
             raise
+    
     def _build_reset_url(self, request, token):
         """
         Construir URL para frontend
         """
         # URL para frontend Next.js
-        reset_url = 'http://localhost:3000/admin'  # Cambiar según tu frontend
+        reset_url = 'http://localhost:3000/login'  # Cambiar según tu frontend
         
         return reset_url
 
@@ -230,15 +232,14 @@ class ListaSuscripcionesView(generics.ListAPIView):
     serializer_class = SuscripcionResumenSerializer
     permission_classes = [AllowAny]
     filter_backends = [DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter]
-    filterset_fields = ['estado', 'plan_id', 'empresa_id']
-    search_fields = ['empresa__nombre', 'plan_id__nombre', 'observaciones']
-    ordering_fields = ['fecha_solicitud', 'fecha_inicio', 'fecha_fin', 'plan_id__precio']
+    filterset_fields = ['estado', 'plan', 'empresa']  # Cambiado
+    search_fields = ['empresa__nombre', 'plan__nombre', 'observaciones']  # Cambiado
+    ordering_fields = ['fecha_solicitud', 'fecha_inicio', 'fecha_fin', 'plan__precio']  # Cambiado
     ordering = ['-fecha_solicitud']
-    
     
     def get_queryset(self):
         """Retorna todas las suscripciones"""
-        return Suscripcion.objects.select_related('plan_id', 'empresa').all()
+        return Suscripcion.objects.select_related('plan', 'empresa').all()  # Cambiado
     
     def list(self, request, *args, **kwargs):
         """Lista con estadísticas"""
@@ -291,14 +292,14 @@ class ListaSuscripcionesView(generics.ListAPIView):
         ingresos_activos = 0
         
         for suscripcion in queryset:
-            plan_nombre = suscripcion.plan_id.nombre
+            plan_nombre = suscripcion.plan.nombre  # Cambiado
             por_plan[plan_nombre] = por_plan.get(plan_nombre, 0) + 1
             
             # Calcular ingresos
             if suscripcion.estado == 'pendiente':
-                ingresos_pendientes += suscripcion.plan_id.precio
+                ingresos_pendientes += suscripcion.plan.precio  # Cambiado
             elif suscripcion.estado == 'activo':
-                ingresos_activos += suscripcion.plan_id.precio
+                ingresos_activos += suscripcion.plan.precio  # Cambiado
         
         return {
             'total_suscripciones': total,
@@ -339,7 +340,7 @@ class DetalleSuscripcionView(generics.RetrieveAPIView):
             try:
                 from usuario_empresa.models import Usuario_Empresa
                 usuario_empresa = Usuario_Empresa.objects.get(id_usuario=usuario)
-                if usuario_empresa.empresa_id == suscripcion.empresa_id:
+                if usuario_empresa.empresa == suscripcion.empresa:  # Cambiado
                     return
             except Exception:
                 pass
@@ -379,24 +380,24 @@ class DetalleSuscripcionView(generics.RetrieveAPIView):
     def _obtener_informacion_admin(self, suscripcion):
         """Obtiene información adicional para administradores"""
         informacion = {
-            'historial_estados': [],  # Podrías crear un modelo de historial
+            'historial_estados': [],
             'suscripciones_relacionadas': []
         }
         
         # Obtener suscripciones anteriores de la misma empresa
         anteriores = Suscripcion.objects.filter(
-            empresa=suscripcion.empresa_id
+            empresa=suscripcion.empresa  # Cambiado
         ).exclude(id_suscripcion=suscripcion.id_suscripcion).order_by('-fecha_solicitud')
         
         if anteriores.exists():
             informacion['suscripciones_relacionadas'] = [
                 {
                     'id': s.id_suscripcion,
-                    'plan': s.plan_id.nombre,
+                    'plan': s.plan.nombre,  # Cambiado
                     'estado': s.estado,
                     'fecha_solicitud': s.fecha_solicitud.isoformat()
                 }
-                for s in anteriores[:5]  # Últimas 5
+                for s in anteriores[:5]
             ]
         
         return informacion
@@ -425,10 +426,10 @@ class MisSuscripcionesView(generics.ListAPIView):
         try:
             from usuario_empresa.models import Usuario_Empresa
             usuario_empresa = Usuario_Empresa.objects.get(id_usuario=self.request.user)
-            empresa = usuario_empresa.empresa_id
+            empresa = usuario_empresa.empresa
             
             return Suscripcion.objects.filter(
                 empresa=empresa
-            ).select_related('plan_id', 'empresa').order_by('-fecha_solicitud')
+            ).select_related('plan', 'empresa').order_by('-fecha_solicitud')  # Cambiado
         except Exception:
             return Suscripcion.objects.none()

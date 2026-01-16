@@ -51,7 +51,6 @@ INSTALLED_APPS = [
     'usuarios',
     'usuario_empresa',
     'empresas',
-    'core',
     'cuentas',
     'cliente',
     'admins',

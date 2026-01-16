@@ -15,9 +15,6 @@ logger = logging.getLogger(__name__)
 class RegistroEmpresaView(generics.CreateAPIView):
     """
     Vista para que un administrador registre una empresa
-    - Solo admin puede registrar
-    - El admin que registra se guarda en admin_id automáticamente
-    - Crea automáticamente una suscripción según el plan seleccionado
     """
     serializer_class = RegistroEmpresaSerializer
     permission_classes = [IsAuthenticated]
@@ -71,7 +68,7 @@ class RegistroEmpresaView(generics.CreateAPIView):
             
             # 2. Crear empresa
             empresa = Empresa.objects.create(
-                admin_id=admin_sistema, 
+                admin=admin_sistema,  # Cambiado de admin_id
                 nombre=validated_data['nombre'],
                 nit=validated_data['nit'],
                 direccion=validated_data['direccion'],
@@ -92,7 +89,7 @@ class RegistroEmpresaView(generics.CreateAPIView):
                 'message': 'Empresa registrada exitosamente con suscripción activa',
                 'empresa': EmpresaSerializer(empresa).data,
                 'admin_registrador': {
-                    'id': admin_sistema.id_usuario.id_usuario,
+                    'id': admin_sistema.id_usuario.id_usuario,  # Cambiado
                     'email': request.user.email,
                     'nombre': admin_sistema.nombre_admin
                 },
@@ -125,13 +122,13 @@ class RegistroEmpresaView(generics.CreateAPIView):
         Obtiene el registro Admin del usuario con rol 'admin'
         """
         try:
-            admin = Admin.objects.get(id_usuario=user)
+            admin = Admin.objects.get(id_usuario=user)  # Cambiado de usuario
             return admin
         except Admin.DoesNotExist:
             # Si no existe registro en Admin, crear uno básico
             logger.warning(f"Usuario admin {user.email} no tiene registro en tabla Admin. Creando...")
             admin = Admin.objects.create(
-                id_usuario=user,
+                id_usuario=user,  # Cambiado de usuario
                 nombre_admin=user.email.split('@')[0],
                 telefono_admin="0000000000"
             )
@@ -161,13 +158,11 @@ class RegistroEmpresaView(generics.CreateAPIView):
         fecha_fin = fecha_inicio + timedelta(days=plan.duracion_dias)
         
         # Determinar estado inicial
-        # Si el plan es gratuito, activar inmediatamente
-        # Si es de pago, poner como pendiente hasta el pago
         estado = 'inactivo' if plan.precio == 0 else 'pendiente'
         
         suscripcion = Suscripcion.objects.create(
-            plan_id=plan,
-            empresa_id=empresa,
+            plan=plan,
+            empresa=empresa,
             fecha_inicio=fecha_inicio,
             fecha_fin=fecha_fin,
             estado=estado
@@ -182,12 +177,12 @@ class RegistroEmpresaView(generics.CreateAPIView):
         return {
             'id_suscripcion': suscripcion.id_suscripcion,
             'plan': {
-                'nombre': suscripcion.plan_id.nombre,
-                'precio': suscripcion.plan_id.precio,
-                'duracion_dias': suscripcion.plan_id.duracion_dias,
-                'limite_productos': suscripcion.plan_id.limite_productos,
-                'limite_usuarios': suscripcion.plan_id.limite_usuarios,
-                'descripcion': suscripcion.plan_id.descripcion
+                'nombre': suscripcion.plan.nombre,
+                'precio': suscripcion.plan.precio,
+                'duracion_dias': suscripcion.plan.duracion_dias,
+                'limite_productos': suscripcion.plan.limite_productos,
+                'limite_usuarios': suscripcion.plan.limite_usuarios,
+                'descripcion': suscripcion.plan.descripcion
             },
             'fecha_inicio': suscripcion.fecha_inicio.isoformat(),
             'fecha_fin': suscripcion.fecha_fin.isoformat(),
@@ -210,7 +205,7 @@ class ListaEmpresasView(generics.ListAPIView):
         elif self.request.user.rol and self.request.user.rol.rol == 'admin_empresa':
             try:
                 from usuario_empresa.models import Usuario_Empresa
-                usuario_empresa = Usuario_Empresa.objects.get(id_usuario=self.request.user)
+                usuario_empresa = Usuario_Empresa.objects.get(usuario=self.request.user)
                 return Empresa.objects.filter(id_empresa=usuario_empresa.empresa_id.id_empresa)
             except Exception:
                 return Empresa.objects.none()

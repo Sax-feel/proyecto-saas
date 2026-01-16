@@ -67,19 +67,19 @@ class SolicitudSuscripcionSerializer(serializers.Serializer):
         try:
             from usuario_empresa.models import Usuario_Empresa
             usuario_empresa_rel = Usuario_Empresa.objects.get(id_usuario=user)
-            empresa = usuario_empresa_rel.empresa_id
+            empresa = usuario_empresa_rel.empresa
             
-            # CORRECCIÓN: Usar empresa_id, no id_empresa
+            # Verificar si ya existe una suscripción activa o pendiente para esta empresa
             from .models import Suscripcion
             suscripcion_activa = Suscripcion.objects.filter(
-                empresa_id=empresa,  # ← CORREGIDO: usar empresa_id (instancia), no id_empresa
+                empresa=empresa,
                 estado__in=['activo', 'pendiente']
             ).exists()
             
             if suscripcion_activa:
                 # Obtener info de la suscripción existente
                 suscripcion = Suscripcion.objects.filter(
-                    empresa_id=empresa,
+                    empresa=empresa,
                     estado__in=['activo', 'pendiente']
                 ).first()
                 
@@ -87,7 +87,7 @@ class SolicitudSuscripcionSerializer(serializers.Serializer):
                     'error': 'Ya tienes una suscripción existente',
                     'detalle': {
                         'id': suscripcion.id_suscripcion,
-                        'plan': suscripcion.plan_id.nombre,
+                        'plan': suscripcion.plan.nombre,
                         'estado': suscripcion.estado,
                         'fecha_solicitud': suscripcion.fecha_solicitud.strftime('%d/%m/%Y')
                     }
@@ -108,9 +108,9 @@ class SuscripcionSerializer(serializers.ModelSerializer):
     """
     Serializador completo para suscripciones
     """
-    plan = PlanSerializer(source='plan_id', read_only=True)
-    empresa_id = EmpresaSerializer(read_only=True)
-    admin_aprobador_info = PerfilUsuarioSerializer(source='admin_aprobador', read_only=True)
+    plan = PlanSerializer(read_only=True)  # Cambiado de source='plan_id'
+    empresa = EmpresaSerializer(read_only=True)  # Cambiado de empresa_id
+    admin_aprobador_info = PerfilUsuarioSerializer(source='admin', read_only=True)
     dias_restantes = serializers.SerializerMethodField()
     comprobante_url = serializers.SerializerMethodField()
     
@@ -119,7 +119,7 @@ class SuscripcionSerializer(serializers.ModelSerializer):
         fields = [
             'id_suscripcion',
             'plan',
-            'empresa_id',
+            'empresa',  # Cambiado de empresa_id
             'fecha_inicio',
             'fecha_fin',
             'estado',
@@ -133,7 +133,7 @@ class SuscripcionSerializer(serializers.ModelSerializer):
         ]
         read_only_fields = [
             'id_suscripcion', 'fecha_inicio', 'fecha_fin', 
-            'estado', 'fecha_aprobacion', 'admin_aprobador',
+            'estado', 'fecha_aprobacion', 'admin',  # Cambiado de admin_aprobador
             'fecha_solicitud'
         ]
     
@@ -164,9 +164,9 @@ class SuscripcionResumenSerializer(serializers.ModelSerializer):
     """
     Serializador resumido para listar suscripciones
     """
-    plan_nombre = serializers.CharField(source='plan_id.nombre')
+    plan_nombre = serializers.CharField(source='plan.nombre')
     empresa_nombre = serializers.CharField(source='empresa.nombre')
-    precio_plan = serializers.FloatField(source='plan_id.precio')
+    precio_plan = serializers.FloatField(source='plan.precio')
     
     class Meta:
         model = Suscripcion

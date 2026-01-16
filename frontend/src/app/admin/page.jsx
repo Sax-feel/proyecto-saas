@@ -44,31 +44,31 @@ export default function DashboardAdmin() {
 
   // ----------------- Fetch API -----------------
   const fetchUsers = async () => {
-  setLoading(true);
-  try {
-    const token = getToken();
-    if (!token) throw new Error("No hay token de autenticación");
+    setLoading(true);
+    try {
+      const token = getToken();
+      if (!token) throw new Error("No hay token de autenticación");
 
-    const res = await fetch("http://localhost:8000/api/usuarios/todos/", {
-      method: "GET",
-      headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
-    });
+      const res = await fetch("http://localhost:8000/api/usuarios/todos/", {
+        method: "GET",
+        headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+      });
 
-    if (!res.ok) throw new Error(`Error ${res.status}`);
-    const data = await res.json();
+      if (!res.ok) throw new Error(`Error ${res.status}`);
+      const data = await res.json();
 
-    // Asegurarse de que users sea un array
-    const usersArray = Array.isArray(data) ? data : data.usuarios ? data.usuarios : [data];
-    setUsers(usersArray);
+      // Asegurarse de que users sea un array
+      const usersArray = Array.isArray(data) ? data : data.usuarios ? data.usuarios : [data];
+      setUsers(usersArray);
 
-    setError(null);
-  } catch (err) {
-    console.error(err);
-    setError(`Error al cargar usuarios: ${err.message}`);
-  } finally {
-    setLoading(false);
-  }
-};
+      setError(null);
+    } catch (err) {
+      console.error(err);
+      setError(`Error al cargar usuarios: ${err.message}`);
+    } finally {
+      setLoading(false);
+    }
+  };
 
 
   const fetchEmpresas = async () => {
@@ -221,56 +221,56 @@ export default function DashboardAdmin() {
   };
 
   // ----------------- Eliminar usuario -----------------
-const deleteUser = async (id_usuario) => {
-  if (!confirm("¿Seguro quieres eliminar este usuario? Esta acción no se puede deshacer.")) return;
+  const deleteUser = async (id_usuario) => {
+    if (!confirm("¿Seguro quieres eliminar este usuario? Esta acción no se puede deshacer.")) return;
 
-  try {
-    const token = getToken();
-    const res = await fetch(`http://localhost:8000/api/usuarios/${id_usuario}/`, {
-      method: "DELETE",
-      headers: {
-        Authorization: `Bearer ${token}`,
-        "Content-Type": "application/json", // Algunas APIs no requieren Content-Type en DELETE, pero no hace daño
-      },
-    });
+    try {
+      const token = getToken();
+      const res = await fetch(`http://localhost:8000/api/usuarios/${id_usuario}/`, {
+        method: "DELETE",
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json", // Algunas APIs no requieren Content-Type en DELETE, pero no hace daño
+        },
+      });
 
-    if (res.ok) {
-      alert("Usuario eliminado correctamente");
-      fetchUsers(); // Refresca la tabla
-    } else {
-      const data = await res.json();
-      alert(`Error al eliminar usuario: ${data.detail || data.error || "Desconocido"}`);
+      if (res.ok) {
+        alert("Usuario eliminado correctamente");
+        fetchUsers(); // Refresca la tabla
+      } else {
+        const data = await res.json();
+        alert(`Error al eliminar usuario: ${data.detail || data.error || "Desconocido"}`);
+      }
+    } catch (err) {
+      console.error(err);
+      alert("Error al eliminar usuario");
     }
-  } catch (err) {
-    console.error(err);
-    alert("Error al eliminar usuario");
-  }
-};
+  };
 
 
-// ----------------- Eliminar empresa -----------------
-const deleteEmpresa = async (id_empresa) => {
-  if (!confirm("¿Seguro quieres eliminar esta empresa?")) return;
+  // ----------------- Eliminar empresa -----------------
+  const deleteEmpresa = async (id_empresa) => {
+    if (!confirm("¿Seguro quieres eliminar esta empresa?")) return;
 
-  try {
-    const token = getToken();
-    const res = await fetch(`http://localhost:8000/api/empresas/${id_empresa}/`, {
-      method: "DELETE",
-      headers: { Authorization: `Bearer ${token}` },
-    });
+    try {
+      const token = getToken();
+      const res = await fetch(`http://localhost:8000/api/empresas/${id_empresa}/`, {
+        method: "DELETE",
+        headers: { Authorization: `Bearer ${token}` },
+      });
 
-    if (res.ok) {
-      alert("Empresa eliminada correctamente");
-      fetchEmpresas();
-    } else {
-      const data = await res.json();
-      alert(`Error al eliminar empresa: ${data.detail || data.error || "Desconocido"}`);
+      if (res.ok) {
+        alert("Empresa eliminada correctamente");
+        fetchEmpresas();
+      } else {
+        const data = await res.json();
+        alert(`Error al eliminar empresa: ${data.detail || data.error || "Desconocido"}`);
+      }
+    } catch (err) {
+      console.error(err);
+      alert("Error al eliminar empresa");
     }
-  } catch (err) {
-    console.error(err);
-    alert("Error al eliminar empresa");
-  }
-};
+  };
 
 
 
@@ -298,60 +298,60 @@ const deleteEmpresa = async (id_empresa) => {
         <div className={styles.tableContainer}>
           <table className={styles.table}>
             <thead>
-  <tr>
-    <th>ID</th>
-    <th>Email</th>
-    <th>Rol</th>
-    <th>Estado</th>
-    <th>Empresa</th>
-    <th>Registro</th>
-    <th>Último Login</th>
-    <th>Eliminar</th> {/* Nueva columna */}
-  </tr>
-</thead>
-<tbody>
-  {users.length === 0 && !loading ? (
-    <tr>
-      <td colSpan="8" className={styles.empty}>
-        No hay usuarios registrados
-      </td>
-    </tr>
-  ) : (
-    users.map((user) => (
-      <tr key={user.id_usuario} className={styles.userRow}>
-        <td>{user.id_usuario}</td>
-        <td>{user.email}</td>
-        <td>
-          <span className={`${styles.rolBadge} ${styles[user.rol]}`}>{user.rol}</span>
-        </td>
-        <td>
-          <span className={`${styles.estadoBadge} ${styles[user.estado]}`}>
-            {user.estado}
-          </span>
-          <button
-            className={styles.primaryBtn}
-            style={{ marginLeft: "0.5rem", padding: "0.3rem 0.5rem", fontSize: "0.75rem" }}
-            onClick={() => toggleUserEstado(user.id_usuario, user.estado)}
-          >
-            {user.estado === "activo" ? "Inactivar" : "Activar"}
-          </button>
-        </td>
-        <td>{getEmpresaUsuario(user)}</td>
-        <td>{formatDate(user.fecha_creacion)}</td>
-        <td>{user.ultimo_login ? formatDate(user.ultimo_login) : "Nunca"}</td>
-        <td>
-          <button
-            className={styles.deleteBtn}
-            style={{ backgroundColor: "#e53e3e", color: "#fff", padding: "0.3rem 0.5rem", fontSize: "0.75rem" }}
-            onClick={() => deleteUser(user.id_usuario)}
-          >
-            Eliminar
-          </button>
-        </td>
-      </tr>
-    ))
-  )}
-</tbody>
+              <tr>
+                <th>ID</th>
+                <th>Email</th>
+                <th>Rol</th>
+                <th>Estado</th>
+                <th>Empresa</th>
+                <th>Registro</th>
+                <th>Último Login</th>
+                <th>Eliminar</th> {/* Nueva columna */}
+              </tr>
+            </thead>
+            <tbody>
+              {users.length === 0 && !loading ? (
+                <tr>
+                  <td colSpan="8" className={styles.empty}>
+                    No hay usuarios registrados
+                  </td>
+                </tr>
+              ) : (
+                users.map((user) => (
+                  <tr key={user.id_usuario} className={styles.userRow}>
+                    <td>{user.id_usuario}</td>
+                    <td>{user.email}</td>
+                    <td>
+                      <span className={`${styles.rolBadge} ${styles[user.rol]}`}>{user.rol}</span>
+                    </td>
+                    <td>
+                      <span className={`${styles.estadoBadge} ${styles[user.estado]}`}>
+                        {user.estado}
+                      </span>
+                      <button
+                        className={styles.primaryBtn}
+                        style={{ marginLeft: "0.5rem", padding: "0.3rem 0.5rem", fontSize: "0.75rem" }}
+                        onClick={() => toggleUserEstado(user.id_usuario, user.estado)}
+                      >
+                        {user.estado === "activo" ? "Inactivar" : "Activar"}
+                      </button>
+                    </td>
+                    <td>{getEmpresaUsuario(user)}</td>
+                    <td>{formatDate(user.fecha_creacion)}</td>
+                    <td>{user.ultimo_login ? formatDate(user.ultimo_login) : "Nunca"}</td>
+                    <td>
+                      <button
+                        className={styles.deleteBtn}
+                        style={{ backgroundColor: "#e53e3e", color: "#fff", padding: "0.3rem 0.5rem", fontSize: "0.75rem" }}
+                        onClick={() => deleteUser(user.id_usuario)}
+                      >
+                        Eliminar
+                      </button>
+                    </td>
+                  </tr>
+                ))
+              )}
+            </tbody>
           </table>
         </div>
       </section>
@@ -367,56 +367,56 @@ const deleteEmpresa = async (id_empresa) => {
         <div className={styles.tableContainer}>
           <table className={styles.table}>
             <thead>
-  <tr>
-    <th>ID</th>
-    <th>Nombre</th>
-    <th>NIT</th>
-    <th>Email</th>
-    <th>Estado</th>
-    <th>Registro</th>
-    <th>Eliminar</th> {/* Nueva columna */}
-  </tr>
-</thead>
-<tbody>
-  {empresas.length === 0 ? (
-    <tr>
-      <td colSpan="7" className={styles.empty}>
-        No hay empresas registradas
-      </td>
-    </tr>
-  ) : (
-    empresas.map((empresa) => (
-      <tr key={empresa.id_empresa}>
-        <td>{empresa.id_empresa}</td>
-        <td>{empresa.nombre}</td>
-        <td>{empresa.nit}</td>
-        <td>{empresa.email}</td>
-        <td>
-          <span className={`${styles.estadoBadge} ${styles[empresa.estado]}`}>
-            {empresa.estado}
-          </span>
-          <button
-            className={styles.primaryBtn}
-            style={{ marginLeft: "0.5rem", padding: "0.3rem 0.5rem", fontSize: "0.75rem" }}
-            onClick={() => toggleEmpresaEstado(empresa.id_empresa, empresa.estado)}
-          >
-            {empresa.estado === "activo" ? "Inactivar" : "Activar"}
-          </button>
-        </td>
-        <td>{formatDate(empresa.fecha_creacion)}</td>
-        <td>
-          <button
-            className={styles.deleteBtn}
-            style={{ backgroundColor: "#e53e3e", color: "#fff", padding: "0.3rem 0.5rem", fontSize: "0.75rem" }}
-            onClick={() => deleteEmpresa(empresa.id_empresa)}
-          >
-            Eliminar
-          </button>
-        </td>
-      </tr>
-    ))
-  )}
-</tbody>
+              <tr>
+                <th>ID</th>
+                <th>Nombre</th>
+                <th>NIT</th>
+                <th>Email</th>
+                <th>Estado</th>
+                <th>Registro</th>
+                <th>Eliminar</th> {/* Nueva columna */}
+              </tr>
+            </thead>
+            <tbody>
+              {empresas.length === 0 ? (
+                <tr>
+                  <td colSpan="7" className={styles.empty}>
+                    No hay empresas registradas
+                  </td>
+                </tr>
+              ) : (
+                empresas.map((empresa) => (
+                  <tr key={empresa.id_empresa}>
+                    <td>{empresa.id_empresa}</td>
+                    <td>{empresa.nombre}</td>
+                    <td>{empresa.nit}</td>
+                    <td>{empresa.email}</td>
+                    <td>
+                      <span className={`${styles.estadoBadge} ${styles[empresa.estado]}`}>
+                        {empresa.estado}
+                      </span>
+                      <button
+                        className={styles.primaryBtn}
+                        style={{ marginLeft: "0.5rem", padding: "0.3rem 0.5rem", fontSize: "0.75rem" }}
+                        onClick={() => toggleEmpresaEstado(empresa.id_empresa, empresa.estado)}
+                      >
+                        {empresa.estado === "activo" ? "Inactivar" : "Activar"}
+                      </button>
+                    </td>
+                    <td>{formatDate(empresa.fecha_creacion)}</td>
+                    <td>
+                      <button
+                        className={styles.deleteBtn}
+                        style={{ backgroundColor: "#e53e3e", color: "#fff", padding: "0.3rem 0.5rem", fontSize: "0.75rem" }}
+                        onClick={() => deleteEmpresa(empresa.id_empresa)}
+                      >
+                        Eliminar
+                      </button>
+                    </td>
+                  </tr>
+                ))
+              )}
+            </tbody>
           </table>
         </div>
       </section>

@@ -93,7 +93,6 @@ class RegistroUsuarioEmpresaView(generics.CreateAPIView):
                 
             elif rol_solicitado == 'vendedor':
                 # CASO B: Admin_empresa creando vendedor
-                print(user_actual.rol.rol)
                 if user_actual.rol.rol != 'admin_empresa':
                     return Response(
                         {
@@ -133,7 +132,7 @@ class RegistroUsuarioEmpresaView(generics.CreateAPIView):
             # 5. Crear registro en Usuario_Empresa
             usuario_empresa = Usuario_Empresa.objects.create(
                 id_usuario=nuevo_usuario,
-                empresa_id=empresa,
+                empresa=empresa,
                 estado='activo'
             )
             
@@ -157,7 +156,7 @@ class RegistroUsuarioEmpresaView(generics.CreateAPIView):
                     'id': empresa.id_empresa,
                     'nombre': empresa.nombre,
                     'nit': empresa.nit,
-                    'admin_registro': empresa.admin_id.nombre_admin if empresa.admin_id else None
+                    'admin_registro': empresa.admin.nombre_admin if empresa.admin_id else None
                 },
                 'registrado_por': {
                     'id': user_actual.id_usuario,
@@ -334,7 +333,7 @@ class UsuariosPorEmpresaView(generics.ListAPIView):
         user = self.request.user
         
         try:
-            empresa = Empresa.objects.get(id_empresa=empresa_id)
+            empresa = Empresa.objects.get(empresa=empresa_id)
         except Empresa.DoesNotExist:
             return Usuario_Empresa.objects.none()
         

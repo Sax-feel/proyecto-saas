@@ -474,6 +474,8 @@ class PasswordResetConfirmView(generics.GenericAPIView):
             user.set_password(new_password)
             user.save()
             
+            # Invalidar tokens JWT existentes (opcional)
+            # Podrías agregar el token actual a una blacklist
             
             logger.info(f"Contraseña actualizada para usuario: {user.email}")
             

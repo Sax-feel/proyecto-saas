@@ -8,7 +8,7 @@ from .views import (
     ListaEmpresasClienteAdminView,
     DetalleEmpresaClienteAdminView,
     EmpresasDisponiblesClienteView,
-    RegistroEmpresaView,  # Si ya existe
+    RegistroEmpresaView,
     CambiarEstadoEmpresaView 
 )
 

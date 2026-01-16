@@ -4,9 +4,16 @@ from cliente.models import Cliente
 from empresas.models import Empresa
 
 class Tiene(models.Model):
+    ESTADOS = [
+        ('activo', 'Activo'),
+        ('inactivo', 'Inactivo'),
+        ('pendiente', 'Pendiente'),
+        ('bloqueado', 'Bloqueado'),
+    ]
     id_cliente = models.ForeignKey(Cliente, on_delete=models.CASCADE)
     id_empresa = models.ForeignKey(Empresa, on_delete=models.CASCADE)
     fecha_registro = models.DateTimeField(auto_now_add=True)
+    estado = models.CharField(max_length=50, choices=ESTADOS, default='activo')
     
     class Meta:
         db_table = "tiene"

@@ -223,7 +223,7 @@ class UserSerializer(serializers.ModelSerializer):
                 from usuario_empresa.models import Usuario_Empresa
                 
                 usuario_empresa = Usuario_Empresa.objects.get(id_usuario=obj)
-                empresa = usuario_empresa.empresa_id
+                empresa = usuario_empresa.empresa
                 
                 empresas_info.append({
                     'id_empresa': empresa.id_empresa,

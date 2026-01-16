@@ -159,3 +159,20 @@
   border-radius: 4px;
   font-size: 1rem;
 }
+
+.dashboardContainer {
+  display: flex;
+  min-height: 100vh;
+}
+
+.mainContent {
+  flex: 1; /* Ocupa todo el espacio disponible */
+  padding: 2rem;
+  margin-left: 260px; /* Ancho inicial del Sidebar */
+  transition: margin-left 0.3s ease;
+}
+
+/* Opcional: si el Sidebar está colapsado, ajusta el contenido */
+.mainContent.collapsed {
+  margin-left: 64px;
+}

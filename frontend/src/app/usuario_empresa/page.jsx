@@ -88,15 +88,15 @@ export default function EmpresaPage() {
 
   return (
 
-    <div className={styles.container}>
-      {/* Sidebar fijo */}
+    <div className={styles.dashboardContainer}>
+      {/* Sidebar vertical */}
       <Sidebar />
 
-    <div className={styles.container}>
-      <h1 className={styles.title}>Dashboard Admin Empresa</h1>
-      <p className={styles.role}>Rol: {rol}</p>
+      {/* Contenido principal */}
+      <div className={styles.mainContent}>
+        <h1 className={styles.title}>Dashboard Admin Empresa</h1>
+        <p className={styles.role}>Rol: {rol}</p>
 
-      {/* SUSCRIPCIONES */}
       <section className={styles.section}>
         <h2>Suscripciones</h2>
         <Button onClick={() => router.push("/usuario_empresa/suscripciones")}>

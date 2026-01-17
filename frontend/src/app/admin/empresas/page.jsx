@@ -298,7 +298,6 @@ export default function EmpresasPage() {
 
   // ----------------- Configuración de Tabla -----------------
   const columns = [
-    { key: "id_empresa", label: "ID" },
     { key: "nombre", label: "Nombre" },
     { key: "nit", label: "NIT" },
     {

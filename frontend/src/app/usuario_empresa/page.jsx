@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react"
 import Sidebar from "../../components/layout/Sidebar/Sidebar"
-import { Building2, Mail, Phone, MapPin, FileText, Globe, Lock, Edit, Save, X, Trash2, AlertTriangle, ChartColumnIncreasing, Info, CalendarCheck } from "lucide-react"
+import { Building2, Mail, Phone, MapPin, FileText, Globe, Lock, Edit, Save, X, Trash2, AlertTriangle, ChartColumnIncreasing, Info, CalendarCheck, Loader2 } from "lucide-react"
 import Button from "../../components/ui/Button/Button"
 import Input from "../../components/ui/Input/Input"
 import FormField from "../../components/ui/FormField/FormField"
@@ -15,6 +15,8 @@ export default function EmpresaPage() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
   const [showDeleteModal, setShowDeleteModal] = useState(false)
+  const [saving, setSaving] = useState(false)
+
 
   // Estado para la empresa
   const [empresa, setEmpresa] = useState(null)
@@ -54,17 +56,22 @@ export default function EmpresaPage() {
   // 2. Actualizar la empresa
   const handleSave = async () => {
     if (!empresa) return
-    
+
     try {
+      setSaving(true)
       const token = getToken()
-      const res = await fetch(`http://localhost:8000/api/empresas/${empresa.id_empresa}/`, {
-        method: "PUT",
-        headers: {
-          Authorization: `Bearer ${token}`,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(tempEmpresa),
-      })
+
+      const res = await fetch(
+        `http://localhost:8000/api/empresas/${empresa.id_empresa}/`,
+        {
+          method: "PUT",
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify(tempEmpresa),
+        }
+      )
 
       if (!res.ok) {
         throw new Error("Error al actualizar la empresa")
@@ -74,10 +81,14 @@ export default function EmpresaPage() {
       setEmpresa(updatedData)
       setIsEditing(false)
       alert("Cambios guardados correctamente")
+
     } catch (err) {
       alert(err.message)
+    } finally {
+      setSaving(false)
     }
   }
+
 
   // 3. Eliminar la empresa (con confirmación)
   const handleDeleteEmpresa = async () => {
@@ -223,20 +234,6 @@ export default function EmpresaPage() {
 
         {/* Tarjetas de información */}
         <div className={styles.cardsContainer}>
-          {/* RESUMEN */}
-          <DataCard title="Resumen">
-            <div className={styles.cardContent}>
-              {resumenData.map((item) => (
-                <div key={item.label} className={styles.resumenRow}>
-                  <item.icon className={styles.resumenIcon} size={18} />
-                  <div className={styles.resumenItem}>
-                    <span className={styles.resumenLabel}>{item.label}</span>
-                    <span className={styles.resumenValue}>{item.value}</span>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </DataCard>
           {/* RESUMEN */}
           <DataCard title="Resumen">
             <div className={styles.cardContent}>

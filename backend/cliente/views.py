@@ -1,14 +1,20 @@
 from django.db import transaction
-from rest_framework import generics, status
+from rest_framework import generics, status, filters
 from rest_framework.response import Response
 from django.utils import timezone
 from rest_framework.permissions import IsAuthenticated, AllowAny
+from django.utils import timezone
+from django_filters.rest_framework import DjangoFilterBackend
+from datetime import timedelta
 from usuarios.models import User
 from roles.models import Rol
 from relacion_tiene.models import Tiene
 from empresas.serializers import EmpresaSerializer
 from .models import Cliente
 from .serializers import RegistroClienteSerializer, ClienteSerializer, EmailEmpresaSerializer
+from .models import AuditoriaCliente
+from .serializers import AuditoriaClienteSerializer, FiltroAuditoriaSerializer
+
 import logging
 
 
@@ -366,3 +372,185 @@ class MisEmpresasView(generics.ListAPIView):
                 'detail': str(e),
                 'status': 'error'
             }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+        
+
+class ListaAuditoriaClienteView(generics.ListAPIView):
+    """
+    Vista para listar auditorías de clientes
+    Solo accesible por admin y admin_empresa
+    """
+    serializer_class = AuditoriaClienteSerializer
+    permission_classes = [IsAuthenticated]
+    filter_backends = [DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter]
+    filterset_fields = ['accion', 'cliente_id', 'usuario_id']
+    search_fields = ['cliente_nombre', 'cliente_nit', 'detalles']
+    ordering_fields = ['fecha', 'accion', 'cliente_nombre']
+    ordering = ['-fecha']
+    
+    def check_permissions(self, request):
+        """Verifica permisos"""
+        super().check_permissions(request)
+        
+        user = request.user
+        if not user.rol or user.rol.rol not in ['admin', 'admin_empresa']:
+            self.permission_denied(
+                request,
+                message="No tiene permisos para ver auditorías",
+                code=status.HTTP_403_FORBIDDEN
+            )
+    
+    def get_queryset(self):
+        """Filtra auditorías según permisos"""
+        user = self.request.user
+        
+        queryset = AuditoriaCliente.objects.all()
+        
+        # Si es admin_empresa, solo ver auditorías de sus clientes
+        if user.rol and user.rol.rol == 'admin_empresa':
+            try:
+                from usuario_empresa.models import Usuario_Empresa
+                usuario_empresa = Usuario_Empresa.objects.get(id_usuario=user)
+                empresa = usuario_empresa.empresa
+                
+                # Obtener clientes de esta empresa
+                from relacion_tiene.models import Tiene
+                clientes_empresa = Tiene.objects.filter(
+                    id_empresa=empresa
+                ).values_list('id_cliente_id', flat=True)
+                
+                # Filtrar auditorías de estos clientes
+                queryset = queryset.filter(
+                    cliente_id__in=clientes_empresa
+                )
+            except Exception as e:
+                logger.warning(f"Error filtrando auditorías para admin_empresa: {str(e)}")
+                return AuditoriaCliente.objects.none()
+        
+        return queryset
+    
+    def list(self, request, *args, **kwargs):
+        """Lista con filtros avanzados"""
+        try:
+            # Aplicar filtros manuales
+            queryset = self.filter_queryset(self.get_queryset())
+            
+            # Filtros adicionales desde query params
+            fecha_desde = request.query_params.get('fecha_desde')
+            fecha_hasta = request.query_params.get('fecha_hasta')
+            
+            if fecha_desde:
+                queryset = queryset.filter(fecha__date__gte=fecha_desde)
+            if fecha_hasta:
+                queryset = queryset.filter(fecha__date__lte=fecha_hasta)
+            
+            
+            # Últimos 30 días
+            ultimos_30_dias = timezone.now() - timedelta(days=30)
+            
+            # Paginación
+            page = self.paginate_queryset(queryset)
+            if page is not None:
+                serializer = self.get_serializer(page, many=True)
+                return self.get_paginated_response({
+                    'auditorias': serializer.data,
+                    'status': 'success'
+                })
+            
+            serializer = self.get_serializer(queryset, many=True)
+            
+            return Response({
+                'auditorias': serializer.data,
+                'status': 'success'
+            })
+            
+        except Exception as e:
+            logger.error(f"Error listando auditorías: {str(e)}", exc_info=True)
+            return Response({
+                'error': 'Error al obtener auditorías',
+                'detail': str(e),
+                'status': 'error'
+            }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+class AuditoriaClienteFiltradaView(generics.GenericAPIView):
+    """
+    Vista para filtrar auditorías con parámetros avanzados
+    """
+    serializer_class = FiltroAuditoriaSerializer
+    permission_classes = [IsAuthenticated]
+    
+    def check_permissions(self, request):
+        """Verifica permisos"""
+        super().check_permissions(request)
+        
+        user = request.user
+        if not user.rol or user.rol.rol not in ['admin', 'admin_empresa']:
+            self.permission_denied(
+                request,
+                message="No tiene permisos para ver auditorías",
+                code=status.HTTP_403_FORBIDDEN
+            )
+    
+    def post(self, request, *args, **kwargs):
+        """Filtra auditorías con múltiples criterios"""
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        
+        try:
+            filtros = serializer.validated_data
+            queryset = AuditoriaCliente.objects.all()
+            
+            # Aplicar filtros
+            if filtros.get('fecha_desde'):
+                queryset = queryset.filter(fecha__date__gte=filtros['fecha_desde'])
+            if filtros.get('fecha_hasta'):
+                queryset = queryset.filter(fecha__date__lte=filtros['fecha_hasta'])
+            if filtros.get('accion'):
+                queryset = queryset.filter(accion=filtros['accion'])
+            if filtros.get('cliente_id'):
+                queryset = queryset.filter(cliente_id=filtros['cliente_id'])
+            if filtros.get('usuario_id'):
+                queryset = queryset.filter(usuario_id=filtros['usuario_id'])
+            
+            # Ordenar por fecha descendente
+            queryset = queryset.order_by('-fecha')
+            
+            # Serializar resultados
+            auditoria_serializer = AuditoriaClienteSerializer(queryset, many=True)
+            
+            return Response({
+                'auditorias': auditoria_serializer.data,
+                'total': queryset.count(),
+                'filtros_aplicados': filtros,
+                'status': 'success'
+            })
+            
+        except Exception as e:
+            logger.error(f"Error filtrando auditorías: {str(e)}", exc_info=True)
+            return Response({
+                'error': 'Error al filtrar auditorías',
+                'detail': str(e),
+                'status': 'error'
+            }, status=status.HTTP_400_BAD_REQUEST)
+
+
+class DetalleAuditoriaClienteView(generics.RetrieveAPIView):
+    """
+    Vista para ver detalle de una auditoría específica
+    """
+    serializer_class = AuditoriaClienteSerializer
+    permission_classes = [IsAuthenticated]
+    queryset = AuditoriaCliente.objects.all()
+    lookup_field = 'id'
+    
+    def check_permissions(self, request):
+        """Verifica permisos"""
+        super().check_permissions(request)
+        
+        user = request.user
+        if not user.rol or user.rol.rol not in ['admin', 'admin_empresa']:
+            self.permission_denied(
+                request,
+                message="No tiene permisos para ver auditorías",
+                code=status.HTTP_403_FORBIDDEN
+            )

@@ -1,4 +1,5 @@
-import { useState } from "react"
+"use client"
+
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 import {
@@ -13,49 +14,50 @@ import {
   ChevronRight,
 } from "lucide-react"
 
-import "./Sidebar.module.css"
+import styles from "./Sidebar.module.css"
 
 const navigation = [
-  { name: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
-  { name: "Mi Empresa", href: "/dashboard/empresa", icon: Building2 },
-  { name: "Clientes", href: "/dashboard/clientes", icon: Users },
-  { name: "Vendedores", href: "/dashboard/vendedores", icon: UserCheck },
-  { name: "Productos", href: "/dashboard/productos", icon: Package },
-  { name: "Suscripción", href: "/dashboard/suscripcion", icon: CreditCard },
+  { name: "Mi Empresa", href: "/usuario_empresa", icon: Building2 },
+  { name: "Clientes", href: "/usuario_empresa/empleados", icon: Users },
+  { name: "Productos", href: "/usuario_empresa/producto-section", icon: Package },
+  { name: "Suscripción", href: "/usuario_empresa/suscripciones", icon: CreditCard },
 ]
 
-export default function Sidebar() {
+export default function Sidebar({ collapsed, setCollapsed }) {
   const pathname = usePathname()
-  const [collapsed, setCollapsed] = useState(false)
 
   return (
-    <aside className={`sidebar ${collapsed ? "collapsed" : ""}`}>
+    <aside className={`${styles.sidebar} ${collapsed ? styles.collapsed : ""}`}>
       {/* Header */}
-      <div className="sidebar-header">
+      <div className={styles.sidebarHeader}>
         {!collapsed && (
-          <div className="sidebar-brand">
-            <div className="sidebar-logo">
+          <div className={styles.sidebarBrand}>
+            <div className={styles.sidebarLogo}>
               <Building2 size={20} />
             </div>
             <span>Admin Panel</span>
           </div>
         )}
-        <button className="collapse-btn" onClick={() => setCollapsed(!collapsed)}>
+        <button 
+          className={styles.collapseBtn} 
+          onClick={() => setCollapsed(!collapsed)}
+          aria-label={collapsed ? "Expandir sidebar" : "Contraer sidebar"}
+        >
           {collapsed ? <ChevronRight size={16} /> : <ChevronLeft size={16} />}
         </button>
       </div>
 
       {/* Navegación */}
-      <nav className="sidebar-nav">
+      <nav className={styles.sidebarNav}>
         {navigation.map((item) => {
-          const isActive = pathname === item.href
+          const isActive = pathname === item.href || pathname?.startsWith(item.href)
           const Icon = item.icon
           return (
             <Link
               key={item.name}
               href={item.href}
-              className={`nav-item ${isActive ? "active" : ""} ${collapsed ? "center" : ""}`}
-              title={collapsed ? item.name : ""}
+              className={`${styles.navItem} ${isActive ? styles.active : ""}`}
+              title={item.name}
             >
               <Icon size={20} />
               {!collapsed && <span>{item.name}</span>}
@@ -65,10 +67,11 @@ export default function Sidebar() {
       </nav>
 
       {/* Footer */}
-      <div className="sidebar-footer">
+      <div className={styles.sidebarFooter}>
         <Link
           href="/login"
-          className={`nav-item logout ${collapsed ? "center" : ""}`}
+          className={`${styles.navItem} ${styles.logout}`}
+          title="Cerrar sesión"
         >
           <LogOut size={20} />
           {!collapsed && <span>Cerrar sesión</span>}

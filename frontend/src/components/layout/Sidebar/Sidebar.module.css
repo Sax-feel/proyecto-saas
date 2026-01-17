@@ -10,28 +10,32 @@
   flex-direction: column;
   transition: width 0.3s ease;
   z-index: 40;
+  overflow-y: auto;
+  overflow-x: hidden;
 }
 
 .sidebar.collapsed {
   width: 64px;
 }
 
-.sidebar-header {
+.sidebarHeader {
   height: 64px;
   padding: 0 1rem;
   display: flex;
   align-items: center;
   justify-content: space-between;
   border-bottom: 1px solid #1e293b;
+  flex-shrink: 0;
 }
 
-.sidebar-brand {
+.sidebarBrand {
   display: flex;
   align-items: center;
-  gap: 0.5rem;
+  gap: 0.75rem;
+  overflow: hidden;
 }
 
-.sidebar-logo {
+.sidebarLogo {
   background-color: #2563eb;
   width: 32px;
   height: 32px;
@@ -39,50 +43,134 @@
   display: flex;
   align-items: center;
   justify-content: center;
+  flex-shrink: 0;
 }
 
-.collapse-btn {
+.sidebarBrand span {
+  font-weight: 600;
+  white-space: nowrap;
+  font-size: 1.125rem;
+}
+
+.collapseBtn {
   background: none;
   border: none;
-  color: inherit;
+  color: #94a3b8;
   cursor: pointer;
+  padding: 0.5rem;
+  border-radius: 4px;
+  transition: all 0.2s;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
-.sidebar-nav {
+.collapseBtn:hover {
+  background-color: #1e293b;
+  color: #e5e7eb;
+}
+
+.sidebarNav {
   flex: 1;
-  padding: 1rem 0.5rem;
+  padding: 1rem 0.75rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem; /* Más espacio entre elementos */
+  overflow-y: auto;
 }
 
-.nav-item {
+.navItem {
   display: flex;
   align-items: center;
   gap: 0.75rem;
-  padding: 0.6rem 0.75rem;
+  padding: 0.75rem 1rem;
   border-radius: 8px;
-  color: #cbd5f5;
+  color: #cbd5e1;
   text-decoration: none;
-  font-size: 14px;
-  transition: background-color 0.2s;
+  font-size: 0.95rem;
+  transition: all 0.2s;
+  white-space: nowrap;
+  min-height: 44px; /* Altura mínima para mejor touch */
 }
 
-.nav-item:hover {
+.navItem:hover {
   background-color: #1e293b;
+  color: #fff;
 }
 
-.nav-item.active {
+.navItem.active {
   background-color: #2563eb;
   color: #fff;
 }
 
-.nav-item.center {
+/* Cuando el sidebar está colapsado, centramos los iconos */
+.navItem.center {
   justify-content: center;
+  padding: 0.75rem;
 }
 
-.sidebar-footer {
-  padding: 0.5rem;
+/* Estilo específico para los iconos dentro de navItem */
+.navItem svg {
+  flex-shrink: 0;
+  width: 20px;
+  height: 20px;
+}
+
+/* Estilo para el texto dentro de navItem */
+.navItem span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  transition: opacity 0.2s ease;
+}
+
+/* Cuando el sidebar está colapsado, ocultamos el texto */
+.sidebar.collapsed .navItem:not(.center) span {
+  display: none;
+}
+
+/* Aseguramos que el texto se muestre cuando el sidebar está expandido */
+.sidebar:not(.collapsed) .navItem span {
+  display: inline;
+}
+
+.sidebarFooter {
+  padding: 1rem 0.75rem;
   border-top: 1px solid #1e293b;
+  flex-shrink: 0;
 }
 
 .logout {
   color: #f87171;
+}
+
+.logout:hover {
+  background-color: rgba(248, 113, 113, 0.1);
+}
+
+/* Scrollbar personalizado */
+.sidebarNav::-webkit-scrollbar {
+  width: 4px;
+}
+
+.sidebarNav::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.sidebarNav::-webkit-scrollbar-thumb {
+  background: #475569;
+  border-radius: 2px;
+}
+
+.sidebarNav::-webkit-scrollbar-thumb:hover {
+  background: #64748b;
+}
+
+/* Para mejorar la visualización cuando está colapsado */
+.sidebar.collapsed .sidebarBrand span {
+  display: none;
+}
+
+.sidebar.collapsed .sidebarHeader {
+  justify-content: center;
 }

@@ -54,10 +54,10 @@ export default function Suscripciones() {
 
   useEffect(() => {
     const rolGuardado = localStorage.getItem("rol");
-    if (rolGuardado !== "admin_empresa") {
-      router.push("/login");
-      return;
-    }
+    //if (rolGuardado !== "admin_empresa") {
+      //router.push("/login");
+      //return;
+    //}
 
     cargarSuscripcionesActuales();
   }, [router]);

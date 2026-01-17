@@ -5,6 +5,7 @@ from rest_framework import serializers
 from .models import Cliente
 from usuarios.models import User
 from empresas.models import Empresa
+from relacion_tiene.models import Tiene
 
 class ClienteSerializer(serializers.ModelSerializer):
     """Serializador para el modelo Cliente"""
@@ -66,3 +67,73 @@ class RegistroClienteSerializer(serializers.Serializer):
                 raise serializers.ValidationError(
                     f"Empresa '{value}' no encontrada. No hay empresas activas disponibles."
                 )
+            
+class EmailEmpresaSerializer(serializers.Serializer):
+    """Serializador para registrar cliente existente mediante email"""
+    email = serializers.EmailField(required=True)
+    empresa_id = serializers.IntegerField(required=True)
+    
+    def validate_email(self, value):
+        """Validar que el usuario exista y sea cliente"""
+        try:
+            user = User.objects.get(email=value)
+            
+            # Verificar que sea cliente
+            if not user.rol or user.rol.rol != 'cliente':
+                raise serializers.ValidationError("El usuario no es un cliente")
+            
+            # Verificar que exista el registro de cliente
+            try:
+                cliente = Cliente.objects.get(id_usuario=user)
+                return user  # Retornar el usuario para usarlo después
+            except Cliente.DoesNotExist:
+                raise serializers.ValidationError("El cliente no tiene perfil completo")
+                
+        except User.DoesNotExist:
+            raise serializers.ValidationError("Usuario no encontrado")
+    
+    def validate_empresa_id(self, value):
+        """Validar que la empresa exista y esté activa"""
+        try:
+            empresa = Empresa.objects.get(id_empresa=value, estado='activo')
+            return empresa
+        except Empresa.DoesNotExist:
+            raise serializers.ValidationError("Empresa no encontrada o no está activa")
+    
+    def validate(self, data):
+        """Validaciones adicionales"""
+        user = data['email']  # En realidad es el objeto User
+        empresa = data['empresa_id']  # En realidad es el objeto Empresa
+        
+        # Verificar que el cliente no esté ya registrado en esta empresa
+        try:
+            cliente = Cliente.objects.get(id_usuario=user)
+            if Tiene.objects.filter(id_cliente=cliente, id_empresa=empresa).exists():
+                raise serializers.ValidationError({
+                    'error': 'Cliente ya registrado',
+                    'detail': f'El cliente {user.email} ya está registrado en esta empresa'
+                })
+        except Cliente.DoesNotExist:
+            pass
+        
+        return data
+
+
+class ClienteRegistroResponseSerializer(serializers.ModelSerializer):
+    """Serializador para respuesta de registro de cliente existente"""
+    email = serializers.EmailField(source='id_usuario.email')
+    nombre_cliente = serializers.CharField()
+    empresa_nombre = serializers.SerializerMethodField()
+    fecha_registro = serializers.SerializerMethodField()
+    
+    class Meta:
+        model = Cliente
+        fields = ['nit', 'nombre_cliente', 'email', 'empresa_nombre', 'fecha_registro']
+    
+    def get_empresa_nombre(self, obj):
+        """Obtener nombre de la empresa desde el contexto"""
+        return self.context.get('empresa_nombre', '')
+    
+    def get_fecha_registro(self, obj):
+        """Obtener fecha de registro desde el contexto"""
+        return self.context.get('fecha_registro', '')

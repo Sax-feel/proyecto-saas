@@ -1,14 +1,17 @@
-from datetime import datetime, timedelta
+from datetime import timedelta
 from django.utils import timezone
-from rest_framework import generics, status
+from rest_framework import generics, status, filters
 from rest_framework.response import Response
-from rest_framework.permissions import IsAuthenticated
+from rest_framework.permissions import IsAuthenticated, AllowAny
+from django_filters.rest_framework import DjangoFilterBackend
 from admins.models import Admin
 from empresas.models import Empresa
+from empresas.serializers import EmpresaSerializer
 from planes.models import Plan
 from suscripciones.models import Suscripcion
 from empresas.serializers import RegistroEmpresaSerializer, EmpresaSerializer
 import logging
+
 
 logger = logging.getLogger(__name__)
 
@@ -190,122 +193,90 @@ class RegistroEmpresaView(generics.CreateAPIView):
             'dias_restantes': (suscripcion.fecha_fin - timezone.now()).days
         }
         
-from rest_framework.permissions import AllowAny
-from rest_framework import generics, status, filters
-from rest_framework.response import Response
-from django_filters.rest_framework import DjangoFilterBackend
-from empresas.models import Empresa
-from empresas.serializers import EmpresaSerializer
-import logging
 
-logger = logging.getLogger(__name__)
 
 class ListaEmpresasView(generics.ListAPIView):
     """
-    Vista PÚBLICA para listar empresas activas
-    Accesible por cualquier usuario (incluso sin autenticación)
+    Vista PÚBLICA para listar empresas
+    Accesible por cualquier persona sin necesidad de autenticación
     """
     serializer_class = EmpresaSerializer
-    permission_classes = [AllowAny]  # ← Cambiado a AllowAny
+    permission_classes = [AllowAny]  # Permite acceso sin autenticación
+    
+    # Opcional: agregar filtros y búsqueda
     filter_backends = [DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter]
-    filterset_fields = ['rubro']  # Solo filtrar por rubro, no por estado
-    search_fields = ['nombre', 'nit', 'rubro']
-    ordering_fields = ['nombre', 'fecha_creacion']
-    ordering = ['nombre']  # Orden alfabético por defecto
+    filterset_fields = ['estado', 'rubro']  # Campos para filtrar
+    search_fields = ['nombre', 'nit', 'email', 'rubro']  # Campos para búsqueda
+    ordering_fields = ['nombre', 'fecha_creacion', 'id_empresa']  # Campos para ordenar
+    ordering = ['nombre']  # Orden por defecto
     
     def get_queryset(self):
         """
-        Retorna solo empresas ACTIVAS para usuarios públicos
+        Retorna empresas según el tipo de usuario
+        - Usuarios no autenticados: empresas activas
+        - Usuarios autenticados: según su rol
         """
-        # Para usuarios no autenticados o cualquier usuario: solo empresas activas
-        queryset = Empresa.objects.filter(estado='activo')
-        
-        # Si el usuario está autenticado, podemos dar información adicional
         user = self.request.user
         
-        if user.is_authenticated:
-            # ADMIN: Puede ver todas las empresas (incluyendo inactivas)
-            if user.rol and user.rol.rol == 'admin':
-                logger.info(f"Admin {user.email} viendo todas las empresas")
-                return Empresa.objects.all()  # Admin ve todo
-            
-            # ADMIN_EMPRESA: Solo ve su empresa (incluso si no está activa)
-            elif user.rol and user.rol.rol == 'admin_empresa':
-                try:
-                    from usuario_empresa.models import Usuario_Empresa
-                    usuario_empresa = Usuario_Empresa.objects.get(id_usuario=user)
-                    empresa_usuario = usuario_empresa.empresa
-                    logger.info(f"Admin_empresa {user.email} viendo su empresa: {empresa_usuario.nombre}")
-                    return Empresa.objects.filter(id_empresa=empresa_usuario.id_empresa)
-                except Exception as e:
-                    logger.warning(f"Admin_empresa {user.email} no tiene empresa: {str(e)}")
-                    return queryset  # Si no tiene empresa, ver solo activas
+        # Usuario NO autenticado (público) - solo empresas activas
+        if not user.is_authenticated:
+            logger.info("Usuario no autenticado accediendo a empresas (solo activas)")
+            return Empresa.objects.filter(estado='activo')
         
-        # Para usuarios no autenticados o clientes: solo empresas activas
-        logger.info(f"Usuario {'no autenticado' if not user.is_authenticated else user.email} viendo empresas activas")
-        return queryset
+        # Usuario autenticado pero sin rol o con rol 'cliente' - solo empresas activas
+        if not user.rol or user.rol.rol == 'cliente':
+            logger.info(f"Usuario {user.email} (rol cliente) accediendo a empresas (solo activas)")
+            return Empresa.objects.filter(estado='activo')
+        
+        # ADMIN: puede ver todas las empresas (incluyendo inactivas)
+        if user.rol.rol == 'admin':
+            logger.info(f"Admin {user.email} accediendo a todas las empresas")
+            return Empresa.objects.all()
+        
+        # ADMIN_EMPRESA o VENDEDOR: solo ve su empresa
+        elif user.rol.rol in ['admin_empresa', 'vendedor']:
+            try:
+                from usuario_empresa.models import Usuario_Empresa
+                usuario_empresa = Usuario_Empresa.objects.get(id_usuario=user)
+                empresa_id = usuario_empresa.empresa.id_empresa
+                logger.info(f"Usuario {user.email} (rol {user.rol.rol}) accediendo a su empresa (ID: {empresa_id})")
+                return Empresa.objects.filter(id_empresa=empresa_id)
+            except Exception as e:
+                logger.warning(f"Usuario {user.email} no tiene empresa asociada: {str(e)}")
+                return Empresa.objects.filter(estado='activo')  # Fallback a empresas activas
+        
+        # Cualquier otro caso: solo empresas activas
+        logger.info(f"Usuario {user.email} (rol desconocido) accediendo a empresas (solo activas)")
+        return Empresa.objects.filter(estado='activo')
     
     def list(self, request, *args, **kwargs):
         """
-        Sobrescribir para agregar información contextual
+        Sobrescribe el método list para mantener la misma estructura de respuesta
+        que tenías anteriormente
         """
         try:
             queryset = self.filter_queryset(self.get_queryset())
             
-            
-            # Información para el usuario
-            user_info = None
-            if request.user.is_authenticated:
-                user_info = {
-                    'email': request.user.email,
-                    'rol': request.user.rol.rol if request.user.rol else None,
-                    'estado': request.user.estado
-                }
-            
-            # Paginación
+            # Si necesitas paginación (mantiene la estructura original)
             page = self.paginate_queryset(queryset)
             if page is not None:
                 serializer = self.get_serializer(page, many=True)
-                return self.get_paginated_response({
-                    'empresas': serializer.data,
-                    'usuario': user_info,
-                    'permisos': {
-                        'puede_registrarse': True,  # Cualquiera puede registrarse
-                        'vista': 'publica',
-                        'filtros_disponibles': self.filterset_fields
-                    },
-                    'status': 'success'
-                })
+                return self.get_paginated_response(serializer.data)
             
-            # Sin paginación
+            # Sin paginación (respuesta simple)
             serializer = self.get_serializer(queryset, many=True)
-            
-            return Response({
-                'empresas': serializer.data,
-                'estadisticas': {
-                    'total_listadas': queryset.count(),
-                    'total_empresas_activas': total_empresas_activas,
-                    'total_empresas_sistema': total_empresas_total,
-                    'fecha_consulta': timezone.now().isoformat()
-                },
-                'usuario': user_info,
-                'instrucciones': {
-                    'registro': 'Para registrarte como cliente en una empresa, usa el endpoint /api/clientes/registro-cliente/',
-                    'contacto': 'Cada empresa tiene su email y teléfono de contacto',
-                    'seleccion': 'Usa los filtros para encontrar empresas por rubro o nombre'
-                },
-                'status': 'success'
-            })
+            return Response(serializer.data)
             
         except Exception as e:
             logger.error(f"Error listando empresas: {str(e)}", exc_info=True)
-            return Response({
-                'error': 'Error al obtener empresas',
-                'detail': str(e),
-                'sugerencia': 'Intenta nuevamente más tarde',
-                'status': 'error'
-            }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-
+            return Response(
+                {
+                    'error': 'Error al obtener empresas',
+                    'detail': str(e)
+                },
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
+    
 
 class DetalleEmpresaView(generics.RetrieveUpdateDestroyAPIView):
     """

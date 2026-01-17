@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation"
 import Button from "../../components/ui/Button/Button"
 import FormField from "../../components/ui/FormField/FormField"
 import styles from "./LoginPage.module.css";
+import Link from "next/link"
 
 export default function LoginForm() {
   const [email, setEmail] = useState("")
@@ -82,6 +83,19 @@ export default function LoginForm() {
       />
 
       <Button type="submit">Login</Button>
+      {/* Enlace para login como cliente */}
+      <div className={styles.clientLoginSection}>
+        <div className={styles.separator}>
+          <span>O</span>
+        </div>
+        
+        <p className={styles.clientLoginText}>
+          ¿Desea ser cliente de alguna empresa?
+        </p>
+        <Link href="/login/registro-cliente" className={styles.registerLink}>
+            Regístrese aquí
+        </Link>
+      </div>
     </form>
   )
 }

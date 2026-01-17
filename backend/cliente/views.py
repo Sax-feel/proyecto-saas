@@ -1,12 +1,14 @@
 from django.db import transaction
 from rest_framework import generics, status
 from rest_framework.response import Response
+from django.utils import timezone
 from rest_framework.permissions import IsAuthenticated, AllowAny
 from usuarios.models import User
 from roles.models import Rol
 from relacion_tiene.models import Tiene
+from empresas.serializers import EmpresaSerializer
 from .models import Cliente
-from .serializers import RegistroClienteSerializer, ClienteSerializer
+from .serializers import RegistroClienteSerializer, ClienteSerializer, EmailEmpresaSerializer
 import logging
 
 
@@ -168,3 +170,199 @@ class DetalleClienteView(generics.RetrieveUpdateDestroyAPIView):
                     message="Solo administradores de empresa pueden modificar clientes",
                     code=status.HTTP_403_FORBIDDEN
                 )
+
+class RegistrarClienteExistenteView(generics.CreateAPIView):
+    """
+    Vista para que un admin_empresa registre un cliente EXISTENTE en su empresa
+    Solo necesita el email del cliente
+    Crea la relación en tabla 'tiene'
+    """
+    serializer_class = EmailEmpresaSerializer  # El serializador que creamos
+    permission_classes = [IsAuthenticated]
+    
+    def check_permissions(self, request):
+        """
+        Verifica que el usuario tenga rol 'admin_empresa'
+        y que pertenezca a la empresa especificada
+        """
+        super().check_permissions(request)
+        
+        if not request.user.rol or request.user.rol.rol != 'admin_empresa':
+            self.permission_denied(
+                request,
+                message="Solo administradores de empresa pueden registrar clientes",
+                code=status.HTTP_403_FORBIDDEN
+            )
+    
+    def create(self, request, *args, **kwargs):
+        """
+        Registra un cliente existente en la empresa del admin_empresa
+        """
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        
+        try:
+            logger.info(f"Registro de cliente existente por admin_empresa: {request.user.email}")
+            
+            # 1. Obtener datos validados del serializer
+            validated_data = serializer.validated_data
+            user_cliente = validated_data['email']  # Objeto User del cliente
+            empresa = validated_data['empresa_id']  # Objeto Empresa
+            
+            # 2. Verificar que el admin_empresa pertenezca a la empresa especificada
+            admin_empresa = self._verificar_permiso_empresa(request.user, empresa)
+            if not admin_empresa:
+                return Response(
+                    {
+                        'error': 'Permiso denegado',
+                        'detail': 'No pertenece a esta empresa',
+                        'status': 'error'
+                    },
+                    status=status.HTTP_403_FORBIDDEN
+                )
+            
+            # 3. Obtener el cliente
+            try:
+                cliente = Cliente.objects.get(id_usuario=user_cliente)
+            except Cliente.DoesNotExist:
+                return Response(
+                    {
+                        'error': 'Cliente no encontrado',
+                        'detail': 'El usuario no tiene perfil de cliente completo',
+                        'status': 'error'
+                    },
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+            
+            # 4. Crear relación en tabla 'tiene'
+            tiene_relacion = Tiene.objects.create(
+                id_cliente=cliente,
+                id_empresa=empresa,
+                estado='activo',
+                fecha_registro=timezone.now()
+            )
+            
+            logger.info(f"Cliente {cliente.nombre_cliente} registrado en empresa {empresa.nombre}")
+            
+            # 5. Preparar respuesta
+            from .serializers import ClienteRegistroResponseSerializer
+            
+            response_serializer = ClienteRegistroResponseSerializer(
+                cliente,
+                context={
+                    'empresa_nombre': empresa.nombre,
+                    'fecha_registro': tiene_relacion.fecha_registro.isoformat()
+                }
+            )
+            
+            response_data = {
+                'message': 'Cliente registrado exitosamente en la empresa',
+                'detail': f'{cliente.nombre_cliente} ahora es cliente de {empresa.nombre}',
+                'cliente': response_serializer.data,
+                'relacion': {
+                    'id': tiene_relacion.id_tiene if hasattr(tiene_relacion, 'id_tiene') else 'compuesta',
+                    'empresa_id': empresa.id_empresa,
+                    'cliente_id': cliente.nit,
+                    'estado': tiene_relacion.estado,
+                    'fecha_registro': tiene_relacion.fecha_registro.isoformat()
+                },
+                'registrado_por': {
+                    'email': request.user.email,
+                    'empresa': empresa.nombre
+                },
+                'status': 'success'
+            }
+            
+            return Response(response_data, status=status.HTTP_201_CREATED)
+            
+        except Exception as e:
+            logger.error(f"Error registrando cliente existente: {str(e)}", exc_info=True)
+            return Response(
+                {
+                    'error': 'Error en el registro del cliente',
+                    'detail': str(e),
+                    'status': 'error'
+                },
+                status=status.HTTP_400_BAD_REQUEST
+            )
+    
+    def _verificar_permiso_empresa(self, user, empresa):
+        """
+        Verifica que el admin_empresa pertenezca a la empresa especificada
+        """
+        try:
+            from usuario_empresa.models import Usuario_Empresa
+            usuario_empresa = Usuario_Empresa.objects.get(
+                id_usuario=user,
+                empresa=empresa
+            )
+            return usuario_empresa
+        except Usuario_Empresa.DoesNotExist:
+            logger.warning(f"Usuario {user.email} no pertenece a empresa {empresa.nombre}")
+            return None
+
+from rest_framework import generics, status
+from rest_framework.response import Response
+from rest_framework.permissions import IsAuthenticated
+from empresas.models import Empresa
+from relacion_tiene.models import Tiene
+import logging
+
+logger = logging.getLogger(__name__)
+
+class MisEmpresasView(generics.ListAPIView):
+    """
+    Vista para que un cliente vea las empresas en las que está registrado
+    """
+    serializer_class = EmpresaSerializer
+    permission_classes = [IsAuthenticated]
+    
+    def check_permissions(self, request):
+        """Verificar que sea cliente"""
+        super().check_permissions(request)
+        
+        if not request.user.rol or request.user.rol.rol != 'cliente':
+            self.permission_denied(
+                request,
+                message="Solo clientes pueden ver sus empresas",
+                code=status.HTTP_403_FORBIDDEN
+            )
+    
+    def list(self, request, *args, **kwargs):
+        """Listar empresas del cliente"""
+        try:
+            # Obtener el cliente
+            cliente = Cliente.objects.get(id_usuario=request.user)
+            
+            # Obtener empresas a través de la tabla 'tiene'
+            relaciones = Tiene.objects.filter(
+                id_cliente=cliente,
+                estado='activo'
+            ).select_related('id_empresa')
+            
+            empresas = [relacion.id_empresa for relacion in relaciones]
+            
+            # Serializar empresas
+            from empresas.serializers import EmpresaSerializer
+            serializer = EmpresaSerializer(empresas, many=True)
+            
+            return Response({
+                'empresas': serializer.data,
+                'total': len(empresas),
+                'status': 'success'
+            })
+            
+        except Cliente.DoesNotExist:
+            return Response({
+                'error': 'Cliente no encontrado',
+                'detail': 'No existe perfil de cliente para este usuario',
+                'status': 'error'
+            }, status=status.HTTP_400_BAD_REQUEST)
+            
+        except Exception as e:
+            logger.error(f"Error obteniendo empresas del cliente: {str(e)}")
+            return Response({
+                'error': 'Error al obtener empresas',
+                'detail': str(e),
+                'status': 'error'
+            }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)

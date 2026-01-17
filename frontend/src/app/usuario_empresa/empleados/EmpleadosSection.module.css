@@ -1,3 +1,5 @@
+/* En EmpleadosSection.module.css */
+
 /* Contenedor general: flex con sidebar + contenido */
 .dashboardContainer {
   display: flex;
@@ -82,28 +84,166 @@
   margin-bottom: 1rem;
 }
 
+/* -------- ESTILOS PARA EL MENÚ DE ACCIONES -------- */
+
+/* Celda de acciones */
+.actionsCell {
+  position: relative;
+  overflow: visible;
+}
+
+/* Contenedor del menú (importante para posicionamiento) */
+.actionsCell > div {
+  position: relative;
+  display: inline-block;
+}
+
+/* Botón de 3 puntos */
+.menuButton {
+  background: none;
+  border: none;
+  font-size: 1.5rem;
+  line-height: 1;
+  cursor: pointer;
+  color: #6b7280;
+  padding: 0.25rem 0.75rem;
+  border-radius: 4px;
+  transition: all 0.2s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+}
+
+.menuButton:hover {
+  background-color: #f3f4f6;
+  color: #374151;
+}
+
+/* Menú desplegable - FIXED */
+.menuDropdown {
+  position: absolute;
+  top: 100%;
+  right: 0;
+  background: white;
+  border-radius: 8px;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.15);
+  z-index: 9999;
+  min-width: 160px;
+  padding: 0.25rem 0;
+}
+
+/* Ítems del menú */
+.menuItem {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  width: 100%;
+  padding: 0.75rem 1rem;
+  border: none;
+  background: none;
+  text-align: left;
+  cursor: pointer;
+  font-size: 0.875rem;
+  color: #374151;
+  transition: all 0.2s;
+  border-bottom: 1px solid #f3f4f6;
+}
+
+.menuItem:last-child {
+  border-bottom: none;
+}
+
+.menuItem:hover {
+  background-color: #f9fafb;
+}
+
+.menuItemDanger {
+  color: #dc2626;
+}
+
+.menuItemDanger:hover {
+  background-color: #fef2f2;
+}
+
+.menuIcon {
+  font-size: 1rem;
+  width: 20px;
+  text-align: center;
+}
+
+/* Estado como badge */
+.estadoBadge {
+  display: inline-block;
+  padding: 0.25rem 0.75rem;
+  border-radius: 9999px;
+  font-size: 0.75rem;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.estadoBadge.activo {
+  background-color: #d1fae5;
+  color: #065f46;
+}
+
+.estadoBadge.inactivo {
+  background-color: #fee2e2;
+  color: #991b1b;
+}
+
+/* Estilos para la tabla */
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 1.5rem;
+  overflow: visible;
+}
+
+.table th {
+  background-color: #f9fafb;
+  padding: 0.75rem 1rem;
+  text-align: left;
+  font-weight: 600;
+  color: #374151;
+  border-bottom: 2px solid #e5e7eb;
+  font-size: 0.875rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.table td {
+  padding: 1rem;
+  border-bottom: 1px solid #e5e7eb;
+  color: #6b7280;
+  vertical-align: middle; /* Centra verticalmente */
+}
+
+.table tr:hover {
+  background-color: #f9fafb;
+}
+
+/* Modal */
 .modalOverlay {
   position: fixed;
   top: 0;
   left: 0;
-  width: 100%;
-  height: 100%;
-  background-color: rgba(30, 41, 59, 0.6);
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
   display: flex;
-  justify-content: center;
   align-items: center;
-  z-index: 1000;
-  padding: 1rem;
+  justify-content: center;
+  z-index: 2000; /* Más alto que el menú */
 }
 
 .modal {
-  background-color: #fff;
+  background: white;
   padding: 2rem;
-  border-radius: 12px;
-  width: 500px;
-  max-width: 100%;
-  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.15);
-  display: flex;
-  flex-direction: column;
-  gap: 1rem;
+  border-radius: 8px;
+  max-width: 400px;
+  width: 100%;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
 }

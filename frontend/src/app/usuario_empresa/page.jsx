@@ -11,6 +11,7 @@ import styles from "./DashboardUsuarioEmpresa.module.css"
 
 export default function EmpresaPage() {
   const [rol] = useState("Admin Empresa")
+  
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
   const [isEditing, setIsEditing] = useState(false)
 

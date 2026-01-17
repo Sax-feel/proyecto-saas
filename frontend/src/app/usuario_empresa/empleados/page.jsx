@@ -1,42 +1,58 @@
 "use client"
 
-import { useState, useEffect } from "react"
-import Button from "../../../components/ui/button/Button"
-import FormField from "../../../components/ui/FormField/FormField"
+import { useState, useEffect, useRef } from "react"
 import Sidebar from "../../../components/layout/Sidebar/Sidebar"
+import Button from "../../../components/ui/Button/Button"
+import FormField from "../../../components/ui/FormField/FormField"
 import styles from "./EmpleadosSection.module.css"
 
+// ------------------- ENDPOINTS -------------------
 const API_LIST = "http://localhost:8000/api/clientes/listar/"
-const API_REGISTRAR = "http://localhost:8000/api/clientes/registrar/"
+const API_REGISTRAR_EXISTENTE = "http://localhost:8000/api/clientes/registrar/"
+
+// ------------------- CLIENTE DE EJEMPLO -------------------
+const CLIENTE_EJEMPLO = {
+  id_usuario: 999,
+  nombre_cliente: "Cliente Demo",
+  telefono_cliente: "78945612",
+  nit: "DEMO-123",
+  estado: "activo",
+}
 
 export default function EmpleadosPage() {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
   const [clientes, setClientes] = useState([])
   const [loading, setLoading] = useState(false)
   const [showForm, setShowForm] = useState(false)
-  const [editIndex, setEditIndex] = useState(null)
   const [busqueda, setBusqueda] = useState("")
-  const [form, setForm] = useState({
-    nombre_cliente: "",
-    email: "",
-    telefono_cliente: "",
-    nit: "",
-    direccion_cliente: "",
-    compras: 0,
-    totalGastado: 0,
-    etiquetas: "",
-    activo: true
-  })
+  const [menuAbierto, setMenuAbierto] = useState(null)
 
-  // ------------------- Listar clientes -------------------
+  const [form, setForm] = useState({ email: "" })
+  const menuRef = useRef(null)
+
+  // ------------------- TOKEN -------------------
+  const getToken = () => localStorage.getItem("token")
+
+  // ------------------- LISTAR CLIENTES -------------------
   const fetchClientes = async () => {
     setLoading(true)
     try {
-      const res = await fetch(API_LIST, { credentials: "include" })
+      const token = getToken()
+      const res = await fetch(API_LIST, {
+        headers: { Authorization: `Bearer ${token}` },
+      })
+
       const data = await res.json()
-      setClientes(Array.isArray(data) ? data : []) // aseguramos que sea array
+
+      // 👉 Si backend no devuelve array, usamos cliente demo
+      if (Array.isArray(data) && data.length > 0) {
+        setClientes(data)
+      } else {
+        setClientes([CLIENTE_EJEMPLO])
+      }
     } catch (error) {
       console.error("Error al cargar clientes:", error)
+      setClientes([CLIENTE_EJEMPLO]) // fallback visual
     }
     setLoading(false)
   }
@@ -45,124 +61,69 @@ export default function EmpleadosPage() {
     fetchClientes()
   }, [])
 
-  // ------------------- Guardar / Actualizar -------------------
-  const guardarCliente = async (e) => {
+  // ------------------- AGREGAR CLIENTE EXISTENTE -------------------
+  const agregarClienteExistente = async (e) => {
     e.preventDefault()
     try {
-      const payload = {
-        ...form,
-        etiquetas: form.etiquetas.split(",").map(e => e.trim())
-      }
-
-      let res
-      if (editIndex !== null) {
-        const cliente = clientes[editIndex]
-        res = await fetch(`http://localhost:8000/api/clientes/${cliente.id_usuario}/`, {
-          method: "PUT",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(payload),
-          credentials: "include"
-        })
-      } else {
-        res = await fetch(API_REGISTRAR, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(payload),
-          credentials: "include"
-        })
-      }
-
-      if (!res.ok) {
-        const text = await res.text()
-        throw new Error(`HTTP error ${res.status}: ${text}`)
-      }
+      const token = getToken()
+      const res = await fetch(API_REGISTRAR_EXISTENTE, {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ email: form.email }),
+      })
 
       const data = await res.json()
+      if (!res.ok) throw new Error(data.detail || "Error")
 
-      if (editIndex !== null) {
-        const copia = [...clientes]
-        copia[editIndex] = data
-        setClientes(copia)
-      } else {
-        setClientes([...clientes, data.cliente])
-      }
-
-      setForm({
-        nombre_cliente: "",
-        email: "",
-        telefono_cliente: "",
-        nit: "",
-        direccion_cliente: "",
-        compras: 0,
-        totalGastado: 0,
-        etiquetas: "",
-        activo: true
-      })
-      setEditIndex(null)
+      alert("Cliente suscrito correctamente")
+      fetchClientes()
+      setForm({ email: "" })
       setShowForm(false)
-    } catch (error) {
-      console.error("Error al guardar cliente:", error)
-      alert("Error al guardar cliente: " + error.message)
+    } catch (err) {
+      alert(err.message)
     }
   }
 
-  // ------------------- Editar -------------------
-  const editarCliente = (index) => {
-    const c = clientes[index]
-    setForm({
-      nombre_cliente: c.nombre_cliente || "",
-      email: c.email || "",
-      telefono_cliente: c.telefono_cliente || "",
-      nit: c.nit || "",
-      direccion_cliente: c.direccion_cliente || "",
-      compras: c.compras || 0,
-      totalGastado: c.totalGastado || 0,
-      etiquetas: c.etiquetas?.join(", ") || "",
-      activo: c.activo
-    })
-    setEditIndex(index)
-    setShowForm(true)
+  // ------------------- ACTIVAR / DESACTIVAR -------------------
+  const toggleCliente = async (clienteId, estadoActual) => {
+    alert(
+      `Simulación: cliente ${clienteId} pasa a ${
+        estadoActual === "activo" ? "inactivo" : "activo"
+      }`
+    )
+    setMenuAbierto(null)
   }
 
-  // ------------------- Activar / Desactivar -------------------
-  const toggleCliente = async (index) => {
-    const copia = [...clientes]
-    const c = copia[index]
-    try {
-      const res = await fetch(`http://localhost:8000/api/clientes/${c.id_usuario}/`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ activo: !c.activo }),
-        credentials: "include"
-      })
-      const data = await res.json()
-      copia[index] = data
-      setClientes(copia)
-    } catch (error) {
-      console.error("Error al cambiar estado:", error)
-    }
+  // ------------------- ELIMINAR RELACIÓN -------------------
+  const eliminarCliente = async (clienteId) => {
+    if (!confirm("¿Eliminar cliente de la empresa?")) return
+    alert(`Simulación: cliente ${clienteId} eliminado`)
+    setMenuAbierto(null)
   }
 
-  // ------------------- Eliminar -------------------
-  const eliminarCliente = async (index) => {
-    const c = clientes[index]
-    try {
-      await fetch(`http://localhost:8000/api/clientes/${c.id_usuario}/`, {
-        method: "DELETE",
-        credentials: "include"
-      })
-      setClientes(clientes.filter((_, i) => i !== index))
-    } catch (error) {
-      console.error("Error al eliminar cliente:", error)
-    }
-  }
-
-  // ------------------- Filtrar -------------------
-  const clientesFiltrados = clientes.filter(c =>
-    c.nombre_cliente?.toLowerCase().includes(busqueda.toLowerCase()) ||
-    c.telefono_cliente?.toLowerCase().includes(busqueda.toLowerCase()) ||
-    c.nit?.toLowerCase().includes(busqueda.toLowerCase())
+  // ------------------- FILTRAR -------------------
+  const clientesFiltrados = clientes.filter((c) =>
+    c.nombre_cliente.toLowerCase().includes(busqueda.toLowerCase())
   )
+
+  // Cerrar menú al hacer clic fuera - CORREGIDO
+  useEffect(() => {
+    const handleClickOutside = (e) => {
+      // Solo cerrar si no se hace clic en el botón de menú o en el menú mismo
+      const isMenuButton = e.target.closest(`.${styles.menuButton}`)
+      const isMenuDropdown = e.target.closest(`.${styles.menuDropdown}`)
+      
+      if (!isMenuButton && !isMenuDropdown && menuAbierto !== null) {
+        setMenuAbierto(null)
+      }
+    }
+
+    document.addEventListener("click", handleClickOutside)
+    return () => document.removeEventListener("click", handleClickOutside)
+  }, [menuAbierto])
 
   // ------------------- JSX -------------------
   return (
@@ -174,12 +135,13 @@ export default function EmpleadosPage() {
 
         <FormField
           label="Buscar cliente"
-          type="text"
           value={busqueda}
           onChange={(e) => setBusqueda(e.target.value)}
         />
 
-        <Button onClick={() => { setShowForm(true); setEditIndex(null) }}>Agregar cliente</Button>
+        <Button onClick={() => setShowForm(true)}>
+          Agregar cliente existente
+        </Button>
 
         {loading ? (
           <p>Cargando...</p>
@@ -188,29 +150,84 @@ export default function EmpleadosPage() {
             <thead>
               <tr>
                 <th>Cliente</th>
-                <th>Contacto</th>
-                <th>Compras</th>
-                <th>Total Gastado</th>
+                <th>Teléfono</th>
+                <th>NIT</th>
                 <th>Estado</th>
-                <th>Etiquetas</th>
                 <th>Acciones</th>
               </tr>
             </thead>
             <tbody>
-              {clientesFiltrados.map((c, i) => (
+              {clientesFiltrados.map((c) => (
                 <tr key={c.id_usuario}>
                   <td>{c.nombre_cliente}</td>
                   <td>{c.telefono_cliente}</td>
-                  <td>{c.compras}</td>
-                  <td>${c.totalGastado}</td>
-                  <td>{c.activo ? "Activo" : "Inactivo"}</td>
-                  <td>{c.etiquetas?.join(", ")}</td>
-                  <td style={{ display: "flex", gap: "0.5rem" }}>
-                    <Button variant="secondary" onClick={() => toggleCliente(i)}>
-                      {c.activo ? "Desactivar" : "Activar"}
-                    </Button>
-                    <Button variant="secondary" onClick={() => editarCliente(i)}>Editar</Button>
-                    <Button variant="secondary" onClick={() => eliminarCliente(i)}>Eliminar</Button>
+                  <td>{c.nit}</td>
+                  <td>
+                    <span className={`${styles.estadoBadge} ${
+                      c.estado === "activo" ? styles.activo : styles.inactivo
+                    }`}>
+                      {c.estado}
+                    </span>
+                  </td>
+
+                  {/* -------- MENÚ DE ACCIONES -------- */}
+                  <td className={styles.actionsCell}>
+                    <div style={{ position: "relative" }}>
+                      <button
+                        className={styles.menuButton}
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          setMenuAbierto(
+                            menuAbierto === c.id_usuario ? null : c.id_usuario
+                          )
+                        }}
+                      >
+                        ⋮
+                      </button>
+
+                      {menuAbierto === c.id_usuario && (
+                        <div 
+                          className={styles.menuDropdown}
+                          ref={menuRef}
+                          onClick={(e) => e.stopPropagation()}
+                        >
+                          <button 
+                            className={styles.menuItem}
+                            onClick={() => {
+                              alert("Editar (pendiente)")
+                              setMenuAbierto(null)
+                            }}
+                          >
+                            <span className={styles.menuIcon}>✏️</span>
+                            <span>Editar</span>
+                          </button>
+
+                          <button 
+                            className={styles.menuItem}
+                            onClick={() => {
+                              toggleCliente(c.id_usuario, c.estado)
+                            }}
+                          >
+                            <span className={styles.menuIcon}>
+                              {c.estado === "activo" ? "🚫" : "✅"}
+                            </span>
+                            <span>{c.estado === "activo" ? "Desactivar" : "Activar"}</span>
+                          </button>
+
+                          <button
+                            className={`${styles.menuItem} ${styles.menuItemDanger}`}
+                            onClick={() => {
+                              if (confirm("¿Eliminar cliente de la empresa?")) {
+                                eliminarCliente(c.id_usuario)
+                              }
+                            }}
+                          >
+                            <span className={styles.menuIcon}>🗑️</span>
+                            <span>Eliminar</span>
+                          </button>
+                        </div>
+                      )}
+                    </div>
                   </td>
                 </tr>
               ))}
@@ -218,66 +235,24 @@ export default function EmpleadosPage() {
           </table>
         )}
 
-        {/* ------------------- Formulario modal ------------------- */}
+        {/* -------- MODAL AGREGAR CLIENTE -------- */}
         {showForm && (
           <div className={styles.modalOverlay}>
             <div className={styles.modal}>
-              <h2>{editIndex !== null ? "Editar Cliente" : "Agregar Cliente"}</h2>
-              <form onSubmit={guardarCliente} className={styles.form}>
+              <h2>Agregar cliente existente</h2>
+              <form onSubmit={agregarClienteExistente}>
                 <FormField
-                  label="Nombre"
-                  type="text"
-                  value={form.nombre_cliente}
-                  onChange={(e) => setForm({ ...form, nombre_cliente: e.target.value })}
-                  required
-                />
-                <FormField
-                  label="Email"
+                  label="Email del cliente"
                   type="email"
                   value={form.email}
-                  onChange={(e) => setForm({ ...form, email: e.target.value })}
+                  onChange={(e) => setForm({ email: e.target.value })}
                   required
                 />
-                <FormField
-                  label="Teléfono"
-                  type="text"
-                  value={form.telefono_cliente}
-                  onChange={(e) => setForm({ ...form, telefono_cliente: e.target.value })}
-                />
-                <FormField
-                  label="NIT"
-                  type="text"
-                  value={form.nit}
-                  onChange={(e) => setForm({ ...form, nit: e.target.value })}
-                />
-                <FormField
-                  label="Dirección"
-                  type="text"
-                  value={form.direccion_cliente}
-                  onChange={(e) => setForm({ ...form, direccion_cliente: e.target.value })}
-                />
-                <FormField
-                  label="Compras"
-                  type="number"
-                  value={form.compras}
-                  onChange={(e) => setForm({ ...form, compras: parseInt(e.target.value) })}
-                />
-                <FormField
-                  label="Total Gastado"
-                  type="number"
-                  value={form.totalGastado}
-                  onChange={(e) => setForm({ ...form, totalGastado: parseFloat(e.target.value) })}
-                />
-                <FormField
-                  label="Etiquetas (separadas por coma)"
-                  type="text"
-                  value={form.etiquetas}
-                  onChange={(e) => setForm({ ...form, etiquetas: e.target.value })}
-                />
-
-                <div style={{ display: "flex", gap: "0.5rem", marginTop: "1rem" }}>
-                  <Button type="submit">{editIndex !== null ? "Actualizar" : "Guardar"}</Button>
-                  <Button type="button" variant="secondary" onClick={() => setShowForm(false)}>Cancelar</Button>
+                <div style={{ display: "flex", gap: "0.5rem" }}>
+                  <Button type="submit">Agregar</Button>
+                  <Button variant="secondary" onClick={() => setShowForm(false)}>
+                    Cancelar
+                  </Button>
                 </div>
               </form>
             </div>

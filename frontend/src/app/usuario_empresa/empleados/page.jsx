@@ -44,7 +44,6 @@ export default function EmpleadosPage() {
 
       const data = await res.json()
 
-      // 👉 Si backend no devuelve array, usamos cliente demo
       if (Array.isArray(data) && data.length > 0) {
         setClientes(data)
       } else {

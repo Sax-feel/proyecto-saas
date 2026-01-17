@@ -1,0 +1,277 @@
+.dashboardContainer {
+  display: flex;
+  min-height: 100vh;
+  font-family: 'Inter', sans-serif;
+  background-color: #f9f9fb;
+  color: #1f2937;
+}
+
+.mainContent {
+  flex: 1;
+  margin-left: 250px; /* espacio para sidebar */
+  padding: 2rem;
+  transition: margin-left 0.3s ease;
+  overflow-y: auto;
+}
+
+.mainContent.collapsed {
+  margin-left: 80px; /* cuando sidebar colapsa */
+}
+
+.title {
+  font-size: 1.75rem;
+  font-weight: 600;
+  margin-bottom: 1.5rem;
+}
+
+.contentSection { 
+  margin-top: 2rem; 
+}
+
+.headerActions {
+  display: flex;
+  justify-content: flex-end;
+  margin-bottom: 1rem;
+}
+
+.tableContainer { 
+  overflow-x: auto; 
+  background: white;
+  border-radius: 8px;
+  padding: 1rem;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+/* ESTADO BADGES */
+.estadoBadge {
+  display: inline-block;
+  padding: 6px 16px;
+  border-radius: 20px;
+  font-size: 0.875rem;
+  font-weight: 600;
+  text-transform: capitalize;
+}
+
+.estadoBadge.activo { 
+  background-color: #d1fae5; 
+  color: #065f46; 
+  border: 1px solid #a7f3d0;
+}
+
+.estadoBadge.inactivo { 
+  background-color: #fee2e2; 
+  color: #991b1b; 
+  border: 1px solid #fecaca;
+}
+
+.estadoBadge.pendiente {
+  background-color: #fef3c7;
+  color: #92400e;
+  border: 1px solid #fde68a;
+}
+
+/* MODAL STYLES */
+.modalOverlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.5);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+  animation: fadeIn 0.2s ease-out;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+.modal {
+  background: white;
+  border-radius: 12px;
+  padding: 30px;
+  max-width: 700px;
+  width: 90%;
+  max-height: 85vh;
+  overflow-y: auto;
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+}
+
+.modalHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 30px;
+  padding-bottom: 20px;
+  border-bottom: 2px solid #e5e7eb;
+}
+
+.modalHeader h3 {
+  margin: 0;
+  font-size: 1.75rem;
+  font-weight: 700;
+  color: #111827;
+}
+
+.closeButton {
+  background: none;
+  border: none;
+  font-size: 2.5rem;
+  cursor: pointer;
+  color: #6b7280;
+  padding: 0;
+  line-height: 1;
+  transition: all 0.2s;
+  width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 8px;
+}
+
+.closeButton:hover {
+  color: #374151;
+  background-color: #f3f4f6;
+}
+
+/* FORM STYLES */
+.form {
+  padding: 10px 0;
+}
+
+/* Form rows with proper spacing */
+.formRow {
+  margin-bottom: 20px;
+  width: 100%;
+}
+
+/* Specific row for inline fields (NIT and Telefono) */
+.formRowInline {
+  display: flex;
+  gap: 20px;
+  margin-bottom: 20px;
+  width: 100%;
+}
+
+.formColumn {
+  flex: 1;
+  min-width: 0; /* Prevents overflow */
+}
+
+/* Ensure form fields take full width */
+.formRow > div,
+.formColumn > div {
+  width: 100%;
+}
+
+.formRow input,
+.formColumn input {
+  width: 100% !important;
+  box-sizing: border-box;
+}
+
+/* Error styles */
+.inputError {
+  border-color: #ef4444 !important;
+}
+
+/* Form actions */
+.formActions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 16px;
+  margin-top: 40px;
+  padding-top: 24px;
+  border-top: 2px solid #e5e7eb;
+}
+
+/* LOADING AND ERROR STATES */
+.loading {
+  text-align: center;
+  padding: 40px;
+  color: #6b7280;
+  font-size: 1.1rem;
+}
+
+.error {
+  background-color: #fee2e2;
+  border: 1px solid #fecaca;
+  color: #991b1b;
+  padding: 16px;
+  border-radius: 8px;
+  margin: 20px 0;
+}
+
+/* RESPONSIVE DESIGN */
+@media (max-width: 768px) {
+  .mainContent {
+    margin-left: 80px;
+    padding: 1rem;
+  }
+  
+  .mainContent.collapsed {
+    margin-left: 60px;
+  }
+  
+  .formRowInline {
+    flex-direction: column;
+    gap: 20px;
+  }
+  
+  .formColumn {
+    width: 100%;
+  }
+}
+
+@media (max-width: 640px) {
+  .modal {
+    padding: 20px;
+    margin: 10px;
+    width: 95%;
+  }
+  
+  .modalHeader h3 {
+    font-size: 1.5rem;
+  }
+  
+  .formActions {
+    flex-direction: column;
+  }
+  
+  .formActions button {
+    width: 100%;
+    margin-bottom: 10px;
+  }
+  
+  .formActions button:last-child {
+    margin-bottom: 0;
+  }
+  
+  .title {
+    font-size: 1.5rem;
+  }
+}
+
+/* Añade esto a tu Empresas.module.css */
+
+.formRowInline {
+  display: flex;
+  gap: 20px;
+  margin-bottom: 20px;
+}
+
+.formColumn {
+  flex: 1;
+}
+
+@media (max-width: 768px) {
+  .formRowInline {
+    flex-direction: column;
+    gap: 20px;
+  }
+}

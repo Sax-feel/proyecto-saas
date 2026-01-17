@@ -1,0 +1,66 @@
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 1.5rem;
+  overflow: visible;
+}
+/* ----------------- HEAD ----------------- */
+.table th {
+  background-color: #f9fafb;
+  padding: 0.75rem 1rem;
+  text-align: left;
+  font-weight: 600;
+  color: #374151;
+  border-bottom: 2px solid #e5e7eb;
+  font-size: 0.875rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+/* ----------------- BODY ----------------- */
+.table td {
+  padding: 1rem;
+  border-bottom: 1px solid #e5e7eb;
+  color: #6b7280;
+  vertical-align: middle;
+}
+
+.table tr:hover {
+  background-color: #f9fafb;
+}
+
+/* ----------------- ESTADO ----------------- */
+.estadoBadge {
+  display: inline-block;
+  padding: 0.25rem 0.75rem;
+  border-radius: 9999px;
+  font-size: 0.75rem;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.estadoBadge.activo {
+  background-color: #d1fae5;
+  color: #065f46;
+}
+
+.estadoBadge.inactivo {
+  background-color: #fee2e2;
+  color: #991b1b;
+}
+
+/* ----------------- ACCIONES ----------------- */
+.actionsCell {
+  position: relative;
+  overflow: visible;
+}
+
+
+/* ----------------- EMPTY ----------------- */
+.empty {
+  text-align: center;
+  padding: 1rem;
+  font-style: italic;
+  color: #9ca3af;
+}

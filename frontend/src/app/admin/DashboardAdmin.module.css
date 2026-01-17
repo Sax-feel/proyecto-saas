@@ -1,150 +1,36 @@
-/* ----------------- CONTENEDOR PRINCIPAL ----------------- */
+/* -------------------- LAYOUT GENERAL -------------------- */
 .container {
-  max-width: 1200px;
-  margin: 2rem auto;
-  padding: 1rem 2rem;
-  font-family: 'Inter', sans-serif;
-  color: #f1f5f9;
-  background-color: #1e293b;
-}
-
-/* ----------------- TITULOS ----------------- */
-.title {
-  font-size: 2rem;
-  font-weight: 700;
-  margin-bottom: 2rem;
-  text-align: center;
-  color: #e2e8f0;
-}
-
-.section {
-  margin-bottom: 2rem;
-}
-
-.section h2 {
-  font-size: 1.5rem;
-  margin-bottom: 1rem;
-  color: #e2e8f0;
-}
-
-/* ----------------- TABLAS ----------------- */
-.tableContainer {
-  overflow-x: auto;
-}
-
-.table {
-  width: 100%;
-  border-collapse: collapse;
-  background-color: #2e3b55;
-  border-radius: 0.5rem;
+  display: flex;
+  min-height: 100vh;
+  background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
   overflow: hidden;
-  box-shadow: 0 4px 12px rgba(0,0,0,0.2);
-  color: #f1f5f9;
 }
 
-.table th, .table td {
-  padding: 0.75rem 1rem;
-  text-align: left;
-  border-bottom: 1px solid #374b6a;
-}
-
-.table th {
-  background-color: #2563eb;
-  font-weight: 600;
-  color: #f1f5f9;
-}
-
-.table tr:nth-child(even) {
-  background-color: #374b6a;
-}
-
-.table tr:hover {
-  background-color: #2563eb;
-  color: #f1f5f9;
-  transition: background 0.2s ease-in-out;
-}
-
-.userRow:hover {
-  background-color: #2b3a54;
-}
-
-.empty {
-  text-align: center;
-  padding: 1rem;
-  font-style: italic;
-  color: #cbd5e1;
-}
-
-/* ----------------- BOTONES ----------------- */
-.primaryBtn {
-  padding: 0.75rem;
-  background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%);
-  color: white;
-  border-radius: 8px;
-  font-weight: 600;
-  font-size: 0.875rem;
-  cursor: pointer;
-  transition: all 0.2s;
-}
-
-.primaryBtn:hover {
-  background: linear-gradient(135deg, #4338ca 0%, #6d28d9 100%);
-  transform: translateY(-1px);
-  box-shadow: 0 4px 12px rgba(79,70,229,0.2);
-}
-
-/* ----------------- BADGES ----------------- */
-.estadoBadge {
-  padding: 0.25rem 0.5rem;
-  border-radius: 6px;
-  font-size: 0.75rem;
-  font-weight: 600;
-  color: white;
-}
-
-.activo { background-color: #10b981; }
-.inactivo { background-color: #ef4444; }
-
-/* ----------------- MODALES ----------------- */
-.modal {
-  position: fixed;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
-  background-color: #2e3b55;
-  padding: 2rem;
-  width: 400px;
-  max-width: 90%;
-  border-radius: 10px;
-  box-shadow: 0 8px 20px rgba(0,0,0,0.25);
-  z-index: 1000;
-  color: #f1f5f9;
-}
-
-.modal form {
+/* -------------------- SIDEBAR -------------------- */
+.sidebar {
+  width: 250px;
+  background: #ffffff;
+  border-right: 1px solid #e5e7eb;
   display: flex;
   flex-direction: column;
-  gap: 1rem;
+  transition: width 0.3s;
+  flex-shrink: 0; /* nunca se comprime */
 }
 
-.modal input, .modal select {
-  padding: 0.6rem 0.8rem;
-  border: 1px solid #374b6a;
-  border-radius: 6px;
-  font-size: 1rem;
-  background-color: #374b6a;
-  color: #f1f5f9;
-  outline: none;
+.collapsed {
+  width: 70px; /* reduce el sidebar */
 }
 
-.modal input:focus, .modal select:focus {
-  border-color: #2563eb;
-  box-shadow: 0 0 0 3px rgba(37,99,235,0.3);
+/* -------------------- CONTENIDO PRINCIPAL -------------------- */
+.center {
+  flex: 1;                   /* ocupa todo el espacio restante */
+  padding: 2rem;
+  margin-left: 250px;         /* respeta ancho del sidebar */
+  transition: margin-left 0.3s ease; /* transición suave */
+  overflow-y: auto;
+  background: white;
 }
 
-/* ----------------- RESPONSIVE ----------------- */
-@media (max-width: 768px) {
-  .table th, .table td {
-    font-size: 0.9rem;
-  }
+.center.collapsed {
+  margin-left: 70px; /* ajusta cuando sidebar colapsa */
 }

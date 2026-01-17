@@ -1,0 +1,89 @@
+.actionsCell {
+  position: relative;
+  overflow: visible;
+}
+
+.actionsCell > div {
+  position: relative;
+  display: inline-block;
+}
+
+.menuButton {
+  background: none;
+  border: none;
+  font-size: 1.5rem;
+  line-height: 1;
+  cursor: pointer;
+  color: #6b7280;
+  padding: 0.25rem 0.75rem;
+  border-radius: 4px;
+  transition: all 0.2s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+}
+
+.menuButton:hover {
+  background-color: #f3f4f6;
+  color: #374151;
+}
+
+.menuButton:active {
+  transform: translateY(0);
+}
+
+/* Menú desplegable */
+.menuDropdown {
+  position: absolute;
+  top: 100%;
+  right: 0;
+  background: white;
+  border-radius: 8px;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.15);
+  z-index: 9999;
+  min-width: 160px;
+  padding: 0.25rem 0;
+}
+
+/* Ítems del menú */
+.menuItem {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  width: 100%;
+  padding: 0.75rem 1rem;
+  border: none;
+  background: none;
+  text-align: left;
+  cursor: pointer;
+  font-size: 0.875rem;
+  color: #374151;
+  transition: all 0.2s;
+  border-bottom: 1px solid #f3f4f6;
+}
+
+.menuItem:last-child {
+  border-bottom: none;
+}
+
+/* Ítem de acción peligrosa */
+.menuItemDanger {
+  color: #dc2626;
+}
+
+.menuItem:hover {
+  background-color: #f9fafb;
+}
+
+/* Icono del menú */
+.menuItemDanger:hover {
+  background-color: #fef2f2;
+}
+
+.menuIcon {
+  font-size: 1rem;
+  width: 20px;
+  text-align: center;
+}

@@ -1,0 +1,109 @@
+/* Contenedor general: flex con sidebar + contenido */
+.dashboardContainer {
+  display: flex;
+  min-height: 100vh;
+  background-color: #f9f9fb;
+  font-family: 'Inter', sans-serif;
+  color: #1f2937;
+}
+
+/* Contenido principal */
+.mainContent {
+  flex: 1;                /* Ocupa el resto del espacio */
+  margin-left: 250px;     /* Ancho del sidebar cuando está abierto */
+  padding: 2rem;
+  transition: margin-left 0.3s ease;
+  overflow-y: auto;
+}
+
+/* Cuando sidebar está colapsado */
+.collapsed {
+  margin-left: 80px;      /* Ajusta según el ancho colapsado del sidebar */
+}
+
+/* Título */
+.title {
+  font-size: 1.75rem;
+  font-weight: 600;
+  margin-bottom: 1.5rem;
+}
+
+/* Formulario flotante o bloque */
+.form {
+  margin-top: 1.5rem;
+  padding: 1.5rem;
+  background-color: #fff;
+  border-radius: 12px;
+  box-shadow: 0 5px 15px rgba(0,0,0,0.05);
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+/* Tabla */
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 1.5rem;
+  background-color: #fff;
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: 0 5px 15px rgba(0,0,0,0.05);
+}
+
+.table th, .table td {
+  padding: 0.75rem 1rem;
+  text-align: left;
+  font-size: 0.95rem;
+}
+
+.table th {
+  background-color: #f3f4f6;
+  font-weight: 500;
+  color: #374151;
+}
+
+.table tr:nth-child(even) {
+  background-color: #f9fafb;
+}
+
+.table tr:hover {
+  background-color: #f3f4f6;
+}
+
+/* Botones de acciones */
+.table button {
+  font-size: 0.85rem;
+  padding: 0.35rem 0.6rem;
+}
+
+/* Input de búsqueda */
+.mainContent > .formfield {
+  margin-bottom: 1rem;
+}
+
+.modalOverlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(30, 41, 59, 0.6);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+  padding: 1rem;
+}
+
+.modal {
+  background-color: #fff;
+  padding: 2rem;
+  border-radius: 12px;
+  width: 500px;
+  max-width: 100%;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.15);
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}

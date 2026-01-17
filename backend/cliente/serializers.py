@@ -6,6 +6,8 @@ from .models import Cliente
 from usuarios.models import User
 from empresas.models import Empresa
 from relacion_tiene.models import Tiene
+from rest_framework import serializers
+from .models import AuditoriaCliente
 
 class ClienteSerializer(serializers.ModelSerializer):
     """Serializador para el modelo Cliente"""
@@ -137,3 +139,71 @@ class ClienteRegistroResponseSerializer(serializers.ModelSerializer):
     def get_fecha_registro(self, obj):
         """Obtener fecha de registro desde el contexto"""
         return self.context.get('fecha_registro', '')
+
+
+class AuditoriaClienteSerializer(serializers.ModelSerializer):
+    usuario_email = serializers.SerializerMethodField()
+    cliente_info = serializers.SerializerMethodField()
+    detalles_formateados = serializers.SerializerMethodField()
+    
+    class Meta:
+        model = AuditoriaCliente
+        fields = [
+            'id', 'accion', 'cliente_info', 'detalles', 
+            'detalles_formateados', 'usuario_email', 'ip_address',
+            'fecha', 'user_agent'
+        ]
+        read_only_fields = fields
+    
+    def get_usuario_email(self, obj):
+        return obj.usuario.email if obj.usuario else 'Sistema'
+    
+    def get_cliente_info(self, obj):
+        # Usar la propiedad segura del modelo
+        return obj.cliente_info
+    
+    def get_detalles_formateados(self, obj):
+        """Devuelve detalles en formato legible"""
+        if not obj.detalles:
+            return "Sin detalles"
+        
+        try:
+            detalles = obj.detalles
+            
+            if obj.accion == 'ACTUALIZADO':
+                cambios = []
+                for campo, valores in detalles.get('cambios', {}).items():
+                    campo_nombre = campo.replace('_cliente', '').replace('_', ' ').title()
+                    cambios.append(f"{campo_nombre}: {valores.get('anterior', 'N/A')} → {valores.get('nuevo', 'N/A')}")
+                
+                if cambios:
+                    return "; ".join(cambios)
+            
+            # Para creación o eliminación
+            if 'nombre' in detalles:
+                info_parts = []
+                if 'nombre' in detalles:
+                    info_parts.append(f"Nombre: {detalles['nombre']}")
+                if 'nit' in detalles:
+                    info_parts.append(f"NIT: {detalles['nit']}")
+                if 'usuario_email' in detalles:
+                    info_parts.append(f"Email: {detalles['usuario_email']}")
+                
+                return " | ".join(info_parts) if info_parts else "Información básica guardada"
+            
+            return str(detalles)
+            
+        except Exception:
+            return "Detalles no disponibles en formato legible"
+
+
+class FiltroAuditoriaSerializer(serializers.Serializer):
+    fecha_desde = serializers.DateField(required=False)
+    fecha_hasta = serializers.DateField(required=False)
+    accion = serializers.ChoiceField(
+        choices=AuditoriaCliente.ACCIONES, 
+        required=False
+    )
+    cliente_id = serializers.IntegerField(required=False)
+    usuario_id = serializers.IntegerField(required=False)
+    cliente_nombre = serializers.CharField(required=False)

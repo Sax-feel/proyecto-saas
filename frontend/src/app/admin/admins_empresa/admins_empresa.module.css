@@ -1,0 +1,103 @@
+.dashboardContainer {
+  display: flex;
+  min-height: 100vh;
+  font-family: 'Inter', sans-serif;
+  background-color: #f9f9fb;
+  color: #1f2937;
+}
+
+.mainContent {
+  flex: 1;
+  margin-left: 250px;
+  padding: 2rem;
+  transition: margin-left 0.3s ease;
+  overflow-y: auto;
+}
+
+.mainContent.collapsed {
+  margin-left: 80px;
+}
+
+.title {
+  font-size: 1.75rem;
+  font-weight: 600;
+  margin-bottom: 1.5rem;
+}
+
+.section {
+  margin-bottom: 2rem;
+}
+
+.sectionHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.tableContainer {
+  overflow-x: auto;
+}
+
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 1rem;
+  background: #fff;
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: 0 5px 15px rgba(0,0,0,0.05);
+}
+
+.table th, .table td {
+  padding: 0.75rem 1rem;
+  text-align: left;
+  font-size: 0.95rem;
+}
+
+.table th { background: #f3f4f6; font-weight: 500; color: #374151; }
+
+.table tr:nth-child(even) { background: #f9fafb; }
+
+.table tr:hover { background: #f3f4f6; }
+
+.estadoBadge {
+  display: inline-block;
+  padding: 0.25rem 0.75rem;
+  border-radius: 9999px;
+  font-size: 0.75rem;
+  font-weight: 500;
+  text-transform: uppercase;
+}
+
+.estadoBadge.activo { background: #d1fae5; color: #065f46; }
+.estadoBadge.inactivo { background: #fee2e2; color: #991b1b; }
+
+.modalOverlay {
+  position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+  background: rgba(0,0,0,0.5);
+  display: flex; justify-content: center; align-items: center;
+  z-index: 2000;
+}
+
+.modal {
+  background: #fff;
+  padding: 2rem;
+  border-radius: 8px;
+  max-width: 400px;
+  width: 100%;
+  box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+}
+
+.form { display: flex; flex-direction: column; gap: 1rem; }
+.formGroup label { font-weight: 500; margin-bottom: 0.25rem; display: block; }
+.formGroup input, .formGroup select { padding: 0.5rem; border-radius: 6px; border: 1px solid #d1d5db; outline: none; width: 100%; }
+
+.modalActions { display: flex; justify-content: flex-end; gap: 0.5rem; }
+
+.submitButton { background-color: #4f46e5; color: white; padding: 0.5rem 1rem; border-radius: 8px; }
+.submitButton:hover { background-color: #4338ca; }
+
+.cancelButton { background-color: #ef4444; color: white; padding: 0.5rem 1rem; border-radius: 8px; }
+.cancelButton:hover { background-color: #dc2626; }
+
+.empty { text-align: center; padding: 1rem; font-style: italic; color: #6b7280; }

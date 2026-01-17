@@ -16,15 +16,42 @@ import {
 
 import styles from "./Sidebar.module.css"
 
-const navigation = [
-  { name: "Mi Empresa", href: "/usuario_empresa", icon: Building2 },
-  { name: "Clientes", href: "/usuario_empresa/empleados", icon: Users },
-  { name: "Productos", href: "/usuario_empresa/producto-section", icon: Package },
-  { name: "Suscripción", href: "/usuario_empresa/suscripciones", icon: CreditCard },
-]
+// Define todas las rutas disponibles
+const allNavigation = {
+  // Rutas para admin general
+  admin: [
+    { name: "Empresas", href: "/admin/empresas", icon: Building2 },
+    { name: "Admins Empresa", href: "/admin/admins_empresa", icon: UserCheck },
+    { name: "Clientes", href: "/admin/clientes", icon: Users },
+    { name: "Vendedores", href: "/admin/vendedores", icon: Package },
+  ],
+  
+  // Rutas para usuario empresa
+  empresa: [
+    { name: "Mi Empresa", href: "/usuario_empresa", icon: Building2 },
+    { name: "Empleados", href: "/usuario_empresa/empleados", icon: Users },
+    { name: "Productos", href: "/usuario_empresa/producto-section", icon: Package },
+    { name: "Suscripción", href: "/usuario_empresa/suscripciones", icon: CreditCard },
+  ]
+}
+
+// Determina qué rutas mostrar según el path actual
+function getNavigation(pathname) {
+  // Si está en rutas de admin, mostrar esas
+  if (pathname?.startsWith('/admin')) {
+    return allNavigation.admin
+  }
+  // Si está en rutas de usuario_empresa, mostrar esas
+  else if (pathname?.startsWith('/usuario_empresa')) {
+    return allNavigation.empresa
+  }
+  // Por defecto, mostrar admin
+  return allNavigation.admin
+}
 
 export default function Sidebar({ collapsed, setCollapsed }) {
   const pathname = usePathname()
+  const navigation = getNavigation(pathname)
 
   return (
     <aside className={`${styles.sidebar} ${collapsed ? styles.collapsed : ""}`}>

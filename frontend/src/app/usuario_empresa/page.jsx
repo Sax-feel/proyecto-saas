@@ -120,6 +120,7 @@ export default function EmpresaPage() {
   const handleCancel = () => {
     setTempEmpresa({ ...empresa })
     setIsEditing(false)
+    setError(null)
   }
 
   // Si está cargando
@@ -184,15 +185,16 @@ export default function EmpresaPage() {
                   variant="success" 
                   className={styles.actionBtn} 
                   onClick={handleSave}
-                  icon={<Save size={16} />}
+                  disabled={saving}
+                  icon={saving ? <Loader2 size={16} className={styles.spinner} /> : <Save size={16} />}
                 >
-                  Guardar cambios
+                  {saving ? "Guardando..." : "Guardar cambios"}
                 </Button>
                 <Button 
                   variant="secondary" 
                   className={styles.actionBtn} 
                   onClick={handleCancel}
-                  icon={<X size={16} />}
+                  disabled={saving}
                 >
                   Cancelar
                 </Button>
@@ -221,6 +223,20 @@ export default function EmpresaPage() {
 
         {/* Tarjetas de información */}
         <div className={styles.cardsContainer}>
+          {/* RESUMEN */}
+          <DataCard title="Resumen">
+            <div className={styles.cardContent}>
+              {resumenData.map((item) => (
+                <div key={item.label} className={styles.resumenRow}>
+                  <item.icon className={styles.resumenIcon} size={18} />
+                  <div className={styles.resumenItem}>
+                    <span className={styles.resumenLabel}>{item.label}</span>
+                    <span className={styles.resumenValue}>{item.value}</span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </DataCard>
           {/* RESUMEN */}
           <DataCard title="Resumen">
             <div className={styles.cardContent}>

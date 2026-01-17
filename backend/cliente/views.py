@@ -6,6 +6,7 @@ from rest_framework.permissions import IsAuthenticated, AllowAny
 from usuarios.models import User
 from roles.models import Rol
 from relacion_tiene.models import Tiene
+from empresas.serializers import EmpresaSerializer
 from .models import Cliente
 from .serializers import RegistroClienteSerializer, ClienteSerializer, EmailEmpresaSerializer
 import logging
@@ -299,3 +300,69 @@ class RegistrarClienteExistenteView(generics.CreateAPIView):
         except Usuario_Empresa.DoesNotExist:
             logger.warning(f"Usuario {user.email} no pertenece a empresa {empresa.nombre}")
             return None
+
+from rest_framework import generics, status
+from rest_framework.response import Response
+from rest_framework.permissions import IsAuthenticated
+from empresas.models import Empresa
+from relacion_tiene.models import Tiene
+import logging
+
+logger = logging.getLogger(__name__)
+
+class MisEmpresasView(generics.ListAPIView):
+    """
+    Vista para que un cliente vea las empresas en las que está registrado
+    """
+    serializer_class = EmpresaSerializer
+    permission_classes = [IsAuthenticated]
+    
+    def check_permissions(self, request):
+        """Verificar que sea cliente"""
+        super().check_permissions(request)
+        
+        if not request.user.rol or request.user.rol.rol != 'cliente':
+            self.permission_denied(
+                request,
+                message="Solo clientes pueden ver sus empresas",
+                code=status.HTTP_403_FORBIDDEN
+            )
+    
+    def list(self, request, *args, **kwargs):
+        """Listar empresas del cliente"""
+        try:
+            # Obtener el cliente
+            cliente = Cliente.objects.get(id_usuario=request.user)
+            
+            # Obtener empresas a través de la tabla 'tiene'
+            relaciones = Tiene.objects.filter(
+                id_cliente=cliente,
+                estado='activo'
+            ).select_related('id_empresa')
+            
+            empresas = [relacion.id_empresa for relacion in relaciones]
+            
+            # Serializar empresas
+            from empresas.serializers import EmpresaSerializer
+            serializer = EmpresaSerializer(empresas, many=True)
+            
+            return Response({
+                'empresas': serializer.data,
+                'total': len(empresas),
+                'status': 'success'
+            })
+            
+        except Cliente.DoesNotExist:
+            return Response({
+                'error': 'Cliente no encontrado',
+                'detail': 'No existe perfil de cliente para este usuario',
+                'status': 'error'
+            }, status=status.HTTP_400_BAD_REQUEST)
+            
+        except Exception as e:
+            logger.error(f"Error obteniendo empresas del cliente: {str(e)}")
+            return Response({
+                'error': 'Error al obtener empresas',
+                'detail': str(e),
+                'status': 'error'
+            }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)

@@ -1,0 +1,182 @@
+.card {
+    background-color: rgb(225, 225, 225); /* Fondo blanco */
+    border-radius: 12px;
+    border: black solid 10px;
+    padding: 1.5rem;
+    box-shadow: 0 4px 6px -1px rgba(1, 1, 1, 0.7); /* Sombra más suave */
+    transition: all 0.3s ease;
+    border: 1px solid #e5e7eb; /* Borde gris claro */
+    height: 100%; /* Para que todas las cards tengan misma altura */
+    display: flex;
+    flex-direction: column;
+}
+
+.card:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.08); /* Sombra más pronunciada al hover */
+    border-color: #c7d2fe; /* Borde violeta claro al hover */
+}
+
+.cardHeader {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 1.5rem;
+    padding-bottom: 1rem;
+    border-bottom: 1px solid #f3f4f6; /* Borde gris más claro */
+}
+
+.empresaNombre {
+    font-size: 1.25rem;
+    font-weight: 600;
+    color: #1f2937; /* Texto oscuro */
+    margin: 0;
+    flex: 1;
+    line-height: 1.4;
+}
+
+.estadoBadge {
+    padding: 0.25rem 0.75rem;
+    border-radius: 20px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    border: 1px solid transparent;
+}
+
+.estadoBadge.activo {
+    background-color: rgba(16, 185, 129, 0.1); /* Verde muy claro */
+    color: #10b981; /* Verde */
+    border-color: #10b981;
+}
+
+.estadoBadge.inactivo {
+    background-color: rgba(239, 68, 68, 0.1); /* Rojo muy claro */
+    color: #ef4444; /* Rojo */
+    border-color: #ef4444;
+}
+
+.cardBody {
+    margin-bottom: 1.5rem;
+    flex: 1; /* Para que el cuerpo ocupe espacio disponible */
+}
+
+.infoRow {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 0.75rem;
+    font-size: 0.9rem;
+}
+
+.infoRow:last-child {
+    margin-bottom: 0;
+}
+
+.label {
+    color: #6b7280; /* Gris medio */
+    font-weight: 500;
+    flex-shrink: 0; /* Evita que el label se reduzca */
+}
+
+.value {
+    color: #1f2937; /* Texto oscuro */
+    font-weight: 400;
+    text-align: right;
+    max-width: 60%;
+    word-break: break-word;
+    margin-left: 0.5rem;
+}
+
+.cardFooter {
+    text-align: center;
+    padding-top: 1rem;
+    border-top: 1px solid #f3f4f6; /* Borde gris más claro */
+    margin-top: auto; /* Empuja el footer al final */
+}
+
+.selectButton {
+    display: inline-block;
+    padding: 0.75rem 1.5rem;
+    background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%); /* Gradiente violeta */
+    color: white;
+    text-decoration: none;
+    border-radius: 8px;
+    font-weight: 600;
+    font-size: 0.875rem;
+    transition: all 0.2s;
+    border: none;
+    cursor: pointer;
+    width: 100%;
+    text-align: center;
+}
+
+.selectButton:hover {
+    background: linear-gradient(135deg, #4338ca 0%, #6d28d9 100%); /* Gradiente violeta más oscuro */
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(79, 70, 229, 0.2);
+}
+
+/* ---------- VARIANTES OPCIONALES ---------- */
+.card.compact {
+    padding: 1.25rem;
+}
+
+.card.compact .cardHeader {
+    margin-bottom: 1rem;
+    padding-bottom: 0.75rem;
+}
+
+.card.compact .infoRow {
+    margin-bottom: 0.5rem;
+    font-size: 0.85rem;
+}
+
+/* Estilo para empresas premium o destacadas */
+.card.featured {
+    border-left: 4px solid #f59e0b; /* Borde amarillo/naranja */
+    background: linear-gradient(135deg, #ffffff 0%, #fef3c7 100%); /* Fondo amarillo muy claro */
+}
+
+.card.featured .empresaNombre {
+    color: #92400e; /* Texto naranja oscuro */
+}
+
+/* Estilo para empresas sin activar */
+.card.pending {
+    border-left: 4px solid #6b7280; /* Borde gris */
+    background: linear-gradient(135deg, #ffffff 0%, #f9fafb 100%); /* Fondo gris muy claro */
+}
+
+.card.pending .empresaNombre {
+    color: #6b7280; /* Texto gris */
+}
+
+/* Responsive */
+@media (max-width: 640px) {
+    .card {
+        padding: 1.25rem;
+    }
+    
+    .cardHeader {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 0.5rem;
+    }
+    
+    .infoRow {
+        flex-direction: column;
+        gap: 0.25rem;
+    }
+    
+    .value {
+        text-align: left;
+        max-width: 100%;
+        margin-left: 0;
+    }
+    
+    .selectButton {
+        padding: 0.625rem 1.25rem;
+        font-size: 0.8125rem;
+    }
+}

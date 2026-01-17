@@ -14,7 +14,8 @@ from usuarios.serializers import RegistroUsuarioSerializer, PerfilUsuarioSeriali
 from cuentas.serializers import (
     PasswordResetRequestSerializer,
     PasswordResetConfirmSerializer,
-    PasswordResetValidateTokenSerializer
+    PasswordResetValidateTokenSerializer,
+    LogoutSerializer
 )
 from datetime import timedelta
 import logging
@@ -240,6 +241,7 @@ class LoginView(generics.GenericAPIView):
 #--------------------#
 
 class LogoutView(generics.GenericAPIView):
+    serializer_class = LogoutSerializer
     permission_classes = [IsAuthenticated]
 
     def post(self, request, *args, **kwargs):

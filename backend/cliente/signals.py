@@ -28,7 +28,7 @@ def auditar_creacion_actualizacion_cliente(sender, instance, created, **kwargs):
     
     # Crear registro de auditoría
     AuditoriaCliente.objects.create(
-        cliente=instance,
+        cliente_id=instance.id_usuario_id,
         accion=accion,
         detalles={
             'nit': instance.nit,

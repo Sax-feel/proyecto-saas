@@ -73,7 +73,6 @@ class RegistroClienteSerializer(serializers.Serializer):
 class EmailEmpresaSerializer(serializers.Serializer):
     """Serializador para registrar cliente existente mediante email"""
     email = serializers.EmailField(required=True)
-    empresa_id = serializers.IntegerField(required=True)
     
     def validate_email(self, value):
         """Validar que el usuario exista y sea cliente"""
@@ -102,23 +101,7 @@ class EmailEmpresaSerializer(serializers.Serializer):
         except Empresa.DoesNotExist:
             raise serializers.ValidationError("Empresa no encontrada o no está activa")
     
-    def validate(self, data):
-        """Validaciones adicionales"""
-        user = data['email']  # En realidad es el objeto User
-        empresa = data['empresa_id']  # En realidad es el objeto Empresa
-        
-        # Verificar que el cliente no esté ya registrado en esta empresa
-        try:
-            cliente = Cliente.objects.get(id_usuario=user)
-            if Tiene.objects.filter(id_cliente=cliente, id_empresa=empresa).exists():
-                raise serializers.ValidationError({
-                    'error': 'Cliente ya registrado',
-                    'detail': f'El cliente {user.email} ya está registrado en esta empresa'
-                })
-        except Cliente.DoesNotExist:
-            pass
-        
-        return data
+    
 
 
 class ClienteRegistroResponseSerializer(serializers.ModelSerializer):

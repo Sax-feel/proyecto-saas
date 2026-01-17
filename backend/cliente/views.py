@@ -11,6 +11,7 @@ from roles.models import Rol
 from relacion_tiene.models import Tiene
 from empresas.serializers import EmpresaSerializer
 from .models import Cliente
+from usuario_empresa.models import Usuario_Empresa
 from .serializers import RegistroClienteSerializer, ClienteSerializer, EmailEmpresaSerializer
 from .models import AuditoriaCliente
 from .serializers import AuditoriaClienteSerializer, FiltroAuditoriaSerializer
@@ -213,7 +214,28 @@ class RegistrarClienteExistenteView(generics.CreateAPIView):
             # 1. Obtener datos validados del serializer
             validated_data = serializer.validated_data
             user_cliente = validated_data['email']  # Objeto User del cliente
-            empresa = validated_data['empresa_id']  # Objeto Empresa
+            try:
+                usuario_empresa = Usuario_Empresa.objects.get(id_usuario=request.user)
+                empresa = usuario_empresa.empresa
+                logger.info(f"Admin_empresa {request.user.email} pertenece a empresa {empresa.nombre}")
+            except Usuario_Empresa.DoesNotExist:
+                return Response(
+                    {
+                        'error': 'Admin sin empresa',
+                        'detail': 'No tienes una empresa asignada',
+                        'status': 'error'
+                    },
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+            if usuario_empresa.estado != 'activo':
+                return Response(
+                    {
+                        'error': 'Admin inactivo',
+                        'detail': 'Tu cuenta de administrador no está activa en esta empresa',
+                        'status': 'error'
+                    },
+                    status=status.HTTP_403_FORBIDDEN
+                )
             
             # 2. Verificar que el admin_empresa pertenezca a la empresa especificada
             admin_empresa = self._verificar_permiso_empresa(request.user, empresa)
@@ -240,6 +262,18 @@ class RegistrarClienteExistenteView(generics.CreateAPIView):
                     status=status.HTTP_400_BAD_REQUEST
                 )
             
+            # 5. Verificar que el cliente no esté ya registrado en esta empresa
+            if Tiene.objects.filter(id_cliente=cliente, id_empresa=empresa).exists():
+                return Response(
+                    {
+                        'error': 'Cliente ya registrado',
+                        'detail': f'El cliente {cliente.nombre_cliente} ya está registrado en {empresa.nombre}',
+                        'status': 'error'
+                    },
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+            
+
             # 4. Crear relación en tabla 'tiene'
             tiene_relacion = Tiene.objects.create(
                 id_cliente=cliente,

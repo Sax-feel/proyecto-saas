@@ -1,11 +1,13 @@
 from datetime import timedelta
+from django.http import Http404
 from django.utils import timezone
-from rest_framework import generics, status, filters
+from rest_framework import generics, status, filters, permissions
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated, AllowAny
 from django_filters.rest_framework import DjangoFilterBackend
 from admins.models import Admin
 from empresas.models import Empresa
+from usuario_empresa.models import Usuario_Empresa
 from empresas.serializers import EmpresaSerializer
 from planes.models import Plan
 from suscripciones.models import Suscripcion
@@ -281,25 +283,104 @@ class ListaEmpresasView(generics.ListAPIView):
 class DetalleEmpresaView(generics.RetrieveUpdateDestroyAPIView):
     """
     Vista para ver, actualizar o eliminar una empresa
+    Accesible por admin (todas las empresas) y admin_empresa (solo su empresa)
     """
     serializer_class = EmpresaSerializer
     permission_classes = [IsAuthenticated]
-    queryset = Empresa.objects.all()
     
-    def check_permissions(self, request):
-        """
-        Verifica permisos según el rol
-        """
-        super().check_permissions(request)
+    def get_queryset(self):
+        """Filtra el queryset según el rol del usuario"""
+        user = self.request.user
         
-        # Solo admin puede modificar/eliminar empresas
+        if not user.rol:
+            return Empresa.objects.none()
+        
+        rol = user.rol.rol
+        
+        if rol == 'admin':
+            # Admin puede ver todas las empresas
+            return Empresa.objects.all()
+        elif rol == 'admin_empresa':
+            # Admin_empresa solo puede ver su empresa
+            try:
+                from usuario_empresa.models import Usuario_Empresa
+                usuario_empresa = Usuario_Empresa.objects.get(id_usuario=user)
+                return Empresa.objects.filter(id_empresa=usuario_empresa.empresa.id_empresa)
+            except Usuario_Empresa.DoesNotExist:
+                return Empresa.objects.none()
+        else:
+            # Otros roles no pueden ver empresas
+            return Empresa.objects.none()
+    
+    def check_object_permissions(self, request, obj):
+        """
+        Verifica permisos específicos sobre el objeto
+        """
+        super().check_object_permissions(request, obj)
+        
+        user = request.user
+        rol = user.rol.rol if user.rol else None
+        
+        # Para métodos de escritura (PUT, PATCH, DELETE)
         if request.method in ['PUT', 'PATCH', 'DELETE']:
-            if not request.user.rol or request.user.rol.rol != 'admin':
+            # Solo admin y admin_empresa pueden modificar
+            if rol not in ['admin', 'admin_empresa']:
                 self.permission_denied(
                     request,
-                    message="Solo administradores del sistema pueden modificar empresas",
+                    message="Solo administradores pueden modificar empresas",
                     code=status.HTTP_403_FORBIDDEN
                 )
+            
+            # Si es admin_empresa, solo puede modificar SU empresa
+            if rol == 'admin_empresa':
+                try:
+                    from usuario_empresa.models import Usuario_Empresa
+                    usuario_empresa = Usuario_Empresa.objects.get(id_usuario=user)
+                    if obj.id_empresa != usuario_empresa.empresa.id_empresa:
+                        self.permission_denied(
+                            request,
+                            message="Solo puedes modificar tu propia empresa",
+                            code=status.HTTP_403_FORBIDDEN
+                        )
+                except Usuario_Empresa.DoesNotExist:
+                    self.permission_denied(
+                        request,
+                        message="No tienes una empresa asignada",
+                        code=status.HTTP_403_FORBIDDEN
+                    )
+    
+    def get_object(self):
+        """
+        Obtiene la empresa, con permisos específicos para admin_empresa
+        """
+        if self.request.user.rol and self.request.user.rol.rol == 'admin_empresa':
+            # Admin_empresa siempre obtiene SU empresa
+            try:
+                from usuario_empresa.models import Usuario_Empresa
+                usuario_empresa = Usuario_Empresa.objects.get(id_usuario=self.request.user)
+                return usuario_empresa.empresa
+            except Usuario_Empresa.DoesNotExist:
+                raise Http404("No tienes una empresa asignada")
+        
+        # Para admin, usa el comportamiento normal
+        return super().get_object()
+    
+    def destroy(self, request, *args, **kwargs):
+        """
+        Solo admin puede eliminar empresas
+        """
+        user = request.user
+        if not user.rol or user.rol.rol != 'admin':
+            return Response(
+                {
+                    'error': 'Permisos insuficientes',
+                    'detail': 'Solo administradores del sistema pueden eliminar empresas',
+                    'status': 'error'
+                },
+                status=status.HTTP_403_FORBIDDEN
+            )
+        
+        return super().destroy(request, *args, **kwargs)
 
 class CambiarEstadoEmpresaView(generics.UpdateAPIView):
     """
@@ -337,3 +418,39 @@ class CambiarEstadoEmpresaView(generics.UpdateAPIView):
             'empresa': EmpresaSerializer(empresa).data,
             'status': 'success'
         })
+    
+class MiEmpresaView(generics.RetrieveAPIView):
+    """
+    Endpoint para obtener la empresa del usuario actual
+    """
+    permission_classes = [permissions.IsAuthenticated]
+    serializer_class = EmpresaSerializer
+    
+    def get_object(self):
+        """Obtener la empresa del usuario logueado"""
+        user = self.request.user
+        
+        try:
+            # Buscar la relación usuario_empresa del usuario
+            usuario_empresa = Usuario_Empresa.objects.get(id_usuario=user)
+            return usuario_empresa.empresa
+        except Usuario_Empresa.DoesNotExist:
+            logger.warning(f"Usuario {user.email} no tiene empresa asignada")
+            return None
+    
+    def retrieve(self, request, *args, **kwargs):
+        """Sobreescribir para manejar casos de error"""
+        empresa = self.get_object()
+        
+        if not empresa:
+            return Response(
+                {
+                    'error': 'No tiene empresa asignada',
+                    'detail': 'El usuario no está asociado a ninguna empresa',
+                    'status': 'error'
+                },
+                status=status.HTTP_404_NOT_FOUND
+            )
+        
+        serializer = self.get_serializer(empresa)
+        return Response(serializer.data)

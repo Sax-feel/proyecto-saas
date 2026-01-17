@@ -9,7 +9,7 @@ from .views import (
     DetalleEmpresaClienteAdminView,
     EmpresasDisponiblesClienteView,
     RegistroEmpresaView,
-    CambiarEstadoEmpresaView 
+    CambiarEstadoEmpresaView, MiEmpresaView
 )
 
 urlpatterns = [
@@ -22,4 +22,5 @@ urlpatterns = [
     path('disponibles/', EmpresasDisponiblesClienteView.as_view(), name='empresas-disponibles-cliente'),
     path('registrar/', RegistroEmpresaView.as_view(), name='registrar-empresa'),
     path('<int:pk>/cambiar-estado/', CambiarEstadoEmpresaView.as_view(), name='cambiar-estado-empresa'),
+    path('mi-empresa/', MiEmpresaView.as_view(), name='mi-empresa'),
 ]

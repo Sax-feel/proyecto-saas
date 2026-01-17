@@ -33,7 +33,7 @@ export default function DashboardAdminEmpresa() {
       const token = getToken();
       if (!token) throw new Error("No autenticado");
 
-      const res = await fetch("http://localhost:8000/api/usuarios-empresa/", {
+      const res = await fetch("http://localhost:8000/api/usuarios-empresa/listar/", {
         headers: {
           Authorization: `Bearer ${token}`,
           "Content-Type": "application/json",
@@ -171,7 +171,7 @@ export default function DashboardAdminEmpresa() {
           </Button>
         </div>
 
-        <Tables columns={columns} rows={rows} />
+        <Tables columns={columns} rows={rows} data={users}/>
 
         {showAdminForm && (
           <div className={styles.modalOverlay}>

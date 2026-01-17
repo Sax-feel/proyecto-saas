@@ -12,7 +12,7 @@ class EmpresaSerializer(serializers.ModelSerializer):
     class Meta:
         model = Empresa
         fields = [
-            'id_empresa', 'nombre', 'nit', 'direccion', 
+            'id_empresa', 'nombre', 'nit', 'direccion', 'rubro',
             'telefono', 'email', 'estado', 'fecha_creacion',
             'fecha_actualizacion', 'admin_registro', 'cantidad_clientes',
             'suscripciones_info'  # ← NUEVO
@@ -28,7 +28,7 @@ class EmpresaSerializer(serializers.ModelSerializer):
             return {
                 'id': obj.admin.id_usuario.id_usuario,
                 'nombre': obj.admin.nombre_admin,
-                'email': obj.admin.id_usuario.email
+                'email': obj.admin.id_usuario.email,
             }
         return None
     
@@ -71,7 +71,7 @@ class RegistroEmpresaSerializer(serializers.Serializer):
     """Serializador para registro de empresa"""
     nombre = serializers.CharField(max_length=100, required=True)
     nit = serializers.CharField(max_length=20, required=True)
-    #rubro = serializers.CharField(max_length=20, required=True)  # ← Añadido rubro
+    rubro = serializers.CharField(max_length=20, required=True)  # ← Añadido rubro
     direccion = serializers.CharField(max_length=200, required=True)
     telefono = serializers.CharField(max_length=15, required=True)
     email = serializers.EmailField(required=True)

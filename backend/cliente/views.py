@@ -170,7 +170,7 @@ class DetalleClienteView(generics.RetrieveUpdateDestroyAPIView):
         """
         super().check_permissions(request)
         
-        if request.method in ['PUT', 'PATCH', 'DELETE']:
+        if request.method in ['PUT', 'PATCH']:
             if not request.user.rol or request.user.rol.rol != 'admin_empresa':
                 self.permission_denied(
                     request,
@@ -588,3 +588,45 @@ class DetalleAuditoriaClienteView(generics.RetrieveAPIView):
                 message="No tiene permisos para ver auditorías",
                 code=status.HTTP_403_FORBIDDEN
             )
+
+class ListaTodosClientesView(generics.ListAPIView):
+    """
+    Vista para listar TODOS los clientes del sistema
+    Solo accesible por rol 'admin'
+    """
+    serializer_class = ClienteSerializer
+    permission_classes = [IsAuthenticated]
+    
+    def get_queryset(self):
+        """
+        Verifica que el usuario tenga rol 'admin'
+        """
+        # Verificar si el usuario tiene rol y es 'admin'
+        if not hasattr(self.request.user, 'rol'):
+            return Cliente.objects.none()
+        
+        if self.request.user.rol.rol != 'admin':
+            return Cliente.objects.none()
+        
+        # Si es admin, retornar todos los clientes
+        return Cliente.objects.all()
+    
+    def list(self, request, *args, **kwargs):
+        """
+        Sobrescribimos para dar mensaje de error personalizado
+        """
+        # Verificar permisos primero
+        if not hasattr(self.request.user, 'rol'):
+            return Response(
+                {"error": "Usuario sin rol asignado"},
+                status=status.HTTP_403_FORBIDDEN
+            )
+        
+        if self.request.user.rol.rol != 'admin':
+            return Response(
+                {"error": "Solo los administradores pueden ver todos los clientes"},
+                status=status.HTTP_403_FORBIDDEN
+            )
+        
+        # Llamar al método original
+        return super().list(request, *args, **kwargs)

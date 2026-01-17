@@ -79,6 +79,7 @@ class RegistroEmpresaView(generics.CreateAPIView):
                 direccion=validated_data['direccion'],
                 telefono=validated_data['telefono'],
                 email=validated_data['email'],
+                rubro=validated_data['rubro'],
                 estado='inactivo'
             )
             

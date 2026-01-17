@@ -3,7 +3,8 @@ from .views import RegistroClienteView, ListaClientesView, DetalleClienteView, R
 from .views import (
     ListaAuditoriaClienteView,
     AuditoriaClienteFiltradaView,
-    DetalleAuditoriaClienteView
+    DetalleAuditoriaClienteView,
+    ListaTodosClientesView
 )
 
 urlpatterns = [
@@ -15,4 +16,5 @@ urlpatterns = [
     path('auditorias/', ListaAuditoriaClienteView.as_view(), name='auditorias-cliente'),
     path('auditorias/filtrar/', AuditoriaClienteFiltradaView.as_view(), name='auditorias-filtrar'),
     path('auditorias/<int:id>/', DetalleAuditoriaClienteView.as_view(), name='auditoria-detalle'),
+    path('todos-clientes', ListaTodosClientesView.as_view(), name='auditoria-detalle'),
 ]

@@ -112,7 +112,7 @@ export default function EmpresasPage() {
   const handleChange = (e) => {
     const { name, value } = e.target;
     setEmpresaForm({ ...empresaForm, [name]: value });
-    
+
     if (formErrors[name]) {
       setFormErrors({ ...formErrors, [name]: "" });
     }
@@ -120,36 +120,41 @@ export default function EmpresasPage() {
 
   const validateForm = () => {
     const errors = {};
-    
+
     if (!empresaForm.nombre.trim()) {
       errors.nombre = "El nombre es obligatorio";
     } else if (empresaForm.nombre.trim().length < 2) {
       errors.nombre = "El nombre debe tener al menos 2 caracteres";
     }
-    
+
     if (!empresaForm.nit.trim()) {
       errors.nit = "El NIT es obligatorio";
     }
-    
+
     if (!empresaForm.email.trim()) {
       errors.email = "El email es obligatorio";
     } else if (!/^\S+@\S+\.\S+$/.test(empresaForm.email)) {
       errors.email = "Email inválido";
     }
-    
+
     if (empresaForm.telefono && !/^[\d\s\-()+]{8,15}$/.test(empresaForm.telefono)) {
       errors.telefono = "Teléfono inválido";
     }
-    
+
     if (empresaForm.rubro && empresaForm.rubro.trim().length > 100) {
       errors.rubro = "El rubro no puede exceder 100 caracteres";
     }
-    
+
     setFormErrors(errors);
     return Object.keys(errors).length === 0;
   };
 
-  const handleOpenForm = () => {
+  const handleOpenForm = (e) => {
+    if (e) {
+      e.preventDefault();
+      e.stopPropagation();
+    }
+    console.log("Abriendo formulario de empresa");
     setShowEmpresaForm(true);
   };
 
@@ -169,22 +174,24 @@ export default function EmpresasPage() {
   };
 
   // ----------------- Registrar Empresa -----------------
-  const handleRegistrarEmpresa = async (e) => {
-    e.preventDefault();
-    
+  const fetchRegistrarEmpresa = async () => {
+
+    console.log("Intentando registrar empresa:", empresaForm);
+
     if (!validateForm()) {
+      console.log("Validación fallida:", formErrors);
       return;
     }
-    
+
     setSubmitting(true);
     setError(null);
-    
+
     try {
       const token = getToken();
       if (!token) {
         throw new Error("No hay token de autenticación");
       }
-      
+
       const empresaData = {
         nombre: empresaForm.nombre.trim(),
         nit: empresaForm.nit.trim(),
@@ -194,7 +201,9 @@ export default function EmpresasPage() {
         rubro: empresaForm.rubro.trim(),
         plan_nombre: empresaForm.plan_nombre,
       };
-      
+
+      console.log("Enviando datos:", empresaData);
+
       const res = await fetch("http://localhost:8000/api/empresas/registrar/", {
         method: "POST",
         headers: {
@@ -203,20 +212,22 @@ export default function EmpresasPage() {
         },
         body: JSON.stringify(empresaData),
       });
-      
+
       const data = await res.json();
-      
+      console.log("Respuesta API:", { status: res.status, data });
+
       if (res.ok) {
         setSuccessMessage("Empresa registrada exitosamente!");
-        
+
         setTimeout(() => {
           handleCloseForm();
           fetchEmpresas();
         }, 1500);
-        
+
       } else {
         const errorMsg = data.detail || data.error || "Error desconocido";
-        
+        console.error("Error en respuesta:", errorMsg);
+
         if (data.email && data.email.includes("ya existe")) {
           setFormErrors({ ...formErrors, email: "Este email ya está registrado" });
         } else if (data.nit && data.nit.includes("ya existe")) {
@@ -225,7 +236,7 @@ export default function EmpresasPage() {
           setError(`Error del servidor: ${errorMsg}`);
         }
       }
-      
+
     } catch (err) {
       console.error("Error al registrar empresa:", err);
       setError(`Error de conexión: ${err.message}`);
@@ -239,16 +250,17 @@ export default function EmpresasPage() {
     try {
       const token = getToken();
       const nuevoEstado = estado === "activo" ? "inactivo" : "activo";
-      
-      const res = await fetch(`http://localhost:8000/api/empresas/${id}/`, {
-        method: "PATCH",
+
+      // Usar PUT si ese es el método que espera tu backend
+      const res = await fetch(`http://localhost:8000/api/empresas/${id}/cambiar-estado/`, {
+        method: "PUT", // Cambiado a PUT
         headers: {
           Authorization: `Bearer ${token}`,
           "Content-Type": "application/json",
         },
         body: JSON.stringify({ estado: nuevoEstado }),
       });
-      
+
       if (res.ok) {
         fetchEmpresas();
       } else {
@@ -260,19 +272,18 @@ export default function EmpresasPage() {
       alert("Error de conexión");
     }
   };
-
   const deleteEmpresa = async (id) => {
     if (!confirm("¿Está seguro de eliminar esta empresa? Esta acción no se puede deshacer.")) {
       return;
     }
-    
+
     try {
       const token = getToken();
       const res = await fetch(`http://localhost:8000/api/empresas/${id}/`, {
         method: "DELETE",
         headers: { Authorization: `Bearer ${token}` },
       });
-      
+
       if (res.ok) {
         fetchEmpresas();
       } else {
@@ -290,10 +301,10 @@ export default function EmpresasPage() {
     { key: "id_empresa", label: "ID" },
     { key: "nombre", label: "Nombre" },
     { key: "nit", label: "NIT" },
-    { 
-      key: "rubro", 
-      label: "Rubro", 
-      render: (row) => row.rubro ? <span className={styles.rubroText}>{row.rubro}</span> : "-" 
+    {
+      key: "rubro",
+      label: "Rubro",
+      render: (row) => row.rubro ? <span className={styles.rubroText}>{row.rubro}</span> : "-"
     },
     { key: "email", label: "Email" },
     {
@@ -335,7 +346,7 @@ export default function EmpresasPage() {
   return (
     <div className={styles.dashboardContainer}>
       <Sidebar collapsed={collapsed} setCollapsed={setCollapsed} />
-      
+
       <div className={`${styles.mainContent} ${collapsed ? styles.collapsed : ""}`}>
         <header className={styles.header}>
           <h1 className={styles.title}>Gestión de Empresas</h1>
@@ -377,18 +388,20 @@ export default function EmpresasPage() {
             onChange={(e) => setSearchTerm(e.target.value)}
             className={styles.searchInput}
           />
-          <Button 
-            variant="primary" 
-            onClick={handleOpenForm} 
-            className={styles.smallButton} // nueva clase
-          >
-            Registrar Nueva Empresa
-          </Button>
-          <Button 
-            variant="outline" 
-            onClick={fetchEmpresas} 
+          <div style={{ position: 'relative', zIndex: 10 }}>
+            <Button
+              variant="primary"
+              onClick={handleOpenForm}
+              type="button"
+            >
+              Registrar Nueva Empresa
+            </Button>
+          </div>
+          <Button
+            variant="outline"
+            onClick={fetchEmpresas}
             disabled={loading}
-            className={styles.smallButton} // nueva clase
+            type="button"
           >
             Actualizar Lista
           </Button>
@@ -402,13 +415,13 @@ export default function EmpresasPage() {
           ) : empresas.length === 0 ? (
             <div className={styles.emptyState}>
               <p>No hay empresas registradas</p>
-              <Button variant="primary" onClick={handleOpenForm}>
+              <Button variant="primary" onClick={handleOpenForm} type="button">
                 Registrar la primera empresa
               </Button>
             </div>
           ) : (
-            <Tables 
-              columns={columns} 
+            <Tables
+              columns={columns}
               data={filteredEmpresas}
               renderActions={renderActions}
               rowKey="id_empresa"
@@ -422,111 +435,112 @@ export default function EmpresasPage() {
             <div className={styles.modal}>
               <div className={styles.modalHeader}>
                 <h3>Registrar Nueva Empresa</h3>
-                <Button 
-                  variant="text" 
-                  onClick={handleCloseForm} 
+                <Button
+                  variant="text"
+                  onClick={handleCloseForm}
                   className={styles.closeButton}
                   disabled={submitting}
+                  type="button"
                 >
                   &times;
                 </Button>
               </div>
-              
-              <form onSubmit={handleRegistrarEmpresa} className={styles.form}>
+
+              <form onSubmit={fetchRegistrarEmpresa} className={styles.form}>
                 <div className={styles.formGrid}>
-                  <FormField 
-                    label="Nombre de la Empresa *" 
+                  <FormField
+                    label="Nombre de la Empresa *"
                     error={formErrors.nombre}
                     required
                   >
-                    <Input 
-                      name="nombre" 
-                      value={empresaForm.nombre} 
-                      onChange={handleChange} 
-                      placeholder="Ej: Mi Empresa S.A." 
+                    <Input
+                      name="nombre"
+                      value={empresaForm.nombre}
+                      onChange={handleChange}
+                      placeholder="Ej: Mi Empresa S.A."
                       disabled={submitting}
                       maxLength={100}
                     />
                   </FormField>
-                  
-                  <FormField 
-                    label="NIT *" 
+
+                  <FormField
+                    label="NIT *"
                     error={formErrors.nit}
                     required
                   >
-                    <Input 
-                      name="nit" 
-                      value={empresaForm.nit} 
-                      onChange={handleChange} 
-                      placeholder="Ej: 900123456-7" 
+                    <Input
+                      name="nit"
+                      value={empresaForm.nit}
+                      onChange={handleChange}
+                      placeholder="Ej: 900123456-7"
                       disabled={submitting}
                       maxLength={20}
                     />
                   </FormField>
-                  
-                  <FormField 
-                    label="Email *" 
+
+                  <FormField
+                    label="Email *"
                     error={formErrors.email}
                     required
                   >
-                    <Input 
-                      name="email" 
+                    <Input
+                      name="email"
                       type="email"
-                      value={empresaForm.email} 
-                      onChange={handleChange} 
-                      placeholder="empresa@ejemplo.com" 
+                      value={empresaForm.email}
+                      onChange={handleChange}
+                      placeholder="empresa@ejemplo.com"
                       disabled={submitting}
                     />
                   </FormField>
-                  
-                  <FormField 
-                    label="Rubro" 
+
+                  <FormField
+                    label="Rubro"
                     error={formErrors.rubro}
                     helpText="Ej: Tecnología, Retail, Servicios, etc."
                   >
-                    <Input 
-                      name="rubro" 
-                      value={empresaForm.rubro} 
-                      onChange={handleChange} 
-                      placeholder="Tecnología" 
+                    <Input
+                      name="rubro"
+                      value={empresaForm.rubro}
+                      onChange={handleChange}
+                      placeholder="Tecnología"
                       disabled={submitting}
                       maxLength={100}
                     />
                   </FormField>
-                  
-                  <FormField 
-                    label="Dirección" 
+
+                  <FormField
+                    label="Dirección"
                     error={formErrors.direccion}
                   >
-                    <Input 
-                      name="direccion" 
-                      value={empresaForm.direccion} 
-                      onChange={handleChange} 
-                      placeholder="Calle 123 #45-67" 
+                    <Input
+                      name="direccion"
+                      value={empresaForm.direccion}
+                      onChange={handleChange}
+                      placeholder="Calle 123 #45-67"
                       disabled={submitting}
                     />
                   </FormField>
-                  
-                  <FormField 
-                    label="Teléfono" 
+
+                  <FormField
+                    label="Teléfono"
                     error={formErrors.telefono}
                   >
-                    <Input 
-                      name="telefono" 
-                      value={empresaForm.telefono} 
-                      onChange={handleChange} 
-                      placeholder="6012345678" 
+                    <Input
+                      name="telefono"
+                      value={empresaForm.telefono}
+                      onChange={handleChange}
+                      placeholder="6012345678"
                       disabled={submitting}
                     />
                   </FormField>
                 </div>
-                
+
                 <div className={styles.fullWidthField}>
                   <FormField label="Plan de Suscripción">
-                    <select 
-                      name="plan_nombre" 
-                      value={empresaForm.plan_nombre} 
-                      onChange={handleChange} 
+                    <select
+                      name="plan_nombre"
+                      value={empresaForm.plan_nombre}
+                      onChange={handleChange}
                       className={styles.selectInput}
                       disabled={submitting}
                     >
@@ -537,33 +551,34 @@ export default function EmpresasPage() {
                     </select>
                   </FormField>
                 </div>
-                
+
                 <div className={styles.infoBox}>
                   <p><strong>Nota:</strong> Los campos marcados con * son obligatorios.</p>
                   <p>La empresa se creará con un administrador por defecto (admin@empresa.com).</p>
                 </div>
-                
+
                 {successMessage && (
                   <div className={styles.successMessage}>
                     <span>✓</span> {successMessage}
                   </div>
                 )}
-                
+
                 <div className={styles.formActions}>
-                  <Button 
-                    variant="outline" 
-                    onClick={handleCloseForm} 
+                  <Button
+                    variant="outline"
+                    onClick={handleCloseForm}
                     type="button"
                     disabled={submitting}
                   >
                     Cancelar
                   </Button>
-                  <Button 
-                    variant="primary" 
-                    type="submit"
-                    disabled={submitting}
+                  <Button
+                    variant="outline"
+                    onClick={fetchRegistrarEmpresa}
+                    disabled={loading}
+                    type="button"
                   >
-                    {submitting ? "Registrando..." : "Registrar Empresa"}
+                    Registrar Empresa
                   </Button>
                 </div>
               </form>

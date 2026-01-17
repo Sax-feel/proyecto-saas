@@ -1,0 +1,267 @@
+.container {
+    min-height: 100vh;
+    background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+    padding: 2rem 1rem;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+.formContainer {
+    max-width: 900px;
+    /* Un poco más ancho */
+    width: 100%;
+    background: white;
+    border-radius: 12px;
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+    overflow: hidden;
+}
+
+.header {
+    background: linear-gradient(90deg, #4f46e5 0%, #7c3aed 100%);
+    color: white;
+    padding: 10px;
+    text-align: center;
+}
+
+.header h1 {
+    font-size: 30;
+    font-weight: 700;
+    margin-bottom: 0.5rem;
+}
+
+.header p {
+    font-size: 15;
+    opacity: 0.9;
+}
+
+.form {
+    padding: 2rem;
+}
+
+.section {
+    
+    border-bottom: 1px solid #e5e7eb;
+}
+
+.section:last-of-type {
+    border-bottom: none;
+    margin-bottom: 1rem;
+}
+
+.section h2 {
+    font-size: 1.125rem;
+    font-weight: 600;
+    color: #374151;
+    margin-bottom: 1.25rem;
+    padding-bottom: 0.5rem;
+    border-bottom: 2px solid #4f46e5;
+    display: inline-block;
+}
+
+/* Sistema de filas y columnas */
+.row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1.25rem;
+    margin-bottom: 1.25rem;
+}
+
+@media (max-width: 768px) {
+    .row {
+        grid-template-columns: 1fr;
+        gap: 1rem;
+    }
+}
+
+.column {
+    display: flex;
+    flex-direction: column;
+}
+
+.fullColumn {
+    grid-column: span 2;
+}
+
+@media (max-width: 768px) {
+    .fullColumn {
+        grid-column: span 1;
+    }
+}
+
+/* Campos específicos */
+.showPassword {
+    display: flex;
+    align-items: center;
+    justify-content: flex-start;
+    margin-top: 0.5rem;
+}
+
+.checkboxLabel {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    cursor: pointer;
+    font-size: 0.875rem;
+    color: #6b7280;
+}
+
+.checkboxLabel input[type="checkbox"] {
+    width: 1rem;
+    height: 1rem;
+    accent-color: #4f46e5;
+}
+
+.empresaField {
+    width: 100%;
+}
+
+.empresaField label {
+    display: block;
+    font-weight: 500;
+    color: #374151;
+    margin-bottom: 0.5rem;
+    font-size: 0.875rem;
+}
+
+.select {
+    width: 100%;
+    padding: 0.75rem 1rem;
+    border: 1px solid #d1d5db;
+    border-radius: 6px;
+    font-size: 0.95rem;
+    color: #374151;
+    background-color: white;
+    transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+.select:focus {
+    outline: none;
+    border-color: #4f46e5;
+    box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.1);
+}
+
+.empresasCount {
+    padding: 0.75rem;
+    background-color: #f0f9ff;
+    border-radius: 6px;
+    border-left: 4px solid #0ea5e9;
+    text-align: center;
+}
+
+.empresasCount p {
+    font-size: 0.875rem;
+    color: #0369a1;
+    margin: 0;
+}
+
+.infoMessage {
+    padding: 0.75rem;
+    background-color: #fef3c7;
+    border-radius: 6px;
+    color: #92400e;
+    font-size: 0.875rem;
+    text-align: center;
+}
+
+/* Mensajes */
+.errorMessage {
+    background-color: #fef2f2;
+    border: 1px solid #fecaca;
+    color: #dc2626;
+    padding: 1rem;
+    border-radius: 6px;
+    margin: 1rem 0;
+    font-size: 0.875rem;
+}
+
+.errorMessage p {
+    margin: 0;
+}
+
+.successMessage {
+    background-color: #d1fae5;
+    border: 1px solid #a7f3d0;
+    color: #065f46;
+    padding: 1rem;
+    border-radius: 6px;
+    margin: 1rem 0;
+    font-size: 0.875rem;
+}
+
+.successMessage p {
+    margin: 0;
+}
+
+/* Sección de submit */
+.submitSection {
+    text-align: center;
+    margin: 2rem 0;
+}
+
+.submitButton {
+    width: 100%;
+    max-width: 400px;
+    padding: 1rem;
+    font-size: 1rem;
+    font-weight: 600;
+    background: linear-gradient(90deg, #4f46e5 0%, #7c3aed 100%);
+    border: none;
+    color: white;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: transform 0.2s, box-shadow 0.2s;
+    margin: 0 auto;
+}
+
+.submitButton:hover:not(:disabled) {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(79, 70, 229, 0.3);
+}
+
+.submitButton:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+
+.terms {
+    margin-top: 1rem;
+    font-size: 0.75rem;
+    color: #6b7280;
+    max-width: 400px;
+    margin-left: auto;
+    margin-right: auto;
+}
+
+.termsLink {
+    color: #4f46e5;
+    text-decoration: none;
+    font-weight: 500;
+}
+
+.termsLink:hover {
+    text-decoration: underline;
+}
+
+/* Enlaces de login */
+.loginLink {
+    text-align: center;
+    margin-top: 2rem;
+    border-top: 1px solid #e5e7eb;
+}
+
+.loginLink p {
+    color: #6b7280;
+    font-size: 0.875rem;
+    
+}
+
+.link {
+    color: #4f46e5;
+    font-weight: 500;
+    text-decoration: none;
+}
+
+.link:hover {
+    text-decoration: underline;
+}

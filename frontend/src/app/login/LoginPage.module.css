@@ -65,7 +65,7 @@
   max-width: 340px;
   display: flex;
   flex-direction: column;
-  gap: 1.5rem;
+  gap: 1rem;
 }
 
 .header {
@@ -84,4 +84,74 @@
   font-size: .875rem;
   color: #6b7280;
   line-height: 1.4;
+}
+
+
+/* Sección para login de cliente */
+.clientLoginSection {
+  text-align: center;
+  margin: 2rem 0;
+  
+  background-color: #f9fafb;
+  border-radius: 8px;
+  border: 1px solid #e5e7eb;
+}
+
+.separator {
+  display: flex;
+  align-items: center;
+  margin-bottom: 1rem;
+}
+
+.separator::before,
+.separator::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background-color: #e5e7eb;
+}
+
+.separator span {
+  padding: 0 1rem;
+  color: #6b7280;
+  font-size: 0.875rem;
+  font-weight: 500;
+}
+
+.clientLoginText {
+  color: #374151;
+  font-size: 0.875rem;
+  margin-bottom: 1rem;
+  font-weight: 500;
+}
+
+.clientLoginLink {
+  display: block;
+  text-decoration: none;
+}
+
+
+/* Sección de registro */
+.registerSection {
+  text-align: center;
+  margin-top: 2rem;
+  padding-top: 1.5rem;
+  border-top: 1px solid #e5e7eb;
+}
+
+.registerText {
+  color: #6b7280;
+  font-size: 0.875rem;
+}
+
+.registerLink {
+  color: #4f46e5;
+  font-size: 14;
+  text-decoration: none;
+  transition: color 0.2s;
+}
+
+.registerLink:hover {
+  color: #4338ca;
+  text-decoration: underline;
 }

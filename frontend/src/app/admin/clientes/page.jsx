@@ -95,6 +95,7 @@ export default function DashboardClientesEmpresa() {
       const data = await res.json();
       if (!res.ok) throw new Error(data.detail || "Error auditorías");
 
+      // El endpoint devuelve { auditorias: [], status: "success" }
       setAuditorias(data.auditorias || []);
     } catch (err) {
       setErrorAuditorias(err.message);
@@ -147,6 +148,7 @@ export default function DashboardClientesEmpresa() {
       <div className={`${styles.mainContent} ${collapsed ? styles.collapsed : ""}`}>
         <h1 className={styles.title}>Dashboard Clientes Empresa</h1>
 
+        {/* Sección de Clientes */}
         <section className={styles.section}>
           <div className={styles.sectionHeader}>
             <h2>Clientes ({filteredClientes.length})</h2>
@@ -200,6 +202,81 @@ export default function DashboardClientesEmpresa() {
                           onEliminar={() => deleteCliente(c.id_usuario)}
                         />
                       </td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
+          </div>
+        </section>
+
+        {/* Sección de Auditorías - AÑADIDA DEBAJO */}
+        <section className={styles.section}>
+          <div className={styles.sectionHeader}>
+            <h2>Auditorías ({auditorias.length})</h2>
+            <button
+              onClick={fetchAuditorias}
+              className={styles.primaryBtn}
+              disabled={loadingAuditorias}
+            >
+              {loadingAuditorias ? "Cargando..." : "Actualizar Auditorías"}
+            </button>
+          </div>
+
+          {loadingAuditorias && <p>Cargando auditorías...</p>}
+          {errorAuditorias && <p style={{ color: "red" }}>{errorAuditorias}</p>}
+
+          <div className={styles.tableContainer}>
+            <table className={styles.table}>
+              <thead>
+                <tr>
+                  <th>ID</th>
+                  <th>Acción</th>
+                  <th>Cliente</th>
+                  <th>NIT</th>
+                  <th>Detalles</th>
+                  <th>Usuario</th>
+                  <th>Fecha</th>
+                </tr>
+              </thead>
+              <tbody>
+                {auditorias.length === 0 ? (
+                  <tr>
+                    <td colSpan="7" className={styles.empty}>
+                      No hay registros de auditoría
+                    </td>
+                  </tr>
+                ) : (
+                  auditorias.map((audit) => (
+                    <tr key={audit.id}>
+                      <td>{audit.id}</td>
+                      <td>
+                        <span className={`${styles.badge} ${audit.accion === 'CREADO' ? styles.badgeSuccess :
+                            audit.accion === 'ACTUALIZADO' ? styles.badgeWarning :
+                              audit.accion === 'ELIMINADO' ? styles.badgeError :
+                                styles.badgeInfo
+                          }`}>
+                          {audit.accion}
+                        </span>
+                      </td>
+                      <td>
+                        {audit.cliente_info?.nombre ||
+                          audit.detalles?.nombre ||
+                          'Cliente desconocido'}
+                      </td>
+                      <td>
+                        {audit.cliente_info?.nit ||
+                          audit.detalles?.nit ||
+                          '-'}
+                      </td>
+                      <td>
+                        {audit.detalles_formateados ||
+                          (audit.detalles?.telefono ?
+                            `Tel: ${audit.detalles.telefono}, Dir: ${audit.detalles.direccion || '-'}` :
+                            'Sin detalles')}
+                      </td>
+                      <td>{audit.usuario_email || 'Sistema'}</td>
+                      <td>{formatDate(audit.fecha)}</td>
                     </tr>
                   ))
                 )}

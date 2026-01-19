@@ -13,6 +13,10 @@ urlpatterns = [
     path('api/empresas/', include('empresas.urls')),
     path('api/planes/', include('planes.urls')),
     path('api/suscripciones/', include('suscripciones.urls')),
+    path('api/archivos/', include('archivo.urls')),
+    path('api/categorias/', include('categoria.urls')),
+    path('api/productos/', include('producto.urls')),
+    path('api/proveedores/', include('proveedor.urls')),
 
     #ENDPOINTS DE DOCUMENTACIÓN
     path('api/schema/', SpectacularAPIView.as_view(), name='schema'),

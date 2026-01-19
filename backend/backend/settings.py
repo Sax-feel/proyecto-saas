@@ -58,7 +58,11 @@ INSTALLED_APPS = [
     'suscripciones',
     'relacion_tiene',
     'drf_spectacular',
-    'drf_spectacular_sidecar'
+    'drf_spectacular_sidecar',
+    'proveedor',
+    'categoria',
+    'producto',
+    'archivo',
 ]
 
 MIDDLEWARE = [

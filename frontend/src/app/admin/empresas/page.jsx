@@ -180,11 +180,9 @@ export default function EmpresasPage() {
 
     if (!empresaForm.email.trim()) {
       errors.email = "El email es obligatorio";
-    } else if (!/^\S+@\S+\.\S+$/.test(empresaForm.email)) {
-      errors.email = "Email inválido";
-    }
+    } 
 
-    if (empresaForm.telefono && !/^[\d\s\-()+]{8,15}$/.test(empresaForm.telefono)) {
+    if (empresaForm.telefono.trim()) {
       errors.telefono = "Teléfono inválido";
     }
 
@@ -223,10 +221,9 @@ export default function EmpresasPage() {
   // ----------------- Registrar Empresa -----------------
   const fetchRegistrarEmpresa = async (e) => {
     e.preventDefault();
+    console.log("asdfasdf");
 
-    if (!validateForm()) {
-      return;
-    }
+    
 
     setSubmitting(true);
     setError(null);

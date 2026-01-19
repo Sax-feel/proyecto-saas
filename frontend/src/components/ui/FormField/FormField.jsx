@@ -1,7 +1,7 @@
 import styles from "./FormField.module.css"
 import Input from "../Input/Input"
 
-export default function FormField({ label, value, onChange, type = "text", placeholder, link, linkHref, required = false }) {
+export default function FormField({ name, label, value, onChange, type = "text", placeholder, link, linkHref, required = false }) {
   return (
     <div className={styles.field}>
       <div className={styles.fieldRow}>
@@ -11,6 +11,7 @@ export default function FormField({ label, value, onChange, type = "text", place
         )}
       </div>
       <Input
+        name={name}
         type={type}
         value={value}
         onChange={onChange}

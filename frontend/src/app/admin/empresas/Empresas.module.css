@@ -30,8 +30,49 @@
 
 .headerActions {
   display: flex;
-  justify-content: flex-end;
-  margin-bottom: 1rem;
+  flex-direction: column;
+  gap: 16px;
+  margin-bottom: 1.5rem;
+  width: 100%;
+}
+
+.searchContainer {
+  width: 100%;
+  position: relative;
+}
+
+.searchInput {
+  width: 100% !important;
+  max-width: 100% !important;
+  box-sizing: border-box !important;
+  display: block !important;
+  padding: 0.875rem 1rem;
+  border: 1px solid #d1d5db;
+  border-radius: 8px;
+  font-size: 0.875rem;
+  transition: all 0.2s;
+  background: white;
+  color: #111827;
+  letter-spacing: 0.01em;
+}
+
+.searchInput:focus {
+  outline: none;
+  border-color: #4f46e5;
+  box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.1);
+}
+
+.buttonsContainer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  width: 100%;
+  gap: 12px;
+}
+
+.actionButton {
+  flex: 2; /* Hace que ambos botones ocupen el mismo ancho */
+  white-space: nowrap; /* Evita que el texto se rompa */
 }
 
 .tableContainer { 
@@ -274,4 +315,344 @@
     flex-direction: column;
     gap: 20px;
   }
+}
+
+/* Añade estos estilos a tu Empresas.module.css */
+
+.selectInput {
+  padding: .75rem;
+  border: 1px solid #d1d5db;
+  border-radius: 8px;
+  font-size: .875rem;
+  transition: all 0.2s;
+  background: white;
+  color: #111827;
+  letter-spacing: 0.01em;
+  width: 100%;
+  cursor: pointer;
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%236b7280' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 0.75rem center;
+  background-size: 16px;
+  padding-right: 2.5rem;
+}
+
+.selectInput:focus {
+  outline: none;
+  border-color: #4f46e5;
+  box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.1);
+  background-color: #fafafa;
+}
+
+.selectInput:hover {
+  border-color: #9ca3af;
+}
+
+.selectInput:disabled {
+  background-color: #f3f4f6;
+  border-color: #d1d5db;
+  color: #9ca3af;
+  cursor: not-allowed;
+  opacity: 0.7;
+}
+
+/* Estilo para las opciones */
+.selectInput option {
+  padding: 8px;
+  font-size: .875rem;
+  color: #111827;
+}
+
+.selectInput option:checked {
+  background-color: #4f46e5;
+  color: white;
+}
+
+.selectInput option:hover {
+  background-color: #e5e7eb;
+}
+
+/* Para mejorar la compatibilidad con dark mode (opcional) */
+@media (prefers-color-scheme: dark) {
+  .selectInput {
+    background-color: #1f2937;
+    color: #f9fafb;
+    border-color: #4b5563;
+  }
+  
+  .selectInput:focus {
+    border-color: #6366f1;
+    box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.2);
+  }
+  
+  .selectInput option {
+    background-color: #1f2937;
+    color: #f9fafb;
+  }
+}
+
+/* Responsive */
+@media (max-width: 640px) {
+  .selectInput {
+    font-size: 16px; /* Evita zoom en iOS */
+    padding: 1rem;
+    padding-right: 2.5rem;
+  }
+}
+
+/* Si quieres un estilo más específico para el container fullWidthField */
+.fullWidthField {
+  width: 100%;
+  margin-bottom: 20px;
+}
+
+/* Para alinear con el label si lo tienes dentro de un FormField */
+.fullWidthField label {
+  display: block;
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: #1f2937;
+  margin-bottom: 0.5rem;
+  letter-spacing: 0.01em;
+}
+
+/* Si quieres añadir un icono personalizado más elegante */
+.selectInputWrapper {
+  position: relative;
+  width: 100%;
+}
+
+.selectInputWrapper::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  right: 0.75rem;
+  transform: translateY(-50%);
+  width: 16px;
+  height: 16px;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%236b7280' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
+  pointer-events: none;
+  transition: transform 0.2s;
+}
+
+.selectInputWrapper:focus-within::after {
+  transform: translateY(-50%) rotate(180deg);
+}
+
+/* Variante si prefieres usar el wrapper */
+.selectInputWithWrapper {
+  padding: .75rem;
+  border: 1px solid #d1d5db;
+  border-radius: 8px;
+  font-size: .875rem;
+  transition: all 0.2s;
+  background: white;
+  color: #111827;
+  letter-spacing: 0.01em;
+  width: 100%;
+  cursor: pointer;
+  appearance: none;
+  padding-right: 2.5rem;
+}
+
+/* Estilos para el select de planes */
+.loadingSelect {
+  padding: 12px;
+  background-color: #f3f4f6;
+  border-radius: 8px;
+  text-align: center;
+  color: #6b7280;
+  font-size: 0.875rem;
+}
+
+.errorSelect {
+  padding: 12px;
+  background-color: #fee2e2;
+  border: 1px solid #fecaca;
+  border-radius: 8px;
+  margin-bottom: 10px;
+}
+
+.errorSelect p {
+  margin-bottom: 10px;
+}
+
+.planInfo {
+  margin-top: 10px;
+  padding: 12px;
+  background-color: #f0f9ff;
+  border: 1px solid #bae6fd;
+  border-radius: 8px;
+  font-size: 0.875rem;
+}
+
+.planInfo p {
+  margin: 0 0 8px 0;
+  font-weight: 600;
+  color: #0369a1;
+}
+
+.planInfo ul {
+  margin: 0;
+  padding-left: 20px;
+}
+
+.planInfo li {
+  margin-bottom: 4px;
+  color: #0c4a6e;
+}
+
+/* Estilo para el tooltip del option (opcional) */
+.selectoption {
+  padding: 8px;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.selectoption:hover {
+  background-color: #f3f4f6 !important;
+}
+
+.selectoption:checked {
+  background-color: #4f46e5 !important;
+  color: white !important;
+}
+
+/* Mejorar la apariencia del select */
+.selectInput {
+  padding: .75rem;
+  border: 1px solid #d1d5db;
+  border-radius: 8px;
+  font-size: .875rem;
+  transition: all 0.2s;
+  background: white;
+  color: #111827;
+  letter-spacing: 0.01em;
+  width: 100%;
+  cursor: pointer;
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%236b7280' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 0.75rem center;
+  background-size: 16px;
+  padding-right: 2.5rem;
+}
+
+.selectInput:focus {
+  outline: none;
+  border-color: #4f46e5;
+  box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.1);
+}
+
+.selectInput:disabled {
+  background-color: #f3f4f6;
+  border-color: #d1d5db;
+  color: #9ca3af;
+  cursor: not-allowed;
+  opacity: 0.7;
+}
+
+/* Para el label */
+.selectInputWrapper label {
+  display: block;
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: #1f2937;
+  margin-bottom: 0.5rem;
+  letter-spacing: 0.01em;
+}
+.header {
+  margin-bottom: 2rem;
+}
+
+.headerContent {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 2rem;
+  flex-wrap: wrap;
+}
+
+.headerText {
+  flex: 1;
+  min-width: 300px;
+}
+
+.title {
+  font-size: 2rem;
+  font-weight: 700;
+  color: #111827;
+  margin: 0 0 0.5rem 0;
+  line-height: 1.2;
+}
+
+.subtitle {
+  font-size: 1rem;
+  color: #6b7280;
+  margin: 0;
+  font-weight: 400;
+  line-height: 1.5;
+}
+
+/* Contenedor de estadísticas - Ahora en el header */
+.statsContainer {
+  display: flex;
+  gap: 1rem;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  min-width: 0; /* Permite que se ajuste */
+}
+
+/* Tarjeta de estadística individual - Versión horizontal */
+.statCard {
+  background: white;
+  border-radius: 10px;
+  padding: 0.8rem 1rem;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.05);
+  border: 1px solid #e5e7eb;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-width: 140px;
+  transition: all 0.2s ease;
+}
+
+.statCard:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+  border-color: #d1d5db;
+}
+
+/* Estilos para las etiquetas y números */
+.statLabel {
+  font-size: 0.8rem;
+  font-weight: 500;
+  color: #6b7280;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  margin-bottom: 0.25rem;
+  text-align: center;
+  white-space: nowrap;
+}
+
+.statNumber {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: #111827;
+  line-height: 1;
+  text-align: center;
+}
+
+/* Colores diferentes para cada tarjeta */
+.statCard:nth-child(1) {
+  border-left: 3px solid #3b82f6;
+}
+
+.statCard:nth-child(2) {
+  border-left: 3px solid #10b981;
+}
+
+.statCard:nth-child(3) {
+  border-left: 3px solid #8b5cf6;
 }

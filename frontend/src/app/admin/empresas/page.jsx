@@ -14,6 +14,9 @@ export default function EmpresasPage() {
   const [empresas, setEmpresas] = useState([]);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
+  const [planes, setPlanes] = useState([]);
+  const [loadingPlanes, setLoadingPlanes] = useState(false);
+  const [errorPlanes, setErrorPlanes] = useState(null);
   const [error, setError] = useState(null);
   const [showEmpresaForm, setShowEmpresaForm] = useState(false);
   const [collapsed, setCollapsed] = useState(false);
@@ -74,6 +77,48 @@ export default function EmpresasPage() {
     );
   });
 
+  // ----------------- Fetch Planes -----------------
+  const fetchPlanes = async () => {
+    setLoadingPlanes(true);
+    setErrorPlanes(null);
+
+    try {
+      const token = getToken();
+      if (!token) throw new Error("No hay token de autenticación");
+
+      const res = await fetch("http://localhost:8000/api/planes/", {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+      });
+
+      if (!res.ok) {
+        const errorData = await res.json();
+        throw new Error(errorData.detail || `Error ${res.status}`);
+      }
+
+      const data = await res.json();
+      console.log("Planes recibidos:", data);
+      setPlanes(data || []);
+
+      // Si no hay planes, mantener el valor por defecto
+      if (data && data.length > 0) {
+        // Opcional: seleccionar el primer plan por defecto
+        setEmpresaForm(prev => ({
+          ...prev,
+          plan_nombre: data[0].nombre || "Free"
+        }));
+      }
+
+    } catch (err) {
+      console.error("Error fetching planes:", err);
+      setErrorPlanes(`Error al cargar planes: ${err.message}`);
+    } finally {
+      setLoadingPlanes(false);
+    }
+  };
+
   // ----------------- Fetch Empresas -----------------
   const fetchEmpresas = async () => {
     setLoading(true);
@@ -106,6 +151,7 @@ export default function EmpresasPage() {
 
   useEffect(() => {
     fetchEmpresas();
+    fetchPlanes();
   }, []);
 
   // ----------------- Manejo del Formulario -----------------
@@ -154,7 +200,7 @@ export default function EmpresasPage() {
       e.preventDefault();
       e.stopPropagation();
     }
-    console.log("Abriendo formulario de empresa");
+
     setShowEmpresaForm(true);
   };
 
@@ -174,12 +220,10 @@ export default function EmpresasPage() {
   };
 
   // ----------------- Registrar Empresa -----------------
-  const fetchRegistrarEmpresa = async () => {
-
-    console.log("Intentando registrar empresa:", empresaForm);
+  const fetchRegistrarEmpresa = async (e) => {
+    e.preventDefault();
 
     if (!validateForm()) {
-      console.log("Validación fallida:", formErrors);
       return;
     }
 
@@ -202,8 +246,6 @@ export default function EmpresasPage() {
         plan_nombre: empresaForm.plan_nombre,
       };
 
-      console.log("Enviando datos:", empresaData);
-
       const res = await fetch("http://localhost:8000/api/empresas/registrar/", {
         method: "POST",
         headers: {
@@ -214,7 +256,6 @@ export default function EmpresasPage() {
       });
 
       const data = await res.json();
-      console.log("Respuesta API:", { status: res.status, data });
 
       if (res.ok) {
         setSuccessMessage("Empresa registrada exitosamente!");
@@ -348,64 +389,63 @@ export default function EmpresasPage() {
 
       <div className={`${styles.mainContent} ${collapsed ? styles.collapsed : ""}`}>
         <header className={styles.header}>
-          <h1 className={styles.title}>Gestión de Empresas</h1>
-          <p className={styles.subtitle}>Administra las empresas registradas en el sistema</p>
+          <div className={styles.headerContent}>
+            <div className={styles.headerText}>
+              <h1 className={styles.title}>Gestión de Empresas</h1>
+              <p className={styles.subtitle}>Administra las empresas registradas en el sistema</p>
+            </div>
+
+            <div className={styles.statsContainer}>
+              <div className={styles.statCard}>
+                <span className={styles.statLabel}>Empresas Totales</span>
+                <span className={styles.statNumber}>{empresas.length}</span>
+              </div>
+              <div className={styles.statCard}>
+                <span className={styles.statLabel}>Activas</span>
+                <span className={styles.statNumber}>
+                  {empresas.filter(e => e.estado === "activo").length}
+                </span>
+              </div>
+              <div className={styles.statCard}>
+                <span className={styles.statLabel}>Rubros</span>
+                <span className={styles.statNumber}>
+                  {Array.from(new Set(empresas.map(e => e.rubro).filter(Boolean))).length}
+                </span>
+              </div>
+            </div>
+          </div>
         </header>
 
-        {error && (
-          <div className={styles.errorAlert}>
-            <span>{error}</span>
-            <button onClick={fetchEmpresas} className={styles.retryButton}>
-              Reintentar
-            </button>
-          </div>
-        )}
-
-        <div className={styles.statsContainer}>
-          <div className={styles.statCard}>
-            <span className={styles.statNumber}>{empresas.length}</span>
-            <span className={styles.statLabel}>Empresas Totales</span>
-          </div>
-          <div className={styles.statCard}>
-            <span className={styles.statNumber}>
-              {empresas.filter(e => e.estado === "activo").length}
-            </span>
-            <span className={styles.statLabel}>Activas</span>
-          </div>
-          <div className={styles.statCard}>
-            <span className={styles.statNumber}>
-              {Array.from(new Set(empresas.map(e => e.rubro).filter(Boolean))).length}
-            </span>
-            <span className={styles.statLabel}>Rubros Diferentes</span>
-          </div>
-        </div>
-
         <div className={styles.headerActions}>
-          <Input
-            placeholder="Buscar empresas por nombre, NIT, rubro o email..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            className={styles.searchInput}
-          />
-          <div style={{ position: 'relative', zIndex: 10 }}>
+          <div className={styles.searchContainer}>
+            <Input
+              placeholder="Buscar empresas por nombre, NIT, rubro o email..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className={styles.searchInput}
+            />
+          </div>
+
+          <div className={styles.buttonsContainer}>
             <Button
               variant="primary"
               onClick={handleOpenForm}
               type="button"
+              className={styles.actionButton}
             >
               Registrar Nueva Empresa
             </Button>
+            <Button
+              variant="outline"
+              onClick={fetchEmpresas}
+              disabled={loading}
+              type="button"
+              className={styles.actionButton}
+            >
+              Actualizar Lista
+            </Button>
           </div>
-          <Button
-            variant="outline"
-            onClick={fetchEmpresas}
-            disabled={loading}
-            type="button"
-          >
-            Actualizar Lista
-          </Button>
         </div>
-
         <div className={styles.tableContainer}>
           {loading ? (
             <div className={styles.loadingContainer}>
@@ -448,113 +488,164 @@ export default function EmpresasPage() {
               <form onSubmit={fetchRegistrarEmpresa} className={styles.form}>
                 <div className={styles.formGrid}>
                   <FormField
+                    name="nombre"
                     label="Nombre de la Empresa *"
+                    value={empresaForm.nombre}
+                    placeholder="Ej: Mi Empresa S.A."
                     error={formErrors.nombre}
-                    required
+                    onChange={handleChange}
+                    required={true}
                   >
-                    <Input
-                      name="nombre"
-                      value={empresaForm.nombre}
-                      onChange={handleChange}
-                      placeholder="Ej: Mi Empresa S.A."
-                      disabled={submitting}
-                      maxLength={100}
-                    />
                   </FormField>
 
                   <FormField
+                    name="nit"
                     label="NIT *"
+                    value={empresaForm.nit}
+                    placeholder="Ej: 900123456-7"
                     error={formErrors.nit}
-                    required
+                    onChange={handleChange}
+                    required={true}
                   >
-                    <Input
-                      name="nit"
-                      value={empresaForm.nit}
-                      onChange={handleChange}
-                      placeholder="Ej: 900123456-7"
-                      disabled={submitting}
-                      maxLength={20}
-                    />
                   </FormField>
 
                   <FormField
+                    name="email"
                     label="Email *"
+                    value={empresaForm.email}
+                    placeholder="empresa@ejemplo.com"
                     error={formErrors.email}
-                    required
+                    onChange={handleChange}
+                    required={true}
+                    type="email"
                   >
-                    <Input
-                      name="email"
-                      type="email"
-                      value={empresaForm.email}
-                      onChange={handleChange}
-                      placeholder="empresa@ejemplo.com"
-                      disabled={submitting}
-                    />
                   </FormField>
 
                   <FormField
+                    name="rubro"
                     label="Rubro"
+                    value={empresaForm.rubro}
+                    placeholder="Tecnología"
                     error={formErrors.rubro}
+                    onChange={handleChange}
                     helpText="Ej: Tecnología, Retail, Servicios, etc."
                   >
-                    <Input
-                      name="rubro"
-                      value={empresaForm.rubro}
-                      onChange={handleChange}
-                      placeholder="Tecnología"
-                      disabled={submitting}
-                      maxLength={100}
-                    />
                   </FormField>
 
                   <FormField
+                    name="direccion"
                     label="Dirección"
+                    value={empresaForm.direccion}
+                    placeholder="Calle 123 #45-67"
                     error={formErrors.direccion}
+                    onChange={handleChange}
                   >
-                    <Input
-                      name="direccion"
-                      value={empresaForm.direccion}
-                      onChange={handleChange}
-                      placeholder="Calle 123 #45-67"
-                      disabled={submitting}
-                    />
                   </FormField>
 
                   <FormField
+                    name="telefono"
                     label="Teléfono"
+                    value={empresaForm.telefono}
+                    placeholder="6012345678"
                     error={formErrors.telefono}
+                    onChange={handleChange}
                   >
-                    <Input
-                      name="telefono"
-                      value={empresaForm.telefono}
-                      onChange={handleChange}
-                      placeholder="6012345678"
-                      disabled={submitting}
-                    />
                   </FormField>
                 </div>
-
+                {/*-------------------- */}
                 <div className={styles.fullWidthField}>
-                  <FormField label="Plan de Suscripción">
-                    <select
-                      name="plan_nombre"
-                      value={empresaForm.plan_nombre}
-                      onChange={handleChange}
-                      className={styles.selectInput}
-                      disabled={submitting}
-                    >
-                      <option value="Free">Free - Básico</option>
-                      <option value="Startup">Startup - Emprendedores</option>
-                      <option value="Business">Business - Empresas</option>
-                      <option value="Enterprise">Enterprise - Corporativo</option>
-                    </select>
-                  </FormField>
-                </div>
+                  <div className={styles.selectInputWrapper}>
+                    <label>Plan de Suscripción *</label>
 
-                <div className={styles.infoBox}>
-                  <p><strong>Nota:</strong> Los campos marcados con * son obligatorios.</p>
-                  <p>La empresa se creará con un administrador por defecto (admin@empresa.com).</p>
+                    {loadingPlanes ? (
+                      <div className={styles.loadingSelect}>
+                        <p>Cargando planes...</p>
+                      </div>
+                    ) : errorPlanes ? (
+                      <div className={styles.errorSelect}>
+                        <p style={{ color: "#ef4444", fontSize: "0.875rem" }}>
+                          {errorPlanes}
+                        </p>
+                        <button
+                          onClick={fetchPlanes}
+                          type="button"
+                          style={{
+                            padding: "8px 16px",
+                            backgroundColor: "#f3f4f6",
+                            border: "1px solid #d1d5db",
+                            borderRadius: "6px",
+                            cursor: "pointer",
+                            fontSize: "0.875rem"
+                          }}
+                        >
+                          Reintentar
+                        </button>
+                      </div>
+                    ) : planes.length === 0 ? (
+                      <select
+                        name="plan_nombre"
+                        value={empresaForm.plan_nombre}
+                        onChange={handleChange}
+                        className={styles.selectInput}
+                        disabled={true}
+                      >
+                        <option value="">No hay planes disponibles</option>
+                      </select>
+                    ) : (
+                      <select
+                        name="plan_nombre"
+                        value={empresaForm.plan_nombre}
+                        onChange={handleChange}
+                        className={styles.selectInput}
+                        disabled={submitting}
+                      >
+                        {/* Opción por defecto */}
+                        <option value="">Seleccione un plan</option>
+
+                        {/* Mapear planes del endpoint */}
+                        {planes.planes.map((plan) => (
+                          <option
+                            key={plan.nombre}
+                            value={plan.nombre}
+                            title={plan.descripcion || `Precio: ${plan.precio_mensual || plan.precio}`}
+                          >
+                            {plan.nombre} - {plan.descripcion || "Sin descripción"}
+                          </option>
+                        ))}
+                      </select>
+                    )}
+
+                    {/* Info adicional sobre el plan seleccionado */}
+                    {empresaForm.plan_nombre && !loadingPlanes && !errorPlanes && planes.length > 0 && (
+                      <div className={styles.planInfo}>
+                        {(() => {
+                          const planSeleccionado = planes.find(p => p.nombre === empresaForm.plan_nombre);
+                          if (planSeleccionado) {
+                            return (
+                              <>
+                                <p><strong>Detalles del plan:</strong></p>
+                                <ul>
+                                  <li>Precio: {planSeleccionado.precio_mensual || `${planSeleccionado.precio}`}</li>
+                                  {planSeleccionado.limite_productos && (
+                                    <li>Límite de productos: {planSeleccionado.limite_productos}</li>
+                                  )}
+                                  {planSeleccionado.limite_usuarios && (
+                                    <li>Límite de usuarios: {planSeleccionado.limite_usuarios}</li>
+                                  )}
+                                  {planSeleccionado.duracion_dias && (
+                                    <li>Duración: {planSeleccionado.duracion_dias} días</li>
+                                  )}
+                                </ul>
+                              </>
+                            );
+                          }
+                          return null;
+                        })()}
+                      </div>
+                    )}
+                  </div>
                 </div>
+                {/*-------------------- */}
 
                 {successMessage && (
                   <div className={styles.successMessage}>
@@ -573,11 +664,10 @@ export default function EmpresasPage() {
                   </Button>
                   <Button
                     variant="outline"
-                    onClick={fetchRegistrarEmpresa}
-                    disabled={loading}
-                    type="button"
+                    disabled={submitting}
+                    type="submit" // Cambia temporalmente a type="button"
                   >
-                    Registrar Empresa
+                    {submitting ? "Registrando..." : "Registrar Empresa"}
                   </Button>
                 </div>
               </form>

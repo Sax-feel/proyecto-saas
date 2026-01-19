@@ -1,50 +1,39 @@
+
 .actionsCell {
   position: relative;
-  overflow: visible;
-}
-
-.actionsCell > div {
-  position: relative;
-  display: inline-block;
+  width: 60px;
+  text-align: center;
 }
 
 .menuButton {
   background: none;
   border: none;
   font-size: 1.5rem;
-  line-height: 1;
   cursor: pointer;
   color: #6b7280;
-  padding: 0.25rem 0.75rem;
+  padding: 0.25rem;
   border-radius: 4px;
   transition: all 0.2s;
-  display: flex;
-  align-items: center;
-  justify-content: center;
   width: 36px;
   height: 36px;
 }
 
 .menuButton:hover {
   background-color: #f3f4f6;
-  color: #374151;
 }
 
-.menuButton:active {
-  transform: translateY(0);
-}
-
-/* Menú desplegable */
+/* Menú con posicionamiento absoluto pero fuera del flujo */
 .menuDropdown {
   position: absolute;
-  top: 100%;
+  top: 0;
   right: 0;
   background: white;
   border-radius: 8px;
   box-shadow: 0 10px 25px rgba(0, 0, 0, 0.15);
-  z-index: 9999;
+  z-index: 1000;
   min-width: 160px;
-  padding: 0.25rem 0;
+  border: 1px solid #e5e7eb;
+  transform: translateY(36px); /* Posiciona debajo del botón */
 }
 
 /* Ítems del menú */

@@ -2,9 +2,13 @@
 
 import { useState, useEffect } from "react";
 import Sidebar from "../../../components/layout/Sidebar/Sidebar";
-import Tables from "../../../components/ui/tables/table";
-import Button from "../../../components/ui/Button/Button";
 import ActionMenu from "../../../components/ui/ActionMenu/ActionMenu";
+import Button from "../../../components/ui/Button/Button";
+import SearchBar from "../../../components/ui/SearchBar/SearchBar";
+import Tables from "../../../components/ui/tables/table";
+import EditForm from "../../../components/ui/EditForm/EditForm";
+import FormField from "../../../components/ui/FormField/FormField";
+import SelectField from "../../../components/ui/SelectField/SelectField";
 import styles from "./admins_empresa.module.css";
 
 export default function DashboardAdminEmpresa() {
@@ -179,37 +183,33 @@ export default function DashboardAdminEmpresa() {
               <h3>Registrar Admin de Empresa</h3>
 
               <form onSubmit={handleRegistrarAdminEmpresa}>
-                <input
+                <FormField
                   type="email"
                   name="email"
+                  label="Email"
                   placeholder="Email"
                   value={adminForm.email}
                   onChange={handleAdminFormChange}
                   required
                 />
-
-                <input
+                <FormField
                   type="password"
                   name="password"
+                  label="Password"
                   placeholder="Password"
                   value={adminForm.password}
                   onChange={handleAdminFormChange}
                   required
                 />
 
-                <select
+                <SelectField
+                  label="Empresa"
                   name="empresa_id"
                   value={adminForm.empresa_id}
                   onChange={handleAdminFormChange}
+                  options={empresas.map(e => ({ value: e.id_empresa, label: e.nombre }))}
                   required
-                >
-                  <option value="">Seleccionar empresa</option>
-                  {empresas.map((e) => (
-                    <option key={e.id_empresa} value={e.id_empresa}>
-                      {e.nombre}
-                    </option>
-                  ))}
-                </select>
+                />
 
                 <div className={styles.modalActions}>
                   <button type="submit">Registrar</button>

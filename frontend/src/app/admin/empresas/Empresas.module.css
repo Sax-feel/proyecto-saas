@@ -111,6 +111,53 @@
   border: 1px solid #fde68a;
 }
 
+/* MODAL STYLES */
+.modalOverlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.5);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+  animation: fadeIn 0.2s ease-out;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+.modal {
+  background: white;
+  border-radius: 12px;
+  padding: 30px;
+  max-width: 700px;
+  width: 90%;
+  max-height: 85vh;
+  overflow-y: auto;
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+}
+
+.modalHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 30px;
+  padding-bottom: 20px;
+  border-bottom: 2px solid #e5e7eb;
+}
+
+.modalHeader h3 {
+  margin: 0;
+  font-size: 1.75rem;
+  font-weight: 700;
+  color: #111827;
+}
+
 .closeButton {
   background: none;
   border: none;
@@ -219,6 +266,35 @@
   
   .formColumn {
     width: 100%;
+  }
+}
+
+@media (max-width: 640px) {
+  .modal {
+    padding: 20px;
+    margin: 10px;
+    width: 95%;
+  }
+  
+  .modalHeader h3 {
+    font-size: 1.5rem;
+  }
+  
+  .formActions {
+    flex-direction: column;
+  }
+  
+  .formActions button {
+    width: 100%;
+    margin-bottom: 10px;
+  }
+  
+  .formActions button:last-child {
+    margin-bottom: 0;
+  }
+  
+  .title {
+    font-size: 1.5rem;
   }
 }
 

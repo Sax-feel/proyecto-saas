@@ -33,9 +33,6 @@ export default function EmpresasPage() {
     plan_nombre: "Free",
   });
 
-  const [editForm, setEditForm] = useState({});
-  const [editingEmpresa, setEditingEmpresa] = useState(null);
-
   const [formErrors, setFormErrors] = useState({});
 
   // ----------------- Helpers -----------------
@@ -376,7 +373,8 @@ export default function EmpresasPage() {
     },
   ];
 
-  
+  const [editForm, setEditForm] = useState({});
+  const [editingEmpresa, setEditingEmpresa] = useState(null);
   const renderActions = (row) => (
     <ActionMenu
       id={row.id_empresa}
@@ -384,10 +382,8 @@ export default function EmpresasPage() {
       onToggle={() => toggleEmpresaEstado(row.id_empresa, row.estado)}
       onEliminar={() => deleteEmpresa(row.id_empresa)}
       onEditar={() => {
-        // SIMPLIFICA: Solo guarda la fila completa en editingEmpresa
         setEditingEmpresa(row);
         
-        // Opcional: También guarda los datos en editForm si lo necesitas
         setEditForm({
           nombre: row.nombre,
           nit: row.nit,
@@ -400,12 +396,13 @@ export default function EmpresasPage() {
     />
   );
 
+
   // ----------------- Render -----------------
   return (
-  <div className={styles.dashboardContainer}>
-    <Sidebar collapsed={collapsed} setCollapsed={setCollapsed} />
+    <div className={styles.dashboardContainer}>
+      <Sidebar collapsed={collapsed} setCollapsed={setCollapsed} />
 
-    <div className={`${styles.mainContent} ${collapsed ? styles.collapsed : ""}`}>
+      <div className={`${styles.mainContent} ${collapsed ? styles.collapsed : ""}`}>
         <header className={styles.header}>
           <div className={styles.headerContent}>
             <div className={styles.headerText}>
@@ -683,7 +680,7 @@ export default function EmpresasPage() {
                   <Button
                     variant="outline"
                     disabled={submitting}
-                    type="submit" // Cambia temporalmente a type="button"
+                    type="submit"
                   >
                     {submitting ? "Registrando..." : "Registrar Empresa"}
                   </Button>
@@ -693,7 +690,6 @@ export default function EmpresasPage() {
           </div>
         )}
 
-        {/* ---------------- EDITAR EMPRESA ---------------- */}
         {editingEmpresa && (
           <EditForm
             data={{
@@ -716,7 +712,6 @@ export default function EmpresasPage() {
               try {
                 const token = getToken();
                 
-                // CORRECCIÓN: Usa el mismo patrón que en clientes
                 const res = await fetch(`http://localhost:8000/api/empresas/${editingEmpresa.id_empresa}/`, {
                   method: "PUT",
                   headers: { 

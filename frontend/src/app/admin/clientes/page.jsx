@@ -3,11 +3,13 @@
 import { useState, useEffect } from "react";
 import Sidebar from "../../../components/layout/Sidebar/Sidebar";
 import ActionMenu from "../../../components/ui/ActionMenu/ActionMenu";
-import Input from "../../../components/ui/Input/Input";
+import Button from "../../../components/ui/Button/Button";
+import SearchBar from "../../../components/ui/SearchBar/SearchBar";
+import Tables from "../../../components/ui/tables/table";
+import EditForm from "../../../components/ui/EditForm/EditForm";
 import styles from "./clientes.module.css";
 
 export default function DashboardClientesEmpresa() {
-  // ================== ESTADOS ==================
   const [clientes, setClientes] = useState([]);
   const [auditorias, setAuditorias] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -17,7 +19,9 @@ export default function DashboardClientesEmpresa() {
   const [searchTerm, setSearchTerm] = useState("");
   const [collapsed, setCollapsed] = useState(false);
 
-  // ================== HELPERS ==================
+  const [editingCliente, setEditingCliente] = useState(null);
+  const [editForm, setEditForm] = useState({});
+
   const getToken = () =>
     typeof window !== "undefined" ? localStorage.getItem("access") : null;
 
@@ -32,19 +36,6 @@ export default function DashboardClientesEmpresa() {
     });
   };
 
-  // ================== FILTRO CLIENTES ==================
-  const filteredClientes = clientes.filter((cliente) => {
-    const term = searchTerm.toLowerCase();
-
-    return (
-      (cliente.nombre_cliente || "").toLowerCase().includes(term) ||
-      (cliente.nit || "").toLowerCase().includes(term) ||
-      (cliente.telefono_cliente || "").toLowerCase().includes(term) ||
-      (cliente.direccion_cliente || "").toLowerCase().includes(term)
-    );
-  });
-
-  // ================== FETCH CLIENTES ==================
   const fetchClientes = async () => {
     setLoading(true);
     try {
@@ -53,12 +44,7 @@ export default function DashboardClientesEmpresa() {
 
       const res = await fetch(
         "http://localhost:8000/api/clientes/todos-clientes",
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-            "Content-Type": "application/json",
-          },
-        }
+        { headers: { Authorization: `Bearer ${token}` } }
       );
 
       const data = await res.json();
@@ -73,23 +59,16 @@ export default function DashboardClientesEmpresa() {
     }
   };
 
-  // ================== FETCH AUDITORÍAS ==================
   const fetchAuditorias = async () => {
     setLoadingAuditorias(true);
     setErrorAuditorias(null);
-
     try {
       const token = getToken();
       if (!token) throw new Error("No hay token");
 
       const res = await fetch(
         "http://localhost:8000/api/clientes/auditorias/",
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-            "Content-Type": "application/json",
-          },
-        }
+        { headers: { Authorization: `Bearer ${token}` } }
       );
 
       const data = await res.json();
@@ -108,17 +87,13 @@ export default function DashboardClientesEmpresa() {
     fetchAuditorias();
   }, []);
 
-  // ================== ACCIONES ==================
   const toggleClienteEstado = async (id, estado) => {
     const token = getToken();
     const nuevoEstado = estado === "activo" ? "inactivo" : "activo";
 
     await fetch(`http://localhost:8000/api/clientes/${id}/`, {
       method: "PUT",
-      headers: {
-        Authorization: `Bearer ${token}`,
-        "Content-Type": "application/json",
-      },
+      headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
       body: JSON.stringify({ estado: nuevoEstado }),
     });
 
@@ -139,74 +114,126 @@ export default function DashboardClientesEmpresa() {
     fetchAuditorias();
   };
 
-  // ================== RENDER ==================
+  // Filtro
+  const filteredClientes = clientes.filter((cliente) => {
+    const term = searchTerm.toLowerCase();
+    return ["nombre_cliente", "nit", "telefono_cliente", "direccion_cliente"].some(
+      (key) => (cliente[key] || "").toLowerCase().includes(term)
+    );
+  });
+
+  // ---------------- RENDER ----------------
   return (
     <div className={styles.dashboardContainer}>
       <Sidebar collapsed={collapsed} setCollapsed={setCollapsed} />
-
       <div className={`${styles.mainContent} ${collapsed ? styles.collapsed : ""}`}>
         <h1 className={styles.title}>Dashboard Clientes Empresa</h1>
 
+        {/* ---------------- CLIENTES ---------------- */}
         <section className={styles.section}>
           <div className={styles.sectionHeader}>
             <h2>Clientes ({filteredClientes.length})</h2>
-            <button onClick={fetchClientes} className={styles.primaryBtn}>
-              Actualizar
-            </button>
+            <Button onClick={fetchClientes}>Actualizar</Button>
           </div>
 
-          <Input
-            placeholder="Buscar clientes por nombre, NIT, teléfono o dirección..."
+          <SearchBar
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            className={styles.searchInput}
+            placeholder="Buscar clientes por nombre, NIT, teléfono o dirección..."
           />
 
           {loading && <p>Cargando clientes...</p>}
           {error && <p style={{ color: "red" }}>{error}</p>}
 
-          <div className={styles.tableContainer}>
-            <table className={styles.table}>
-              <thead>
-                <tr>
-                  <th>NIT</th>
-                  <th>Nombre</th>
-                  <th>Dirección</th>
-                  <th>Teléfono</th>
-                  <th>Acciones</th>
-                </tr>
-              </thead>
-              <tbody>
-                {filteredClientes.length === 0 ? (
-                  <tr>
-                    <td colSpan="5" className={styles.empty}>
-                      No hay clientes que coincidan
-                    </td>
-                  </tr>
-                ) : (
-                  filteredClientes.map((c) => (
-                    <tr key={c.nit}>
-                      <td>{c.nit}</td>
-                      <td>{c.nombre_cliente}</td>
-                      <td>{c.direccion_cliente}</td>
-                      <td>{c.telefono_cliente}</td>
-                      <td>
-                        <ActionMenu
-                          id={c.id_usuario}
-                          estado={c.estado}
-                          onToggle={() =>
-                            toggleClienteEstado(c.id_usuario, c.estado)
-                          }
-                          onEliminar={() => deleteCliente(c.id_usuario)}
-                        />
-                      </td>
-                    </tr>
-                  ))
-                )}
-              </tbody>
-            </table>
-          </div>
+          <Tables
+            columns={[
+              { key: "nit", label: "NIT" },
+              { key: "nombre_cliente", label: "Nombre" },
+              { key: "direccion_cliente", label: "Dirección" },
+              { key: "telefono_cliente", label: "Teléfono" },
+            ]}
+            data={filteredClientes}
+            renderActions={(c) => (
+              <ActionMenu
+                id={c.id_usuario}
+                estado={c.estado}
+                onToggle={() => toggleClienteEstado(c.id_usuario, c.estado)}
+                onEliminar={() => deleteCliente(c.id_usuario)}
+                onEditar={() => {
+                  setEditingCliente(c);
+                  setEditForm({
+                    nit: c.nit,
+                    nombre_cliente: c.nombre_cliente,
+                    direccion_cliente: c.direccion_cliente,
+                    telefono_cliente: c.telefono_cliente,
+                  });
+                }}
+              />
+            )}
+          />
         </section>
+
+        {/* ---------------- AUDITORÍAS ---------------- */}
+        <section className={styles.section}>
+          <div className={styles.sectionHeader}>
+            <h2>Auditorías ({auditorias.length})</h2>
+            <Button onClick={fetchAuditorias} disabled={loadingAuditorias}>
+              {loadingAuditorias ? "Cargando..." : "Actualizar Auditorías"}
+            </Button>
+          </div>
+
+          {loadingAuditorias && <p>Cargando auditorías...</p>}
+          {errorAuditorias && <p style={{ color: "red" }}>{errorAuditorias}</p>}
+
+          <Tables
+            columns={[
+              { key: "id", label: "ID" },
+              { key: "accion", label: "Acción", render: (row) => (
+                  <span className={`estadoBadge ${row.accion === "CREADO" ? "activo" : row.accion === "ELIMINADO" ? "inactivo" : ""}`}>
+                    {row.accion}
+                  </span>
+                )
+              },
+              { key: "cliente", label: "Cliente", render: (row) =>
+                  row.cliente_info?.nombre || row.detalles?.nombre || "Cliente desconocido"
+              },
+              { key: "nit", label: "NIT", render: (row) =>
+                  row.cliente_info?.nit || row.detalles?.nit || "-"
+              },
+              { key: "detalles", label: "Detalles", render: (row) =>
+                  row.detalles_formateados || (row.detalles?.telefono ? `Tel: ${row.detalles.telefono}, Dir: ${row.detalles.direccion || '-'}` : "Sin detalles")
+              },
+              { key: "usuario", label: "Usuario", render: (row) => row.usuario_email || "Sistema" },
+              { key: "fecha", label: "Fecha", render: (row) => formatDate(row.fecha) },
+            ]}
+            data={auditorias}
+          />
+        </section>
+
+        {/* ---------------- EDITAR CLIENTE ---------------- */}
+        {editingCliente && (
+          <EditForm
+            data={editingCliente}
+            fields={[
+              { name: "nit", label: "NIT" },
+              { name: "nombre_cliente", label: "Nombre" },
+              { name: "direccion_cliente", label: "Dirección" },
+              { name: "telefono_cliente", label: "Teléfono" },
+            ]}
+            onSave={async (formData) => {
+              const token = getToken();
+              await fetch(`http://localhost:8000/api/clientes/${editingCliente.id_usuario}/`, {
+                method: "PUT",
+                headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+                body: JSON.stringify(formData),
+              });
+              setEditingCliente(null);
+              fetchClientes();
+              fetchAuditorias();
+            }}
+            onCancel={() => setEditingCliente(null)}
+          />
+        )}
       </div>
     </div>
   );

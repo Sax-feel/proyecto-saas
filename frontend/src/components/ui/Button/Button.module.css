@@ -1,38 +1,20 @@
 .primaryBtn {
-  padding: 0.75rem;
+  padding: 0.75rem 1rem;
   background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%);
   color: white;
+  border: none;
   border-radius: 8px;
+
   font-weight: 600;
   font-size: 0.875rem;
-  cursor: pointer;
-  transition: all 0.2s;
-  margin-top: 0.5rem;
   letter-spacing: 0.025em;
-  width: 100%;
-  box-sizing: border-box;
-  display: block;
-}
 
-.primaryBtn:hover {
-  background: linear-gradient(135deg, #4338ca 0%, #6d28d9 100%);
-  transform: translateY(-1px);
-  box-shadow: 0 4px 12px rgba(79, 70, 229, 0.2);
-}
-
-.primaryBtn:active {
-  transform: translateY(0);
-}.primaryBtn {
-  padding: 0.75rem;
-  background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%);
-  color: white;
-  border-radius: 8px;
-  font-weight: 600;
-  font-size: 0.875rem;
   cursor: pointer;
-  transition: all 0.2s;
-  margin-top: 0.5rem;
-  letter-spacing: 0.025em;
+  transition: all 0.2s ease;
+
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .primaryBtn:hover {

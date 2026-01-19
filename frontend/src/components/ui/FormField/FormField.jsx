@@ -1,22 +1,34 @@
-import styles from "./FormField.module.css"
-import Input from "../Input/Input"
+"use client";
 
-export default function FormField({ label, value, onChange, type = "text", placeholder, link, linkHref, required = false }) {
+import styles from "./FormField.module.css";
+
+export default function FormField({
+  label,
+  value,
+  onChange,
+  type = "text",
+  placeholder = "",
+  link,
+  linkHref,
+  required = false,
+}) {
+
   return (
     <div className={styles.field}>
       <div className={styles.fieldRow}>
-        <label>{label}</label>
-        {link && (
-          <a href={linkHref || "#"}>{link}</a>
-        )}
+        {label && <label>{label}</label>}
+        {link && <a href={linkHref || "#"}>{link}</a>}
       </div>
-      <Input
+
+      <input
         type={type}
         value={value}
         onChange={onChange}
         placeholder={placeholder}
         required={required}
+        className={styles.input}
+        aria-label={label || placeholder || "Input field"}
       />
     </div>
-  )
+  );
 }

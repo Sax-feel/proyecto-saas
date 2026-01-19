@@ -169,9 +169,9 @@ class DetalleClienteView(generics.RetrieveUpdateDestroyAPIView):
         Verifica permisos según el rol
         """
         super().check_permissions(request)
-        
-        if request.method in ['PUT', 'PATCH']:
-            if not request.user.rol or request.user.rol.rol != 'admin_empresa':
+
+        if request.method in ['PUT', 'PATCH', 'DELETE']:
+            if not request.user.rol or request.user.rol.rol == ['admin_empresa', 'admin']:
                 self.permission_denied(
                     request,
                     message="Solo administradores de empresa pueden modificar clientes",

@@ -3,7 +3,13 @@
 import { useState, useRef, useEffect } from "react";
 import styles from "./ActionMenu.module.css";
 
-export default function ActionMenu({ id, estado, onEditar, onToggle, onEliminar }) {
+export default function ActionMenu({
+  id = null,
+  estado = "activo",
+  onEditar = () => {},
+  onToggle = () => {},
+  onEliminar = () => {},
+}) {
   const [menuAbierto, setMenuAbierto] = useState(false);
   const menuRef = useRef(null);
 
@@ -26,22 +32,50 @@ export default function ActionMenu({ id, estado, onEditar, onToggle, onEliminar 
           e.stopPropagation();
           setMenuAbierto((prev) => !prev);
         }}
+        aria-label="Abrir menú de acciones"
       >
         ⋮
       </button>
 
       {menuAbierto && (
-        <div className={styles.menuDropdown} ref={menuRef} onClick={(e) => e.stopPropagation()}>
-          <button className={styles.menuItem} onClick={() => { onEditar(id); setMenuAbierto(false); }}>
+        <div
+          className={styles.menuDropdown}
+          ref={menuRef}
+          onClick={(e) => e.stopPropagation()}
+        >
+          <button
+            className={styles.menuItem}
+            onClick={() => {
+              onEditar(id);
+              setMenuAbierto(false);
+            }}
+            aria-label="Editar"
+          >
             <span className={styles.menuIcon}>✏️</span>Editar
           </button>
 
-          <button className={styles.menuItem} onClick={() => { onToggle(id, estado); setMenuAbierto(false); }}>
-            <span className={styles.menuIcon}>{estado === "activo" ? "🚫" : "✅"}</span>
+          <button
+            className={styles.menuItem}
+            onClick={() => {
+              onToggle(id, estado);
+              setMenuAbierto(false);
+            }}
+            aria-label={estado === "activo" ? "Desactivar" : "Activar"}
+          >
+            <span className={styles.menuIcon}>
+              {estado === "activo" ? "🚫" : "✅"}
+            </span>
             {estado === "activo" ? "Desactivar" : "Activar"}
           </button>
 
-          <button className={`${styles.menuItem} ${styles.menuItemDanger}`} onClick={() => { onEliminar(id); setMenuAbierto(false); }}>
+          <button
+            className={`${styles.menuItem} ${styles.menuItemDanger}`}
+            onClick={() => {
+              onEliminar(id);
+              setMenuAbierto(false);
+            }}
+            aria-label="Eliminar"
+          >
             <span className={styles.menuIcon}>🗑️</span>Eliminar
           </button>
         </div>

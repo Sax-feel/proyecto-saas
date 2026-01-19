@@ -3,6 +3,7 @@
 import styles from "./FormField.module.css";
 
 export default function FormField({
+  name,
   label,
   value,
   onChange,
@@ -21,6 +22,7 @@ export default function FormField({
       </div>
 
       <input
+        name={name}
         type={type}
         value={value}
         onChange={onChange}

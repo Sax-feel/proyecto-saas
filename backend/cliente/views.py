@@ -593,8 +593,9 @@ class ListaTodosClientesView(generics.ListAPIView):
     """
     Vista para listar TODOS los clientes del sistema
     Solo accesible por rol 'admin'
+    Devuelve cliente con información de empresa
     """
-    serializer_class = ClienteSerializer
+    serializer_class = ClienteSerializer  # Usa el nuevo serializer
     permission_classes = [IsAuthenticated]
     
     def get_queryset(self):
@@ -609,7 +610,7 @@ class ListaTodosClientesView(generics.ListAPIView):
             return Cliente.objects.none()
         
         # Si es admin, retornar todos los clientes
-        return Cliente.objects.all()
+        return Cliente.objects.all().select_related('id_usuario')
     
     def list(self, request, *args, **kwargs):
         """

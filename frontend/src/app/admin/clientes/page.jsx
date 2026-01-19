@@ -74,6 +74,7 @@ export default function DashboardClientesEmpresa() {
       const data = await res.json();
       if (!res.ok) throw new Error(data.detail || "Error auditorías");
 
+      // El endpoint devuelve { auditorias: [], status: "success" }
       setAuditorias(data.auditorias || []);
     } catch (err) {
       setErrorAuditorias(err.message);

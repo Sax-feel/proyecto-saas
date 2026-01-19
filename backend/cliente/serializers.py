@@ -9,13 +9,54 @@ from relacion_tiene.models import Tiene
 from rest_framework import serializers
 from .models import AuditoriaCliente
 
+# cliente/serializers.py
 class ClienteSerializer(serializers.ModelSerializer):
-    """Serializador para el modelo Cliente"""
+    """Serializador para el modelo Cliente con información de empresa"""
+    empresa_nombre = serializers.SerializerMethodField()
+    empresa_id = serializers.SerializerMethodField()
     
     class Meta:
         model = Cliente
-        fields = ['id_usuario','nit', 'nombre_cliente', 'direccion_cliente', 'telefono_cliente']
+        fields = [
+            'id_usuario', 
+            'nit', 
+            'nombre_cliente', 
+            'direccion_cliente', 
+            'telefono_cliente',
+            'fecha_registro',
+            'empresa_nombre',
+            'empresa_id'
+        ]
         read_only_fields = ['id_usuario']
+    
+    def get_empresa_nombre(self, obj):
+        """Obtener el nombre de la empresa a la que pertenece el cliente"""
+        try:
+            # Buscar la relación en la tabla Tiene
+            tiene_relacion = Tiene.objects.filter(
+                id_cliente=obj,
+                estado='activo'
+            ).first()
+            
+            if tiene_relacion:
+                return tiene_relacion.id_empresa.nombre
+            return None
+        except Exception:
+            return None
+    
+    def get_empresa_id(self, obj):
+        """Obtener el ID de la empresa a la que pertenece el cliente"""
+        try:
+            tiene_relacion = Tiene.objects.filter(
+                id_cliente=obj,
+                estado='activo'
+            ).first()
+            
+            if tiene_relacion:
+                return tiene_relacion.id_empresa.id_empresa
+            return None
+        except Exception:
+            return None
 
 
 class RegistroClienteSerializer(serializers.Serializer):

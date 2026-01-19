@@ -118,8 +118,8 @@ export default function DashboardClientesEmpresa() {
   // Filtro
   const filteredClientes = clientes.filter((cliente) => {
     const term = searchTerm.toLowerCase();
-    return ["nombre_cliente", "nit", "telefono_cliente", "direccion_cliente"].some(
-      (key) => (cliente[key] || "").toLowerCase().includes(term)
+    return ["nombre_cliente", "nit", "empresa_nombre", "empresa_id"].some((key) =>
+      String(cliente[key] || "").toLowerCase().includes(term)
     );
   });
 
@@ -134,13 +134,18 @@ export default function DashboardClientesEmpresa() {
         <section className={styles.section}>
           <div className={styles.sectionHeader}>
             <h2>Clientes ({filteredClientes.length})</h2>
-            <Button onClick={fetchClientes}>Actualizar</Button>
+            <div className={styles.headerActions}>
+              <Button onClick={fetchClientes} variant="secondary">
+                Actualizar
+              </Button>
+            </div>
           </div>
 
           <SearchBar
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            placeholder="Buscar clientes por nombre, NIT, teléfono o dirección..."
+            placeholder="Buscar clientes por nombre del cliente o por nombre de la empresa..."
+            fullWidth={true}
           />
 
           {loading && <p>Cargando clientes...</p>}
@@ -148,10 +153,10 @@ export default function DashboardClientesEmpresa() {
 
           <Tables
             columns={[
-              { key: "nit", label: "NIT" },
+              { key: "nit", label: "NIT/CI" },
               { key: "nombre_cliente", label: "Nombre" },
-              { key: "direccion_cliente", label: "Dirección" },
-              { key: "telefono_cliente", label: "Teléfono" },
+              { key: "empresa_nombre", label: "Nombre Empresa" },
+              { key: "empresa_id", label: "ID Empresa" },
             ]}
             data={filteredClientes}
             renderActions={(c) => (
@@ -165,8 +170,8 @@ export default function DashboardClientesEmpresa() {
                   setEditForm({
                     nit: c.nit,
                     nombre_cliente: c.nombre_cliente,
-                    direccion_cliente: c.direccion_cliente,
-                    telefono_cliente: c.telefono_cliente,
+                    empresa_nombre: c.empresa_nombre,
+                    empresa_id: c.empresa_id,
                   });
                 }}
               />
@@ -218,8 +223,6 @@ export default function DashboardClientesEmpresa() {
             fields={[
               { name: "nit", label: "NIT" },
               { name: "nombre_cliente", label: "Nombre" },
-              { name: "direccion_cliente", label: "Dirección" },
-              { name: "telefono_cliente", label: "Teléfono" },
             ]}
             onSave={async (formData) => {
               const token = getToken();

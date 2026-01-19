@@ -7,6 +7,7 @@ import Button from "../../../components/ui/Button/Button";
 import FormField from "../../../components/ui/FormField/FormField";
 import Input from "../../../components/ui/Input/Input";
 import ActionMenu from "../../../components/ui/ActionMenu/ActionMenu";
+import EditForm from "../../../components/ui/EditForm/EditForm";
 import styles from "./Empresas.module.css";
 
 export default function EmpresasPage() {
@@ -31,6 +32,9 @@ export default function EmpresasPage() {
     rubro: "",
     plan_nombre: "Free",
   });
+
+  const [editForm, setEditForm] = useState({});
+  const [editingEmpresa, setEditingEmpresa] = useState(null);
 
   const [formErrors, setFormErrors] = useState({});
 
@@ -372,22 +376,36 @@ export default function EmpresasPage() {
     },
   ];
 
+  
   const renderActions = (row) => (
     <ActionMenu
       id={row.id_empresa}
       estado={row.estado}
-      onEditar={() => alert(`Editar empresa ${row.nombre} (funcionalidad pendiente)`)}
       onToggle={() => toggleEmpresaEstado(row.id_empresa, row.estado)}
       onEliminar={() => deleteEmpresa(row.id_empresa)}
+      onEditar={() => {
+        // SIMPLIFICA: Solo guarda la fila completa en editingEmpresa
+        setEditingEmpresa(row);
+        
+        // Opcional: También guarda los datos en editForm si lo necesitas
+        setEditForm({
+          nombre: row.nombre,
+          nit: row.nit,
+          direccion: row.direccion,
+          rubro: row.rubro,
+          telefono: row.telefono,
+          email: row.email,
+        });
+      }}
     />
   );
 
   // ----------------- Render -----------------
   return (
-    <div className={styles.dashboardContainer}>
-      <Sidebar collapsed={collapsed} setCollapsed={setCollapsed} />
+  <div className={styles.dashboardContainer}>
+    <Sidebar collapsed={collapsed} setCollapsed={setCollapsed} />
 
-      <div className={`${styles.mainContent} ${collapsed ? styles.collapsed : ""}`}>
+    <div className={`${styles.mainContent} ${collapsed ? styles.collapsed : ""}`}>
         <header className={styles.header}>
           <div className={styles.headerContent}>
             <div className={styles.headerText}>
@@ -673,6 +691,55 @@ export default function EmpresasPage() {
               </form>
             </div>
           </div>
+        )}
+
+        {/* ---------------- EDITAR EMPRESA ---------------- */}
+        {editingEmpresa && (
+          <EditForm
+            data={{
+              nombre: editingEmpresa.nombre,
+              nit: editingEmpresa.nit,
+              direccion: editingEmpresa.direccion,
+              rubro: editingEmpresa.rubro,
+              telefono: editingEmpresa.telefono,
+              email: editingEmpresa.email,
+            }}
+            fields={[
+              { name: "nombre", label: "Nombre de la Empresa" },
+              { name: "nit", label: "NIT" },
+              { name: "direccion", label: "Dirección" },
+              { name: "rubro", label: "Rubro" },
+              { name: "telefono", label: "Teléfono" },
+              { name: "email", label: "Email" },
+            ]}
+            onSave={async (formData) => {
+              try {
+                const token = getToken();
+                
+                // CORRECCIÓN: Usa el mismo patrón que en clientes
+                const res = await fetch(`http://localhost:8000/api/empresas/${editingEmpresa.id_empresa}/`, {
+                  method: "PUT",
+                  headers: { 
+                    Authorization: `Bearer ${token}`, 
+                    "Content-Type": "application/json" 
+                  },
+                  body: JSON.stringify(formData),
+                });
+
+                if (res.ok) {
+                  setEditingEmpresa(null);
+                  fetchEmpresas(); // Recargar la lista
+                } else {
+                  const errorData = await res.json();
+                  alert(`Error: ${errorData.detail || "No se pudo actualizar"}`);
+                }
+              } catch (err) {
+                console.error("Error al actualizar empresa:", err);
+                alert("Error de conexión");
+              }
+            }}
+            onCancel={() => setEditingEmpresa(null)}
+          />
         )}
       </div>
     </div>

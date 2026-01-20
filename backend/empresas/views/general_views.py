@@ -1,5 +1,6 @@
 from datetime import timedelta
 from django.http import Http404
+from django.shortcuts import get_object_or_404
 from django.utils import timezone
 from rest_framework import generics, status, filters, permissions
 from rest_framework.response import Response
@@ -455,3 +456,51 @@ class MiEmpresaView(generics.RetrieveAPIView):
         
         serializer = self.get_serializer(empresa)
         return Response(serializer.data)
+
+class EmpresaPublicSimpleView(generics.RetrieveAPIView):
+    """
+    Vista PÚBLICA SIMPLE para ver empresa
+    Accesible por CUALQUIERA sin autenticación
+    """
+    permission_classes = [permissions.AllowAny]
+    
+    def get(self, request, id_empresa, *args, **kwargs):
+        """
+        Obtiene información pública de una empresa
+        """
+        try:
+            # Obtener empresa activa
+            empresa = get_object_or_404(
+                Empresa, 
+                id_empresa=id_empresa,
+                estado='activo'
+            )
+            
+            # Datos públicos
+            data = {
+                'id_empresa': empresa.id_empresa,
+                'nombre': empresa.nombre,
+                'rubro': empresa.rubro,
+                'direccion': empresa.direccion,
+                'telefono': empresa.telefono,
+                'email': empresa.email,
+                'fecha_creacion': empresa.fecha_creacion,
+                'contacto': {
+                    'telefono': empresa.telefono,
+                    'email': empresa.email,
+                    'direccion': empresa.direccion
+                }
+            }
+            
+            return Response({
+                'status': 'success',
+                'message': 'Información pública de empresa',
+                'empresa': data
+            })
+            
+        except Empresa.DoesNotExist:
+            return Response({
+                'status': 'error',
+                'message': 'Empresa no encontrada',
+                'detail': 'La empresa no existe o no está disponible públicamente'
+            }, status=status.HTTP_404_NOT_FOUND)

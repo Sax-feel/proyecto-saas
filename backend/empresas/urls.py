@@ -1,4 +1,3 @@
-# empresas/urls.py
 from django.urls import path
 from .views import (
     RegistroEmpresaView, 
@@ -9,7 +8,8 @@ from .views import (
     DetalleEmpresaClienteAdminView,
     EmpresasDisponiblesClienteView,
     RegistroEmpresaView,
-    CambiarEstadoEmpresaView, MiEmpresaView
+    CambiarEstadoEmpresaView, MiEmpresaView,
+    EmpresaPublicSimpleView
 )
 
 urlpatterns = [
@@ -23,4 +23,5 @@ urlpatterns = [
     path('registrar/', RegistroEmpresaView.as_view(), name='registrar-empresa'),
     path('<int:pk>/cambiar-estado/', CambiarEstadoEmpresaView.as_view(), name='cambiar-estado-empresa'),
     path('mi-empresa/', MiEmpresaView.as_view(), name='mi-empresa'),
+    path('public/<int:id_empresa>/', EmpresaPublicSimpleView.as_view(), name='empresa_public_detail'),
 ]

@@ -55,7 +55,7 @@ class ArchivoPublicSerializer(serializers.ModelSerializer):
     class Meta:
         model = Archivo
         fields = [
-            'id_archivo', 'nombre', 'tipo_archivo', 'orden',
+            'id_archivo', 'nombre', 'tipo_archivo', 'orden', 'archivo', 
             'descripcion', 'fecha_creacion', 'producto'
         ]
         read_only_fields = fields

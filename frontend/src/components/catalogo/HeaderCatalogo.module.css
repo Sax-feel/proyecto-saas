@@ -1,0 +1,198 @@
+.header {
+    background: linear-gradient(135deg, #4f46e5 0%, #4338ca 100%);
+    color: white;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+}
+
+.headerTop {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0.75rem 2rem;
+    background: rgba(0, 0, 0, 0.1);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.locationInfo {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 0.875rem;
+    opacity: 0.9;
+}
+
+.locationIcon {
+    font-size: 1rem;
+}
+
+.headerActions {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+}
+
+.pharmacyButton {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    background: rgba(255, 255, 255, 0.15);
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    color: white;
+    padding: 0.5rem 1rem;
+    border-radius: 6px;
+    font-size: 0.875rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.pharmacyButton:hover {
+    background: rgba(255, 255, 255, 0.25);
+}
+
+.userActions {
+    display: flex;
+    gap: 0.75rem;
+}
+
+.cartButton,
+.accountButton {
+    background: rgba(255, 255, 255, 0.15);
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    color: white;
+    padding: 0.5rem 1rem;
+    border-radius: 6px;
+    font-size: 0.875rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s;
+    display: flex;
+    align-items: center; /* Alinea verticalmente */
+    gap: 0.5rem; /* Espacio entre icono y texto */
+    line-height: 1; /* Asegura que no haya altura extra */
+}
+
+.cartButton:hover,
+.accountButton:hover {
+    background: rgba(255, 255, 255, 0.25);
+}
+.icon {
+    width: 1.125rem; /* Tamaño consistente para los iconos */
+    height: 1.125rem;
+    stroke-width: 2; /* Para iconos de lucide-react */
+    /* Para react-icons usar: font-size: 1.125rem; */
+}
+
+.headerMain {
+    padding: 1.5rem 2rem;
+    text-align: center;
+}
+
+.empresaNombre {
+    font-size: 2.5rem;
+    font-weight: 700;
+    margin: 0 0 0.5rem 0;
+    color: white;
+}
+
+.empresaInfo {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 2rem;
+    font-size: 1rem;
+    opacity: 0.9;
+}
+
+.empresaRubro {
+    font-size: 1.25rem;
+    font-weight: 500;
+    background: rgba(255, 255, 255, 0.1);
+    padding: 0.25rem 1rem;
+    border-radius: 20px;
+}
+
+.empresaNIT {
+    font-size: 0.875rem;
+    opacity: 0.8;
+}
+
+.mainNav {
+    background: white;
+    border-top: 1px solid #e5e7eb;
+    border-bottom: 1px solid #e5e7eb;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+}
+
+.navContainer {
+    display: flex;
+    min-width: min-content; /* Importante: permite que el contenido defina el ancho mínimo */
+    padding: 1rem 2rem;
+    align-items: center;
+}
+
+.navItems {
+    display: flex;
+    gap: 2rem;
+    padding: 0;
+    flex-wrap: nowrap; /* Evita que se rompa en múltiples líneas */
+}
+
+.navLink {
+    color: #4f46e5;
+    text-decoration: none;
+    font-size: 0.875rem;
+    font-weight: 500;
+    padding: 0.5rem 0;
+    white-space: nowrap;
+    transition: color 0.2s;
+    cursor: pointer;
+    position: relative;
+    flex-shrink: 0; /* Importante: evita que los items se reduzcan */
+}
+
+.navLink:hover {
+    color: #4338ca;
+}
+
+.navLink::after {
+    content: '';
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 2px;
+    background: #4f46e5;
+    transform: scaleX(0);
+    transition: transform 0.2s;
+}
+
+.navLink:hover::after,
+.navLink.active::after {
+    transform: scaleX(1);
+}
+
+.navLink.active {
+    color: #4338ca;
+    font-weight: 600;
+}
+
+/* Estilos para el scrollbar personalizado */
+.mainNav::-webkit-scrollbar {
+    height: 6px;
+}
+
+.mainNav::-webkit-scrollbar-track {
+    background: #f1f1f1;
+}
+
+.mainNav::-webkit-scrollbar-thumb {
+    background: #c7d2fe;
+    border-radius: 3px;
+}
+
+.mainNav::-webkit-scrollbar-thumb:hover {
+    background: #a5b4fc;
+}

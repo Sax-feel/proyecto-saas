@@ -140,3 +140,4 @@ class ArchivoPorProductoView(generics.ListAPIView):
             producto_id=producto_id,
             producto__empresa__estado='activo'
         ).select_related('producto__empresa').order_by('orden')
+    

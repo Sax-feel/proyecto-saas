@@ -139,6 +139,7 @@ export default function DashboardAdminEmpresa() {
 
   // ----------------- Tabla -----------------
   const columns = [
+    { label: "nombre", key: "nombre" },
     { label: "Email", key: "email" },
     { label: "Rol", key: "rol" },
     { label: "Estado", key: "estado" },

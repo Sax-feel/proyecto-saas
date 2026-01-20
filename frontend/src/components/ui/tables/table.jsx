@@ -3,16 +3,14 @@
 import styles from "./table.module.css";
 
 export default function Tables({
-  columns = [],              // columnas de la tabla
-  data = [],                 // datos de la tabla
-  renderActions,             // función externa que devuelve JSX para acciones
+  columns = [],
+  data = [],
+  renderActions,
   emptyMessage = "No hay registros",
-  rowKey = "id",             // clave única de cada fila
+  rowKey = "id",
 }) {
-  // Aseguramos que data sea siempre un array
   const safeData = Array.isArray(data) ? data : [];
 
-  // Determinamos colSpan para mensaje de vacío (incluye columna de acciones si existe)
   const colSpan = columns.length + (renderActions ? 1 : 0);
 
   return (

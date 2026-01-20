@@ -1,3 +1,3 @@
 from .admin_cliente_views import DetalleEmpresaClienteAdminView, ListaEmpresasClienteAdminView
 from .cliente_views import EmpresasDisponiblesClienteView
-from .general_views import CambiarEstadoEmpresaView, DetalleEmpresaView, RegistroEmpresaView, ListaEmpresasView, MiEmpresaView, EmpresaPublicSimpleView
+from .general_views import CambiarEstadoEmpresaView, DetalleEmpresaView, RegistroEmpresaView, ListaEmpresasView, MiEmpresaView

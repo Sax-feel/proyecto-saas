@@ -142,29 +142,47 @@ export default function DashboardAdmin() {
     </button>
   );
 
+  const [rolFiltro, setRolFiltro] = useState("todos");
+  const usuariosFiltrados = users.filter((user) => {
+    if (rolFiltro === "todos") return true;
+    return user.rol === rolFiltro;
+  });
+
+
   // ----------------- Render -----------------
   return (
-<div className={styles.container}>
-  <Sidebar collapsed={collapsed} setCollapsed={setCollapsed} />
-  <div className={`${styles.center} ${collapsed ? styles.collapsed : ""}`}>
-    <h1 className={styles.title}>Dashboard Admin</h1>
+    <div className={styles.container}>
+      <Sidebar collapsed={collapsed} setCollapsed={setCollapsed} />
+      <div className={`${styles.center} ${collapsed ? styles.collapsed : ""}`}>
+        <h1 className={styles.title}>Dashboard Admin</h1>
 
-    {loading && <div>Cargando usuarios...</div>}
-    {error && <div>{error}</div>}
+        {loading && <div>Cargando usuarios...</div>}
+        {error && <div>{error}</div>}
 
-    <section className={styles.section}>
-      <Tables
-        columns={userColumns}
-        data={users}
-        renderActions={renderUserActions}
-        emptyMessage="No hay usuarios registrados"
-        rowKey="id_usuario"
-      />
-    </section>
-  </div>
-</div>
-
-
-
+        <section className={styles.section}>
+          <div className={styles.filterContainer}>
+            <label className={styles.filterLabel}>Filtrar por rol:</label>
+            <select
+              className={styles.filterSelect}
+              value={rolFiltro}
+              onChange={(e) => setRolFiltro(e.target.value)}
+            >
+              <option value="todos">Todos</option>
+              <option value="admin">Admin</option>
+              <option value="usuario">Usuario</option>
+              <option value="cliente">Cliente</option>
+              <option value="admin_empresa">Admin Empresa</option>
+            </select>
+          </div>
+          <Tables
+            columns={userColumns}
+            data={usuariosFiltrados}
+            renderActions={renderUserActions}
+            emptyMessage="No hay usuarios registrados"
+            rowKey="id_usuario"
+          />
+        </section>
+      </div>
+    </div>
   );
 }

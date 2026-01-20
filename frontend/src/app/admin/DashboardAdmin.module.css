@@ -1,3 +1,19 @@
+/* -------------------- TITULOS -------------------- */
+.title {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: #111827;
+  margin-bottom: 1.5rem;
+}
+
+.section {
+  background: #ffffff;
+  padding: 1.25rem;
+  border-radius: 12px;
+  box-shadow: 0 10px 20px rgba(0, 0, 0, 0.04);
+}
+
+
 /* -------------------- LAYOUT GENERAL -------------------- */
 .container {
   display: flex;
@@ -23,14 +39,73 @@
 
 /* -------------------- CONTENIDO PRINCIPAL -------------------- */
 .center {
-  flex: 1;                   /* ocupa todo el espacio restante */
+  flex: 1;
   padding: 2rem;
-  margin-left: 250px;         /* respeta ancho del sidebar */
-  transition: margin-left 0.3s ease; /* transición suave */
+  margin-left: 250px;
+  transition: margin-left 0.3s ease;
   overflow-y: auto;
   background: white;
 }
 
 .center.collapsed {
-  margin-left: 70px; /* ajusta cuando sidebar colapsa */
+  margin-left: 70px;
+}
+
+/* -------------------- FILTRO -------------------- */
+.filterContainer {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 1.5rem;
+}
+
+.filterLabel {
+  font-weight: 600;
+  color: #0f0f0f;
+}
+
+.filterSelect {
+  padding: 0.45rem 0.75rem;
+  border-radius: 6px;
+  border: 1px solid #042961;
+  background-color: #757575;
+  font-size: 0.85rem;
+  cursor: pointer;
+  transition: border 0.2s, box-shadow 0.2s;
+}
+
+.filterSelect:focus {
+  outline: none;
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.2);
+}
+
+/* -------------------- BADGES DE ROL -------------------- */
+.rolBadge {
+  padding: 0.25rem 0.55rem;
+  border-radius: 999px;
+  font-size: 0.7rem;
+  font-weight: 600;
+  text-transform: capitalize;
+}
+
+/* roles */
+.admin {
+  background-color: #fee2e2;
+  color: #991b1b;
+}
+
+.usuario {
+  background-color: #e0f2fe;
+  color: #075985;
+}
+
+.cliente {
+  background-color: #ecfeff;
+  color: #155e75;
+}
+
+.admin_empresa {
+  background-color: #ede9fe;
+  color: #5b21b6;
 }

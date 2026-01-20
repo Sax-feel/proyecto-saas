@@ -12,6 +12,8 @@ import {
   LogOut,
   ChevronLeft,
   ChevronRight,
+  UserStar,
+  Tag,
 } from "lucide-react"
 
 import styles from "./Sidebar.module.css"
@@ -20,6 +22,7 @@ import styles from "./Sidebar.module.css"
 const allNavigation = {
   // Rutas para admin general
   admin: [
+    { name: "Dashboard", href: "/admin", icon: LayoutDashboard },
     { name: "Empresas", href: "/admin/empresas", icon: Building2 },
     { name: "Admins Empresa", href: "/admin/admins_empresa", icon: UserCheck },
     { name: "Clientes", href: "/admin/clientes", icon: Users },
@@ -31,6 +34,7 @@ const allNavigation = {
     { name: "Mi Empresa", href: "/usuario_empresa", icon: Building2 },
     { name: "Empleados", href: "/usuario_empresa/empleados", icon: Users },
     { name: "Productos", href: "/usuario_empresa/producto-section", icon: Package },
+    { name: "Categorias", href: "/usuario_empresa/categorias", icon: Tag},
     { name: "Suscripción", href: "/usuario_empresa/suscripciones", icon: CreditCard },
   ]
 }

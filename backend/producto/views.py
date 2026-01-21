@@ -7,6 +7,11 @@ from django.db import models
 from .models import Producto
 from .serializers import ProductoSerializer, ProductoCreateSerializer, ProductoPublicSerializer
 from categoria.views import IsAdminEmpresa
+from rest_framework.response import Response
+from django.shortcuts import get_object_or_404
+from empresas.models import Empresa
+from .models import Producto
+from .serializers import ProductoPublicSerializer, ProductoSerializer
 
 class IsAdminEmpresaOrReadOnly(permissions.BasePermission):
     """
@@ -196,12 +201,7 @@ class ProductoStatsView(generics.GenericAPIView):
             'data': stats
         })
     
-from rest_framework import generics, permissions, status
-from rest_framework.response import Response
-from django.shortcuts import get_object_or_404
-from empresas.models import Empresa
-from .models import Producto
-from .serializers import ProductoPublicSerializer, ProductoSerializer
+
 
 class ProductosPorEmpresaView(generics.ListAPIView):
     """

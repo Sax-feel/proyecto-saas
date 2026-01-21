@@ -73,7 +73,7 @@ export default function ProductosSection() {
       if (!token) throw new Error("No hay token");
 
       const res = await fetch(
-        "http://localhost:8000/api/productos/listar/",
+        "http://localhost:8000/api/productos/mi-empresa/",
         { headers: { Authorization: `Bearer ${token}` } }
       );
 
@@ -110,12 +110,12 @@ export default function ProductosSection() {
   const [categorias, setCategorias] = useState([]);
   const fetchCategorias = async () => {
     const token = getToken();
-    const res = await fetch("http://localhost:8000/api/categorias/listar/", {
+    const res = await fetch("http://localhost:8000/api/categorias/mi-empresa/", {
       headers: { Authorization: `Bearer ${token}` },
     });
     const data = await res.json();
     //console.log("Data categorias:", data[1]);
-    setCategorias(Array.isArray(data) ? data : []);
+    setCategorias(Array.isArray(data.categorias) ? data.categorias : []);
   };
 
   //Obtener Proveedores

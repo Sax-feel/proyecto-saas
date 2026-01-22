@@ -5,6 +5,7 @@ import LoginForm from '../auth/LoginForm/LoginForm';
 import RegisterOptions from '../auth/RegisterOptions';
 import CartContent from './CartContent';
 import styles from './CartModal.module.css';
+import { useRouter } from 'next/navigation';
 
 export default function CartModal({
     isOpen,
@@ -12,6 +13,7 @@ export default function CartModal({
     empresaId,
     onLoginSuccess
 }) {
+    const router = useRouter();
     const [isLoggedIn, setIsLoggedIn] = useState(false);
     const [showLogin, setShowLogin] = useState(true);
     const [reservas, setReservas] = useState([]);
@@ -80,7 +82,7 @@ export default function CartModal({
     };
 
     const handleRegisterClick = () => {
-        window.location.href = '/login/registro-cliente';
+        router.push(`/login/registro-cliente/${empresaId}`);
     };
 
     if (!isOpen) return null;

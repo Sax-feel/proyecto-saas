@@ -99,7 +99,7 @@ class EmailEmpresaSerializer(serializers.Serializer):
             # Verificar que exista el registro de cliente
             try:
                 cliente = Cliente.objects.get(id_usuario=user)
-                return user  # Retornar el usuario para usarlo después
+                return value
             except Cliente.DoesNotExist:
                 raise serializers.ValidationError("El cliente no tiene perfil completo")
                 
@@ -110,7 +110,7 @@ class EmailEmpresaSerializer(serializers.Serializer):
         """Validar que la empresa exista y esté activa"""
         try:
             empresa = Empresa.objects.get(id_empresa=value, estado='activo')
-            return empresa
+            return value
         except Empresa.DoesNotExist:
             raise serializers.ValidationError("Empresa no encontrada o no está activa")
     
@@ -203,3 +203,35 @@ class FiltroAuditoriaSerializer(serializers.Serializer):
     cliente_id = serializers.IntegerField(required=False)
     usuario_id = serializers.IntegerField(required=False)
     cliente_nombre = serializers.CharField(required=False)
+
+class RegistroClienteConEmpresaSerializer(serializers.Serializer):
+    """Serializador para registro de cliente con empresa automática"""
+    email = serializers.EmailField(required=True)
+    password = serializers.CharField(required=True, write_only=True, min_length=8)
+    nit = serializers.CharField(required=True, max_length=20)
+    nombre_cliente = serializers.CharField(required=True, max_length=200)
+    direccion_cliente = serializers.CharField(required=False, allow_blank=True, max_length=300)
+    telefono_cliente = serializers.CharField(required=False, allow_blank=True, max_length=15)
+    id_empresa = serializers.IntegerField(required=True)
+    
+    def validate_email(self, value):
+        """Validar que el email no esté registrado"""
+        if User.objects.filter(email=value).exists():
+            raise serializers.ValidationError("El email ya está registrado")
+        return value
+    
+    def validate_nit(self, value):
+        """Validar que el NIT no esté registrado"""
+        if Cliente.objects.filter(nit=value).exists():
+            raise serializers.ValidationError("El NIT ya está registrado")
+        return value
+    
+    def validate_id_empresa(self, value):
+        """Validar que la empresa exista"""
+        try:
+            empresa = Empresa.objects.get(id_empresa=value)
+            if empresa.estado != 'activo':
+                raise serializers.ValidationError("La empresa no está activa")
+        except Empresa.DoesNotExist:
+            raise serializers.ValidationError("La empresa no existe")
+        return value

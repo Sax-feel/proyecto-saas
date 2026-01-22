@@ -1,13 +1,16 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { useRouter } from "next/navigation"
-import Button from "../../../components/ui/Button/Button"
-import FormField from "../../../components/ui/FormField/FormField"
+import { useRouter, useParams } from "next/navigation"
+import Button from "../../../../components/ui/Button/Button"
+import FormField from "../../../../components/ui/FormField/FormField"
 import styles from "./RegistroCliente.module.css"
 
 export default function RegistroClienteForm() {
     const router = useRouter()
+    const params = useParams()
+    const idEmpresa = params.id
+    
     const [formData, setFormData] = useState({
         email: "",
         password: "",
@@ -21,7 +24,27 @@ export default function RegistroClienteForm() {
     const [error, setError] = useState("")
     const [success, setSuccess] = useState("")
     const [showPassword, setShowPassword] = useState(false)
+    const [empresaInfo, setEmpresaInfo] = useState(null)
 
+    // Obtener información de la empresa
+    useEffect(() => {
+        if (idEmpresa) {
+            fetchEmpresaInfo()
+        }
+    }, [idEmpresa])
+
+    const fetchEmpresaInfo = async () => {
+        try {
+            const res = await fetch(`http://localhost:8000/api/empresas/public/${idEmpresa}/`)
+            const data = await res.json()
+            
+            if (res.ok) {
+                setEmpresaInfo(data.empresa || data)
+            }
+        } catch (err) {
+            console.log("No se pudo obtener información de la empresa:", err)
+        }
+    }
 
     const handleChange = (field) => (e) => {
         setFormData({
@@ -66,7 +89,7 @@ export default function RegistroClienteForm() {
         setLoading(true)
 
         try {
-            const res = await fetch("http://localhost:8000/api/clientes/registrar/", {
+            const res = await fetch("http://localhost:8000/api/clientes/registrar-con-empresa/", {
                 method: "POST",
                 headers: {
                     "Content-Type": "application/json"
@@ -78,6 +101,7 @@ export default function RegistroClienteForm() {
                     nombre_cliente: formData.nombre_cliente,
                     direccion_cliente: formData.direccion_cliente,
                     telefono_cliente: formData.telefono_cliente,
+                    id_empresa: parseInt(idEmpresa)  // Enviar ID de la empresa
                 })
             })
 
@@ -87,17 +111,19 @@ export default function RegistroClienteForm() {
                 throw new Error(data.detail || data.error || "Error en el registro")
             }
 
-            setSuccess("¡Registro exitoso! Redirigiendo...")
+            setSuccess("¡Registro exitoso! Redirigiendo a la empresa...")
 
             if (data.tokens) {
                 localStorage.setItem("access", data.tokens.access)
                 localStorage.setItem("refresh", data.tokens.refresh)
                 localStorage.setItem("rol", "cliente")
                 localStorage.setItem("user_email", data.cliente.email)
+                localStorage.setItem("id_empresa", idEmpresa)  // Guardar ID de empresa
             }
 
+            // Redirigir a la página de la empresa
             setTimeout(() => {
-                router.push("/cliente")
+                router.push(`/empresa/${idEmpresa}`)
             }, 2000)
 
         } catch (err) {
@@ -107,11 +133,20 @@ export default function RegistroClienteForm() {
         }
     }
 
+    const handleSeguirComprando = () => {
+        router.push(`/empresa/${idEmpresa}`)
+    }
+
     return (
         <div className={styles.container}>
             <div className={styles.formContainer}>
                 <div className={styles.header}>
                     <h1>Registro de Cliente</h1>
+                    {empresaInfo && (
+                        <p className={styles.empresaInfo}>
+                            Registrándose como cliente de: <strong>{empresaInfo.nombre}</strong>
+                        </p>
+                    )}
                     <p>Complete el formulario para registrarse como cliente</p>
                 </div>
 
@@ -203,8 +238,6 @@ export default function RegistroClienteForm() {
                         </div>
                     </div>
 
-                    
-
                     {/* Botón de registro */}
                     <div className={styles.submitSection}>
                         <Button
@@ -216,12 +249,18 @@ export default function RegistroClienteForm() {
                         </Button>
                     </div>
 
-                    {/* Enlace para login */}
-                    <div className={styles.loginLink}>
-                        <p className={styles.backLink}>
-                            <a href="/login" className={styles.link}>
-                                ← Volver al login general
-                            </a>
+                    {/* Botón para seguir comprando sin registro */}
+                    <div className={styles.alternativeSection}>
+                        <Button
+                            type="button"
+                            variant="secondary"
+                            onClick={handleSeguirComprando}
+                            className={styles.comprarButton}
+                        >
+                            Seguir comprando sin registrarse
+                        </Button>
+                        <p className={styles.alternativeText}>
+                            Podrás realizar compras sin crear una cuenta
                         </p>
                     </div>
                 </form>

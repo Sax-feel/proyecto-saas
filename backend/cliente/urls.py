@@ -1,5 +1,5 @@
 from django.urls import path
-from .views import RegistroClienteView, ListaClientesView, DetalleClienteView, RegistrarClienteExistenteView, MisEmpresasView
+from .views import RegistroClienteConEmpresaView, ListaClientesView, DetalleClienteView, RegistrarClienteExistenteView, MisEmpresasView
 from .views import (
     ListaAuditoriaClienteView,
     AuditoriaClienteFiltradaView,
@@ -8,7 +8,7 @@ from .views import (
 )
 
 urlpatterns = [
-    path('registrar/', RegistroClienteView.as_view(), name='registrar-cliente'),
+    path('registrar-con-empresa/', RegistroClienteConEmpresaView.as_view(), name='registro-cliente-con-empresa'),
     path('listar/', ListaClientesView.as_view(), name='lista-clientes'),
     path('<int:pk>/', DetalleClienteView.as_view(), name='detalle-cliente'),
     path('registrar-existente/', RegistrarClienteExistenteView.as_view(), name='registrar-cliente-existente'),

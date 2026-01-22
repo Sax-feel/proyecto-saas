@@ -1,6 +1,7 @@
 from django.db import transaction
 from rest_framework import generics, status, filters
 from rest_framework.response import Response
+from rest_framework import serializers
 from django.utils import timezone
 from rest_framework.permissions import IsAuthenticated, AllowAny
 from django.utils import timezone
@@ -11,37 +12,69 @@ from roles.models import Rol
 from relacion_tiene.models import Tiene
 from empresas.serializers import EmpresaSerializer
 from .models import Cliente
+from relacion_tiene.models import Tiene
+from empresas.models import Empresa
 from usuario_empresa.models import Usuario_Empresa
 from .serializers import RegistroClienteSerializer, ClienteSerializer, EmailEmpresaSerializer
 from .models import AuditoriaCliente
-from .serializers import AuditoriaClienteSerializer, FiltroAuditoriaSerializer
+from .serializers import AuditoriaClienteSerializer, FiltroAuditoriaSerializer, RegistroClienteConEmpresaSerializer
 import logging
 
 logger = logging.getLogger(__name__)
 
-class RegistroClienteView(generics.CreateAPIView):
+class RegistroClienteConEmpresaView(generics.CreateAPIView):
     """
-    Vista pública para que un cliente se registre SIN empresa inicial.
-    Accesible por cualquiera (sin autenticación requerida)
+    Vista pública para que un cliente se registre con empresa automáticamente.
+    Se usa cuando el cliente se registra desde una página específica de empresa.
     """
-    serializer_class = RegistroClienteSerializer
+    serializer_class = RegistroClienteConEmpresaSerializer  # Necesitaremos crear este serializador
     permission_classes = [AllowAny]  # Acceso público
     
     @transaction.atomic
     def create(self, request, *args, **kwargs):
         """
-        Registro público de cliente SIN empresa inicial.
-        Crea solo usuario + cliente, sin relación con empresa.
+        Registro de cliente con empresa automática.
+        Crea usuario + cliente + relación con empresa.
         """
         serializer = self.get_serializer(data=request.data)
-        serializer.is_valid(raise_exception=True)
+        try:
+            serializer.is_valid(raise_exception=True)
+        except serializers.ValidationError as e:
+            logger.error(f"Error de validación en serializador: {e.detail}")
+            return Response(
+                {
+                    'error': 'Error de validación',
+                    'detail': e.detail,
+                    'status': 'error'
+                },
+                status=status.HTTP_400_BAD_REQUEST
+            )
         
         try:
-            logger.info(f"Intento de registro público de cliente: {request.data.get('email')}")
+            logger.info(f"Intento de registro de cliente con empresa: {request.data.get('email')}")
             
             validated_data = serializer.validated_data
+            id_empresa = validated_data['id_empresa']
+            logger.info(f"Tipo de id_empresa: {type(id_empresa)}")
+            logger.info(f"Valor de id_empresa: {id_empresa}")
             
-            # 1. Obtener rol 'cliente'
+            # 1. Verificar que la empresa exista y esté activa
+            try:
+                empresa = Empresa.objects.get(
+                    id_empresa=id_empresa,
+                    estado='activo'
+                )
+            except Empresa.DoesNotExist:
+                return Response(
+                    {
+                        'error': 'Empresa no disponible',
+                        'detail': 'La empresa no existe o no está activa',
+                        'status': 'error'
+                    },
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+            
+            # 2. Obtener rol 'cliente'
             try:
                 rol_cliente = Rol.objects.get(rol='cliente', estado='activo')
             except Rol.DoesNotExist:
@@ -54,7 +87,7 @@ class RegistroClienteView(generics.CreateAPIView):
                     status=status.HTTP_400_BAD_REQUEST
                 )
             
-            # 2. Crear usuario
+            # 3. Crear usuario
             user = User.objects.create_user(
                 email=validated_data['email'],
                 password=validated_data['password'],
@@ -64,45 +97,84 @@ class RegistroClienteView(generics.CreateAPIView):
             
             logger.info(f"Usuario creado para cliente: {user.email}")
             
-            # 3. Crear cliente (sin empresa inicial)
+            # 4. Crear cliente
             cliente = Cliente.objects.create(
                 id_usuario=user,
                 nit=validated_data['nit'],
                 nombre_cliente=validated_data['nombre_cliente'],
-                direccion_cliente=validated_data['direccion_cliente'],
-                telefono_cliente=validated_data['telefono_cliente']
+                direccion_cliente=validated_data.get('direccion_cliente', ''),
+                telefono_cliente=validated_data.get('telefono_cliente', '')
             )
             
-            logger.info(f"Cliente registrado exitosamente: {cliente.nit} - SIN EMPRESA INICIAL")
+            logger.info(f"Cliente registrado: {cliente.nit}")
             
-            # 5. Preparar respuesta indicando que no tiene empresa
+            # 5. Crear relación con empresa
+            try:
+                # Verificar si ya existe la relación
+                relacion_existente = Tiene.objects.filter(
+                    id_cliente=cliente,
+                    id_empresa=empresa
+                ).exists()
+                
+                if not relacion_existente:
+                    tiene = Tiene.objects.create(
+                        id_cliente=cliente,
+                        id_empresa=empresa,
+                        estado='activo'
+                    )
+                    logger.info(f"Relación creada: Cliente {cliente.nombre_cliente} - Empresa {empresa.nombre}")
+                else:
+                    logger.info(f"Relación ya existía: Cliente {cliente.nombre_cliente} - Empresa {empresa.nombre}")
+                    # Actualizar estado a activo si estaba inactivo
+                    Tiene.objects.filter(
+                        id_cliente=cliente,
+                        id_empresa=empresa
+                    ).update(estado='activo')
+            
+            except Exception as rel_error:
+                logger.error(f"Error creando relación empresa-cliente: {str(rel_error)}")
+                # No fallar el registro si hay error en la relación
+        
+            # 6. Generar tokens de autenticación
+            from rest_framework_simplejwt.tokens import RefreshToken
+            
+            refresh = RefreshToken.for_user(user)
+            tokens = {
+                'refresh': str(refresh),
+                'access': str(refresh.access_token),
+            }
+            
+            # 7. Preparar respuesta
             response_data = {
                 'message': 'Cliente registrado exitosamente',
-                'detail': 'Tu cuenta ha sido creada. Ahora puedes registrarte en empresas disponibles.',
+                'detail': 'Tu cuenta ha sido creada y asociada con la empresa',
                 'cliente': {
+                    'id': cliente.id_usuario,
                     'nit': cliente.nit,
                     'nombre': cliente.nombre_cliente,
                     'email': user.email,
                     'telefono': cliente.telefono_cliente,
                     'fecha_registro': cliente.fecha_registro.isoformat()
                 },
-                'empresas': {
-                    'tiene_empresas': False,
-                    'cantidad': 0,
-                    'mensaje': 'No estás registrado en ninguna empresa aún'
+                'empresa': {
+                    'id': empresa.id_empresa,
+                    'nombre': empresa.nombre,
+                    'nit': empresa.nit,
+                    'estado': empresa.estado
                 },
-                'instrucciones': {
-                    'login': 'Usa tus credenciales para iniciar sesión',
-                    'empresas_disponibles': 'Ve a la sección "Empresas Disponibles" para registrarte',
-                    'solicitar_registro': 'También puedes solicitar registro a empresas específicas'
+                'relacion': {
+                    'estado': 'activo',
+                    'fecha_registro': cliente.fecha_registro.isoformat(),
+                    'mensaje': f'Cliente registrado en empresa {empresa.nombre}'
                 },
+                'tokens': tokens,
                 'status': 'success'
             }
             
             return Response(response_data, status=status.HTTP_201_CREATED)
             
         except Exception as e:
-            logger.error(f"Error en registro público de cliente: {str(e)}", exc_info=True)
+            logger.error(f"Error en registro de cliente con empresa: {str(e)}", exc_info=True)
             
             # Rollback en caso de error
             if 'user' in locals():
@@ -601,3 +673,4 @@ class ListaTodosClientesView(generics.ListAPIView):
         
         # Llamar al método original
         return super().list(request, *args, **kwargs)
+    

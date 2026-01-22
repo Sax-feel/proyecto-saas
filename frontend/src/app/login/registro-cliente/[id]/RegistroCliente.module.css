@@ -265,3 +265,103 @@
 .link:hover {
     text-decoration: underline;
 }
+
+.empresaInfo {
+    background-color: #f8f9fa;
+    padding: 15px;
+    border-radius: 8px;
+    margin: 15px 0;
+    border: 1px solid #e0e0e0;
+}
+
+.empresaCard {
+    background: white;
+    padding: 15px;
+    border-radius: 6px;
+    border-left: 4px solid #4caf50;
+    margin-top: 10px;
+}
+
+.empresaCard h3 {
+    margin: 0 0 10px 0;
+    color: #2c3e50;
+    font-size: 1.2rem;
+}
+
+.empresaDetails {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 15px;
+    font-size: 0.9rem;
+    color: #666;
+}
+
+.empresaDetails span {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+}
+
+.empresaDetails strong {
+    color: #333;
+}
+
+.loadingEmpresa {
+    background-color: #fff3cd;
+    border: 1px solid #ffeaa7;
+    color: #856404;
+    padding: 10px;
+    border-radius: 6px;
+    margin: 10px 0;
+    text-align: center;
+}
+
+.empresaError {
+    background-color: #f8d7da;
+    border: 1px solid #f5c6cb;
+    color: #721c24;
+    padding: 15px;
+    border-radius: 6px;
+    margin: 15px 0;
+    text-align: center;
+}
+
+.backButton {
+    background-color: #dc3545;
+    color: white;
+    border: none;
+    padding: 8px 16px;
+    border-radius: 4px;
+    margin-top: 10px;
+    cursor: pointer;
+    font-size: 0.9rem;
+}
+
+.backButton:hover {
+    background-color: #c82333;
+}
+
+.onlyComprarSection {
+    margin-top: 30px;
+    padding-top: 20px;
+    border-top: 1px solid #e0e0e0;
+    text-align: center;
+}
+
+.errorMessage {
+    background-color: #f8d7da;
+    border: 1px solid #f5c6cb;
+    color: #721c24;
+    padding: 12px;
+    border-radius: 6px;
+    margin-bottom: 20px;
+}
+
+.successMessage {
+    background-color: #d4edda;
+    border: 1px solid #c3e6cb;
+    color: #155724;
+    padding: 12px;
+    border-radius: 6px;
+    margin-bottom: 20px;
+}

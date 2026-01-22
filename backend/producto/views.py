@@ -447,7 +447,7 @@ class ProductosPorEmpresaView(generics.ListAPIView):
 
 class ProductosPorEmpresaAdminView(generics.ListAPIView):
     """
-    Vista para obtener productos de la empresa del admin_empresa
+    Vista para obtener productos de la empresa del admin_empresa y vendedor
     Solo para admin_empresa autenticado - Incluye todos los estados
     """
     serializer_class = ProductoSerializer
@@ -458,8 +458,8 @@ class ProductosPorEmpresaAdminView(generics.ListAPIView):
         Obtiene productos de la empresa del admin_empresa autenticado
         """
         try:
-            # Verificar que el usuario sea admin_empresa
-            if not hasattr(request.user, 'rol') or request.user.rol.rol != 'admin_empresa':
+            # Verificar que el usuario sea admin_empresa o vendedor
+            if not hasattr(request.user, 'rol') or request.user.rol.rol not in ['admin_empresa', 'vendedor']:
                 return Response({
                     'status': 'error',
                     'message': 'Permiso denegado',

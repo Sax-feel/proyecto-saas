@@ -1,5 +1,5 @@
 # ventas/views.py
-import datetime
+from datetime import datetime
 from rest_framework import generics, status, permissions, filters
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
@@ -522,7 +522,6 @@ class ListaVentasVendedorView(generics.ListAPIView):
                 'vendedor_info': {
                     'id': request.user.id_usuario,
                     'email': request.user.email,
-                    'nombre': request.user.nombre,
                     'empresa': {
                         'id': empresa.id_empresa,
                         'nombre': empresa.nombre,

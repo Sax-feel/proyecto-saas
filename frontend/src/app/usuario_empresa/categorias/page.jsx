@@ -52,12 +52,12 @@ export default function CategoriaSection() {
   //Obtener Categorias
   const fetchCategoria = async () => {
     const token = getToken();
-    const res = await fetch("http://localhost:8000/api/categorias/listar/", {
+    const res = await fetch("http://localhost:8000/api/categorias/mi-empresa/", {
       headers: { Authorization: `Bearer ${token}` },
     });
     const data = await res.json();
     console.log("data: ", data)
-    setCategorias(Array.isArray(data) ? data : []);
+    setCategorias(Array.isArray(data.categorias) ? data.categorias : []);
   };
 
   //formularios
@@ -190,9 +190,6 @@ export default function CategoriaSection() {
               </Button>
             </div>
           </div>
-
-          {loading && <p>Cargando categorias...</p>}
-          {error && <p className={styles.errorText}>{error}</p>}
 
           <SearchBar
             searchTerm={searchTerm}

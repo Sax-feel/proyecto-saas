@@ -73,7 +73,7 @@ export default function ProductosSection() {
       if (!token) throw new Error("No hay token");
 
       const res = await fetch(
-        "http://localhost:8000/api/productos/listar/",
+        "http://localhost:8000/api/productos/mi-empresa/",
         { headers: { Authorization: `Bearer ${token}` } }
       );
 

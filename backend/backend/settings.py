@@ -63,6 +63,13 @@ INSTALLED_APPS = [
     'categoria',
     'producto',
     'archivo',
+    'notificaciones',
+    'compras',
+    'ventas',
+    'detalle_venta',
+    'detalle_compra',
+    'reservas',
+    'relacion_notifica',
 ]
 
 MIDDLEWARE = [

@@ -2,7 +2,10 @@
 from rest_framework import serializers
 from .models import Venta
 from usuario_empresa.models import Usuario_Empresa
+from detalle_venta.models import DetalleVenta
 import logging
+
+
 
 logger = logging.getLogger(__name__)
 
@@ -11,12 +14,14 @@ class VentaSerializer(serializers.ModelSerializer):
     cliente_info = serializers.SerializerMethodField()
     vendedor_info = serializers.SerializerMethodField()
     empresa_info = serializers.SerializerMethodField()
+    detalles_venta = serializers.SerializerMethodField()
     
     class Meta:
         model = Venta
         fields = [
             'id_venta', 'usuario_empresa', 'cliente', 'fecha_venta',
-            'precio_total', 'cliente_info', 'vendedor_info', 'empresa_info'
+            'precio_total', 'cliente_info', 'vendedor_info', 
+            'empresa_info', 'detalles_venta'
         ]
         read_only_fields = ['id_venta', 'fecha_venta']
     
@@ -51,6 +56,34 @@ class VentaSerializer(serializers.ModelSerializer):
             }
         except Exception:
             return None
+        
+    def get_detalles_venta(self, obj):
+        """Obtiene detalles de la venta con información de productos"""
+        try:
+            detalles = DetalleVenta.objects.filter(id_venta=obj).select_related('id_producto')
+            
+            detalles_data = []
+            for detalle in detalles:
+                producto = detalle.id_producto
+                
+                detalles_data.append({
+                    'id_producto': producto.id_producto,
+                    'producto_nombre': producto.nombre,
+                    'descripcion': producto.descripcion,
+                    'categoria': producto.categoria.nombre if producto.categoria else None,
+                    'marca': producto.marca if hasattr(producto, 'marca') else None,
+                    'cantidad': detalle.cantidad,
+                    'precio_unitario': float(detalle.precio_unitario),
+                    'subtotal': float(detalle.subtotal),
+                    'precio_original': float(producto.precio) if producto.precio else None,
+                    'stock_inicial': producto.stock_actual + detalle.cantidad,  # Stock antes de la venta
+                    'stock_actual': producto.stock_actual
+                })
+            
+            return detalles_data
+        except Exception as e:
+            logger.error(f"Error obteniendo detalles de venta: {str(e)}")
+            return []
 
 
 class DetalleVentaSerializer(serializers.Serializer):

@@ -11,6 +11,10 @@ from usuarios.models import User
 from roles.models import Rol
 from relacion_tiene.models import Tiene
 from empresas.serializers import EmpresaSerializer
+from .serializers import (
+    RegistroClienteConEmpresaSerializer,
+    ClienteResponseSerializer
+)
 from .models import Cliente
 from relacion_tiene.models import Tiene
 from empresas.models import Empresa
@@ -24,172 +28,243 @@ logger = logging.getLogger(__name__)
 
 class RegistroClienteConEmpresaView(generics.CreateAPIView):
     """
-    Vista pública para que un cliente se registre con empresa automáticamente.
-    Se usa cuando el cliente se registra desde una página específica de empresa.
+    Vista pública para registrar un cliente con empresa automáticamente
+    POST /api/clientes/registrar-con-empresa/
+    
+    Body:
+    {
+        "email": "cliente@email.com",
+        "password": "clave12345",
+        "nit": "123456789",
+        "nombre_cliente": "Nombre del Cliente",
+        "direccion_cliente": "Dirección del cliente",
+        "telefono_cliente": "77777777",
+        "id_empresa": 1
+    }
     """
-    serializer_class = RegistroClienteConEmpresaSerializer  # Necesitaremos crear este serializador
-    permission_classes = [AllowAny]  # Acceso público
+    serializer_class = RegistroClienteConEmpresaSerializer
+    permission_classes = [AllowAny]
     
     @transaction.atomic
     def create(self, request, *args, **kwargs):
         """
-        Registro de cliente con empresa automática.
-        Crea usuario + cliente + relación con empresa.
+        Proceso completo de registro:
+        1. Validar datos
+        2. Crear usuario
+        3. Crear cliente
+        4. Crear relación con empresa
+        5. Retornar respuesta con tokens
         """
-        serializer = self.get_serializer(data=request.data)
         try:
-            serializer.is_valid(raise_exception=True)
-        except serializers.ValidationError as e:
-            logger.error(f"Error de validación en serializador: {e.detail}")
-            return Response(
-                {
+            logger.info(f"Iniciando registro de cliente con empresa")
+            
+            # 1. Validar datos con serializador
+            serializer = self.get_serializer(data=request.data)
+            if not serializer.is_valid():
+                logger.error(f"Error de validación: {serializer.errors}")
+                return Response({
+                    'status': 'error',
                     'error': 'Error de validación',
-                    'detail': e.detail,
-                    'status': 'error'
-                },
-                status=status.HTTP_400_BAD_REQUEST
-            )
-        
-        try:
-            logger.info(f"Intento de registro de cliente con empresa: {request.data.get('email')}")
+                    'detail': serializer.errors,
+                    'message': 'Por favor corrige los errores en el formulario'
+                }, status=status.HTTP_400_BAD_REQUEST)
             
             validated_data = serializer.validated_data
-            id_empresa = validated_data['id_empresa']
-            logger.info(f"Tipo de id_empresa: {type(id_empresa)}")
-            logger.info(f"Valor de id_empresa: {id_empresa}")
+            empresa_id = validated_data['id_empresa']
             
-            # 1. Verificar que la empresa exista y esté activa
+            # 2. Obtener empresa
             try:
                 empresa = Empresa.objects.get(
-                    id_empresa=id_empresa,
+                    id_empresa=empresa_id,
                     estado='activo'
                 )
+                logger.info(f"Empresa encontrada: {empresa.nombre} (ID: {empresa.id_empresa})")
             except Empresa.DoesNotExist:
-                return Response(
-                    {
-                        'error': 'Empresa no disponible',
-                        'detail': 'La empresa no existe o no está activa',
-                        'status': 'error'
-                    },
-                    status=status.HTTP_400_BAD_REQUEST
-                )
+                logger.error(f"Empresa no encontrada o inactiva: ID {empresa_id}")
+                return Response({
+                    'status': 'error',
+                    'error': 'Empresa no disponible',
+                    'detail': 'La empresa no existe o no está activa',
+                    'message': 'No se puede registrar en esta empresa'
+                }, status=status.HTTP_400_BAD_REQUEST)
             
-            # 2. Obtener rol 'cliente'
+            # 3. Obtener rol 'cliente'
             try:
                 rol_cliente = Rol.objects.get(rol='cliente', estado='activo')
+                logger.info(f"Rol cliente obtenido: {rol_cliente.rol}")
             except Rol.DoesNotExist:
-                return Response(
-                    {
-                        'error': 'Rol no disponible',
-                        'detail': 'El rol de cliente no está configurado en el sistema',
-                        'status': 'error'
-                    },
-                    status=status.HTTP_400_BAD_REQUEST
-                )
+                logger.error("Rol 'cliente' no encontrado en el sistema")
+                return Response({
+                    'status': 'error',
+                    'error': 'Configuración del sistema incompleta',
+                    'detail': 'El rol de cliente no está configurado',
+                    'message': 'Contacta al administrador del sistema'
+                }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
             
-            # 3. Crear usuario
-            user = User.objects.create_user(
-                email=validated_data['email'],
-                password=validated_data['password'],
-                rol=rol_cliente,
-                estado='activo'
-            )
-            
-            logger.info(f"Usuario creado para cliente: {user.email}")
-            
-            # 4. Crear cliente
-            cliente = Cliente.objects.create(
-                id_usuario=user,
-                nit=validated_data['nit'],
-                nombre_cliente=validated_data['nombre_cliente'],
-                direccion_cliente=validated_data.get('direccion_cliente', ''),
-                telefono_cliente=validated_data.get('telefono_cliente', '')
-            )
-            
-            logger.info(f"Cliente registrado: {cliente.nit}")
-            
-            # 5. Crear relación con empresa
+            # 4. Crear usuario
             try:
-                # Verificar si ya existe la relación
-                relacion_existente = Tiene.objects.filter(
+                user = User.objects.create_user(
+                    email=validated_data['email'],
+                    password=validated_data['password'],
+                    rol=rol_cliente,
+                    estado='activo'
+                )
+                logger.info(f"Usuario creado exitosamente: {user.email}")
+            except Exception as e:
+                logger.error(f"Error al crear usuario: {str(e)}")
+                return Response({
+                    'status': 'error',
+                    'error': 'Error al crear usuario',
+                    'detail': str(e),
+                    'message': 'No se pudo crear la cuenta de usuario'
+                }, status=status.HTTP_400_BAD_REQUEST)
+            
+            # 5. Crear cliente
+            try:
+                cliente = Cliente.objects.create(
+                    id_usuario=user,
+                    nit=validated_data['nit'],
+                    nombre_cliente=validated_data['nombre_cliente'],
+                    direccion_cliente=validated_data.get('direccion_cliente', ''),
+                    telefono_cliente=validated_data.get('telefono_cliente', '')
+                )
+                logger.info(f"Cliente creado exitosamente: {cliente.nombre_cliente} (NIT: {cliente.nit})")
+            except Exception as e:
+                # Rollback: eliminar usuario si falla crear cliente
+                user.delete()
+                logger.error(f"Error al crear cliente, usuario eliminado: {str(e)}")
+                return Response({
+                    'status': 'error',
+                    'error': 'Error al crear perfil de cliente',
+                    'detail': str(e),
+                    'message': 'No se pudo crear el perfil del cliente'
+                }, status=status.HTTP_400_BAD_REQUEST)
+            
+            # 6. Crear relación con empresa
+            try:
+                # Verificar si ya existe relación
+                if Tiene.objects.filter(
                     id_cliente=cliente,
                     id_empresa=empresa
-                ).exists()
-                
-                if not relacion_existente:
+                ).exists():
+                    # Actualizar si ya existe
+                    Tiene.objects.filter(
+                        id_cliente=cliente,
+                        id_empresa=empresa
+                    ).update(estado='activo')
+                    logger.info(f"Relación ya existía, actualizada a activo")
+                else:
+                    # Crear nueva relación
                     tiene = Tiene.objects.create(
                         id_cliente=cliente,
                         id_empresa=empresa,
                         estado='activo'
                     )
-                    logger.info(f"Relación creada: Cliente {cliente.nombre_cliente} - Empresa {empresa.nombre}")
-                else:
-                    logger.info(f"Relación ya existía: Cliente {cliente.nombre_cliente} - Empresa {empresa.nombre}")
-                    # Actualizar estado a activo si estaba inactivo
-                    Tiene.objects.filter(
-                        id_cliente=cliente,
-                        id_empresa=empresa
-                    ).update(estado='activo')
+                    logger.info(f"Relación empresa-cliente creada exitosamente")
+                
+            except Exception as e:
+                logger.error(f"Error creando relación empresa-cliente: {str(e)}")
+                # No hacemos rollback aquí, el cliente ya está creado
+                # Solo logueamos el error pero continuamos
             
-            except Exception as rel_error:
-                logger.error(f"Error creando relación empresa-cliente: {str(rel_error)}")
-                # No fallar el registro si hay error en la relación
-        
-            # 6. Generar tokens de autenticación
-            from rest_framework_simplejwt.tokens import RefreshToken
+            # 7. Preparar respuesta exitosa
+            response_serializer = ClienteResponseSerializer(
+                cliente,
+                context={'empresa_id': empresa_id}
+            )
             
-            refresh = RefreshToken.for_user(user)
-            tokens = {
-                'refresh': str(refresh),
-                'access': str(refresh.access_token),
-            }
-            
-            # 7. Preparar respuesta
             response_data = {
+                'status': 'success',
                 'message': 'Cliente registrado exitosamente',
                 'detail': 'Tu cuenta ha sido creada y asociada con la empresa',
-                'cliente': {
-                    'id': cliente.id_usuario,
-                    'nit': cliente.nit,
-                    'nombre': cliente.nombre_cliente,
-                    'email': user.email,
-                    'telefono': cliente.telefono_cliente,
-                    'fecha_registro': cliente.fecha_registro.isoformat()
-                },
+                'data': response_serializer.data,
+                'instrucciones': {
+                    'login': 'Usa tu email y contraseña para iniciar sesión',
+                    'empresa': f'Estás registrado en: {empresa.nombre}',
+                    'siguientes_pasos': 'Ya puedes realizar compras en la empresa'
+                }
+            }
+            
+            logger.info(f"Registro completado exitosamente para: {cliente.nombre_cliente}")
+            return Response(response_data, status=status.HTTP_201_CREATED)
+            
+        except Exception as e:
+            logger.error(f"Error general en registro de cliente: {str(e)}", exc_info=True)
+            
+            # Rollback general si hubo error antes de crear el usuario
+            if 'user' in locals():
+                try:
+                    user.delete()
+                    logger.info(f"Usuario {user.email} eliminado por error general")
+                except:
+                    pass
+            
+            return Response({
+                'status': 'error',
+                'error': 'Error interno del servidor',
+                'detail': str(e),
+                'message': 'Ocurrió un error inesperado. Por favor intenta nuevamente.'
+            }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+class InfoEmpresaParaRegistroView(generics.RetrieveAPIView):
+    """
+    Vista para obtener información de empresa para mostrar en el formulario de registro
+    GET /api/clientes/empresa-registro/{id}/
+    """
+    permission_classes = [AllowAny]
+    
+    def get(self, request, id_empresa, *args, **kwargs):
+        """
+        Retorna información básica de la empresa para mostrar en el formulario
+        """
+        try:
+            empresa = Empresa.objects.get(
+                id_empresa=id_empresa,
+                estado='activo'
+            )
+            
+            # Contar clientes registrados en esta empresa
+            cantidad_clientes = Tiene.objects.filter(
+                id_empresa=empresa,
+                estado='activo'
+            ).count()
+            
+            data = {
+                'status': 'success',
                 'empresa': {
                     'id': empresa.id_empresa,
                     'nombre': empresa.nombre,
                     'nit': empresa.nit,
-                    'estado': empresa.estado
+                    'rubro': empresa.rubro,
+                    'direccion': empresa.direccion,
+                    'telefono': empresa.telefono,
+                    'email': empresa.email,
+                    'estado': empresa.estado,
+                    'fecha_creacion': empresa.fecha_creacion,
+                    'cantidad_clientes': cantidad_clientes
                 },
-                'relacion': {
-                    'estado': 'activo',
-                    'fecha_registro': cliente.fecha_registro.isoformat(),
-                    'mensaje': f'Cliente registrado en empresa {empresa.nombre}'
-                },
-                'tokens': tokens,
-                'status': 'success'
+                'mensaje': f'Registro para: {empresa.nombre}',
+                'instrucciones': 'Completa el formulario para registrarte como cliente'
             }
             
-            return Response(response_data, status=status.HTTP_201_CREATED)
+            return Response(data)
             
+        except Empresa.DoesNotExist:
+            return Response({
+                'status': 'error',
+                'error': 'Empresa no encontrada',
+                'detail': f'No existe la empresa con ID {id_empresa}',
+                'message': 'La empresa especificada no existe o no está activa'
+            }, status=status.HTTP_404_NOT_FOUND)
         except Exception as e:
-            logger.error(f"Error en registro de cliente con empresa: {str(e)}", exc_info=True)
-            
-            # Rollback en caso de error
-            if 'user' in locals():
-                user.delete()
-                logger.info(f"Usuario {user.email} eliminado por error")
-            
-            return Response(
-                {
-                    'error': 'Error en el registro',
-                    'detail': str(e),
-                    'sugerencia': 'Verifica los datos e intenta nuevamente',
-                    'status': 'error'
-                },
-                status=status.HTTP_400_BAD_REQUEST
-            )
+            logger.error(f"Error obteniendo información de empresa: {str(e)}")
+            return Response({
+                'status': 'error',
+                'error': 'Error al obtener información',
+                'detail': str(e),
+                'message': 'No se pudo obtener la información de la empresa'
+            }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 class ListaClientesView(generics.ListAPIView):
     """

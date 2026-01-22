@@ -207,11 +207,26 @@ class FiltroAuditoriaSerializer(serializers.Serializer):
 class RegistroClienteConEmpresaSerializer(serializers.Serializer):
     """Serializador para registro de cliente con empresa automática"""
     email = serializers.EmailField(required=True)
-    password = serializers.CharField(required=True, write_only=True, min_length=8)
+    password = serializers.CharField(
+        required=True, 
+        write_only=True, 
+        min_length=8,
+        style={'input_type': 'password'}
+    )
     nit = serializers.CharField(required=True, max_length=20)
     nombre_cliente = serializers.CharField(required=True, max_length=200)
-    direccion_cliente = serializers.CharField(required=False, allow_blank=True, max_length=300)
-    telefono_cliente = serializers.CharField(required=False, allow_blank=True, max_length=15)
+    direccion_cliente = serializers.CharField(
+        required=False, 
+        allow_blank=True, 
+        max_length=300,
+        default=''
+    )
+    telefono_cliente = serializers.CharField(
+        required=False, 
+        allow_blank=True, 
+        max_length=15,
+        default=''
+    )
     id_empresa = serializers.IntegerField(required=True)
     
     def validate_email(self, value):
@@ -235,3 +250,71 @@ class RegistroClienteConEmpresaSerializer(serializers.Serializer):
         except Empresa.DoesNotExist:
             raise serializers.ValidationError("La empresa no existe")
         return value
+    
+    def create(self, validated_data):
+        """Método create que será llamado por la vista"""
+        return validated_data  # Retornamos los datos validados
+
+
+class ClienteResponseSerializer(serializers.ModelSerializer):
+    """Serializador para respuesta de registro exitoso"""
+    email = serializers.EmailField(source='id_usuario.email')
+    tokens = serializers.SerializerMethodField()
+    empresa_info = serializers.SerializerMethodField()
+    relacion_info = serializers.SerializerMethodField()
+    
+    class Meta:
+        model = Cliente
+        fields = [
+            'id_usuario', 'nit', 'nombre_cliente', 'email',
+            'direccion_cliente', 'telefono_cliente', 'fecha_registro',
+            'tokens', 'empresa_info', 'relacion_info'
+        ]
+        read_only_fields = fields
+    
+    def get_tokens(self, obj):
+        """Genera tokens JWT para el nuevo usuario"""
+        from rest_framework_simplejwt.tokens import RefreshToken
+        user = obj.id_usuario
+        refresh = RefreshToken.for_user(user)
+        return {
+            'refresh': str(refresh),
+            'access': str(refresh.access_token),
+        }
+    
+    def get_empresa_info(self, obj):
+        """Obtiene información de la empresa"""
+        empresa_id = self.context.get('empresa_id')
+        if not empresa_id:
+            return None
+        
+        try:
+            empresa = Empresa.objects.get(id_empresa=empresa_id)
+            return {
+                'id': empresa.id_empresa,
+                'nombre': empresa.nombre,
+                'nit': empresa.nit,
+                'rubro': empresa.rubro,
+                'estado': empresa.estado
+            }
+        except Empresa.DoesNotExist:
+            return None
+    
+    def get_relacion_info(self, obj):
+        """Obtiene información de la relación empresa-cliente"""
+        empresa_id = self.context.get('empresa_id')
+        if not empresa_id:
+            return None
+        
+        try:
+            relacion = Tiene.objects.get(
+                id_cliente=obj,
+                id_empresa_id=empresa_id
+            )
+            return {
+                'estado': relacion.estado,
+                'fecha_registro': relacion.fecha_registro,
+                'mensaje': 'Cliente registrado exitosamente en la empresa'
+            }
+        except Tiene.DoesNotExist:
+            return None

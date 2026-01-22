@@ -125,14 +125,12 @@ class RegistroUsuarioEmpresaView(generics.CreateAPIView):
             
             logger.info(f"Usuario creado: {nuevo_usuario.email} con rol {rol_solicitado}")
             
-            # 4. Si es admin_empresa, crear registro en tabla Admin
-            if rol_solicitado == 'admin_empresa':
-                self._crear_registro_admin(nuevo_usuario)
+            # 4. NO crear registro en tabla Admin - SOLO usuario_empresa
             
             # 5. Crear registro en Usuario_Empresa
             usuario_empresa = Usuario_Empresa.objects.create(
                 id_usuario=nuevo_usuario,
-                empresa=empresa,
+                empresa=empresa,  # Pasar el objeto Empresa, no el ID
                 estado='activo'
             )
             
@@ -190,7 +188,7 @@ class RegistroUsuarioEmpresaView(generics.CreateAPIView):
         try:
             # Buscar usuarios admin_empresa asociados a esta empresa
             usuarios_admin = Usuario_Empresa.objects.filter(
-                empresa_id=empresa,
+                empresa=empresa,  # Cambiado de empresa_id a empresa
                 id_usuario__rol__rol='admin_empresa'
             )
             return usuarios_admin.exists()
@@ -201,22 +199,8 @@ class RegistroUsuarioEmpresaView(generics.CreateAPIView):
         """Obtiene la empresa asignada a un usuario a través de Usuario_Empresa"""
         try:
             usuario_empresa = Usuario_Empresa.objects.get(id_usuario=usuario)
-            return usuario_empresa.empresa_id
+            return usuario_empresa.empresa  # Retornar objeto Empresa, no ID
         except Usuario_Empresa.DoesNotExist:
-            return None
-    
-    def _crear_registro_admin(self, usuario):
-        """Crea registro en tabla Admin para usuario admin_empresa"""
-        try:
-            admin = Admin.objects.create(
-                id_usuario=usuario,
-                nombre_admin=usuario.email.split('@')[0],
-                telefono_admin="0000000000"  # Valor por defecto
-            )
-            logger.info(f"Registro Admin creado para {usuario.email}")
-            return admin
-        except Exception as e:
-            logger.warning(f"No se pudo crear registro Admin: {str(e)}")
             return None
 
 

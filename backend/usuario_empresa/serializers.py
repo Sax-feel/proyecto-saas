@@ -55,6 +55,7 @@ class RegistroUsuarioEmpresaSerializer(serializers.Serializer):
     
     def validate(self, data):
         request = self.context.get('request')
+        user_actual = request.user
         rol_solicitado = data.get('rol_nombre')
         
         if rol_solicitado == 'admin_empresa':
@@ -62,6 +63,14 @@ class RegistroUsuarioEmpresaSerializer(serializers.Serializer):
             if not data.get('empresa_id'):
                 raise serializers.ValidationError({
                     'empresa_id': 'Requerido para rol admin_empresa'
+                })
+        
+        elif rol_solicitado == 'vendedor':
+            # Para vendedor, NO debe venir empresa_id
+            if data.get('empresa_id'):
+                raise serializers.ValidationError({
+                    'empresa_id': 'No debe proporcionar empresa_id para rol vendedor. '
+                                    'El vendedor se registrará en la misma empresa del admin_empresa que lo crea.'
                 })
         
         return data

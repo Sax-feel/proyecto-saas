@@ -36,6 +36,11 @@ const allNavigation = {
     { name: "Productos", href: "/usuario_empresa/producto-section", icon: Package },
     { name: "Categorias", href: "/usuario_empresa/categorias", icon: Tag},
     { name: "Suscripción", href: "/usuario_empresa/suscripciones", icon: CreditCard },
+  ],
+
+  vendedor: [
+    { name: "Productos", href: "/vendedor/productos_vendedor", icon: Package },
+    { name: "Ventas", href: "/vendedor/ventas", icon: CreditCard },
   ]
 }
 
@@ -48,6 +53,10 @@ function getNavigation(pathname) {
   // Si está en rutas de usuario_empresa, mostrar esas
   else if (pathname?.startsWith('/usuario_empresa')) {
     return allNavigation.empresa
+  }
+  // Si está en rutas de Vendedores, mostrar esas
+  else if (pathname?.startsWith('/vendedor')) {
+    return allNavigation.vendedor
   }
   // Por defecto, mostrar admin
   return allNavigation.admin

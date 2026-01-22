@@ -1,93 +1,245 @@
-.dashboardContainer {
-  display: flex;
-  min-height: 100vh;
-  font-family: 'Inter', sans-serif;
-  background-color: #f9f9fb;
-  color: #1f2937;
+/* ----------------- CONTENEDOR PRINCIPAL ----------------- */
+.container {
+    min-height: 100vh; 
+    /* Ocupa el 100% del ancho de la ventana */
+    width: 100vw;
+    padding: 1rem 2rem;
+    font-family: 'Inter', sans-serif;
+    color: #f1f5f9;
+    background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
 }
 
-.mainContent {
-  flex: 1;
-  margin-left: 250px;
-  padding: 2.5rem 3rem;
-  transition: margin-left 0.3s ease;
-  overflow-y: auto;
-  max-width: calc(100vw - 250px);
-}
-
-.mainContent.collapsed {
-  margin-left: 80px;
-  max-width: calc(100vw - 80px);
+/* ----------------- HEADER ----------------- */
+.header {
+    text-align: center;
+    margin-bottom: 3rem;
+    padding-bottom: 2rem;
+    border-bottom: 1px solid #374b6a;
 }
 
 .title {
-  font-size: 2.25rem;
-  font-weight: 700;
-  margin-bottom: 2.5rem;
-  color: #111827;
-  line-height: 1.2;
-  padding-bottom: 1.5rem;
-  border-bottom: 1px solid #e5e7eb;
+    font-size: 2.5rem;
+    font-weight: 800;
+    margin-bottom: 0.5rem;
+    background: linear-gradient(135deg, #272728 0%, #94a3b8 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
 }
 
-.section {
-  background: #ffffff;
-  border-radius: 12px;
-  padding: 2.5rem;
-  margin-bottom: 3rem;
-  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.06);
-  border: 1px solid #f0f0f0;
+.subtitle {
+    font-size: 1.125rem;
+    color: #000000;
+    max-width: 600px;
+    margin: 0 auto;
+    line-height: 1.6;
 }
 
-.section > div:first-child {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 2.5rem;
-  flex-wrap: wrap;
-  gap: 1.5rem;
+/* ----------------- ESTADÍSTICAS ----------------- */
+.statsContainer {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 1.5rem;
+    margin-bottom: 2.5rem;
 }
 
-.section h2 {
-  font-size: 1.75rem;
-  font-weight: 600;
-  color: #374151;
-  margin: 0;
-  line-height: 1.3;
+.statCard {
+    background: linear-gradient(135deg, #2e3b55 0%, #374b6a 100%);
+    padding: 1.5rem;
+    border-radius: 12px;
+    text-align: center;
+    border: 1px solid #4b5563;
+    transition: all 0.3s ease;
 }
 
-.section h2::after {
-  content: "";
-  display: block;
-  width: 60px;
-  height: 4px;
-  background-color: #3b82f6;
-  margin-top: 0.75rem;
-  border-radius: 2px;
+.statCard:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.2);
+    border-color: #4f46e5;
 }
 
-.headerActions {
-  display: flex;
-  gap: 1rem;
-  align-items: center;
+.statNumber {
+    display: block;
+    font-size: 2.5rem;
+    font-weight: 700;
+    color: #4f46e5;
+    margin-bottom: 0.5rem;
 }
 
-.searchContainer {
-  margin: 2rem 0;
+.statLabel {
+    font-size: 0.875rem;
+    color: #94a3b8;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
 }
 
-.modalOverlay {
-  position: fixed; top: 0; left: 0; right: 0; bottom: 0;
-  background: rgba(0,0,0,0.5);
-  display: flex; justify-content: center; align-items: center;
-  z-index: 2000;
+/* ----------------- TOGGLE DE VISTA ----------------- */
+.viewToggle {
+    display: flex;
+    gap: 0.5rem;
+    margin-bottom: 2rem;
+    background-color: #2e3b55;
+    padding: 0.25rem;
+    border-radius: 8px;
+    width: fit-content;
 }
 
-.modal {
-  background: #fff;
-  padding: 2rem;
-  border-radius: 8px;
-  max-width: 400px;
-  width: 100%;
-  box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+.viewButton {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.5rem 1rem;
+    background: transparent;
+    border: none;
+    color: #94a3b8;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 0.875rem;
+    font-weight: 500;
+    transition: all 0.2s;
+}
+
+.viewButton.active {
+    background-color: #374b6a;
+    color: #e2e8f0;
+}
+
+.viewButton:hover:not(.active) {
+    background-color: #2e3b55;
+    color: #e2e8f0;
+}
+
+/* ----------------- GRID DE EMPRESAS ----------------- */
+.empresasGrid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+    gap: 1.5rem;
+    
+}
+
+@media (max-width: 768px) {
+    .empresasGrid {
+        grid-template-columns: 1fr;
+    }
+}
+
+/* ----------------- SECCIÓN DE TABLA ----------------- */
+.tableSection {
+    margin-top: 4rem;
+    padding-top: 2rem;
+    border-top: 1px solid #374b6a;
+}
+
+.sectionTitle {
+    font-size: 1.5rem;
+    color: #e2e8f0;
+    margin-bottom: 1.5rem;
+}
+
+.tableContainer {
+    overflow-x: auto;
+    border-radius: 8px;
+    border: 1px solid #374b6a;
+}
+
+.table {
+    width: 100%;
+    border-collapse: collapse;
+    background-color: #2e3b55;
+    min-width: 800px;
+}
+
+.table th {
+    background-color: #2563eb;
+    font-weight: 600;
+    color: #f1f5f9;
+    padding: 1rem;
+    text-align: left;
+    border-bottom: 2px solid #374b6a;
+}
+
+.table td {
+    padding: 1rem;
+    border-bottom: 1px solid #374b6a;
+    color: #e2e8f0;
+}
+
+.table tr:hover {
+    background-color: #374b6a;
+}
+
+/* ----------------- BADGES ----------------- */
+.estadoBadge {
+    display: inline-block;
+    padding: 0.25rem 0.75rem;
+    border-radius: 20px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.estadoBadge.activo {
+    background-color: rgba(16, 185, 129, 0.2);
+    color: #10b981;
+    border: 1px solid #10b981;
+}
+
+.estadoBadge.inactivo {
+    background-color: rgba(239, 68, 68, 0.2);
+    color: #ef4444;
+    border: 1px solid #ef4444;
+}
+
+/* ----------------- ENLACES ----------------- */
+.selectLink {
+    display: inline-block;
+    padding: 0.5rem 1rem;
+    background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%);
+    color: white;
+    text-decoration: none;
+    border-radius: 6px;
+    font-weight: 500;
+    font-size: 0.875rem;
+    transition: all 0.2s;
+}
+
+.selectLink:hover {
+    background: linear-gradient(135deg, #4338ca 0%, #6d28d9 100%);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(79, 70, 229, 0.2);
+}
+
+/* ----------------- ERROR ----------------- */
+.errorContainer {
+    background-color: rgba(239, 68, 68, 0.1);
+    border: 1px solid #ef4444;
+    border-radius: 8px;
+    padding: 2rem;
+    text-align: center;
+    margin-top: 2rem;
+}
+
+.errorText {
+    color: #fca5a5;
+    margin-bottom: 1.5rem;
+    font-size: 1rem;
+}
+
+.retryButton {
+    padding: 0.75rem 1.5rem;
+    background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+    color: white;
+    border: none;
+    border-radius: 8px;
+    font-weight: 600;
+    font-size: 0.875rem;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.retryButton:hover {
+    background: linear-gradient(135deg, #dc2626 0%, #b91c1c 100%);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(239, 68, 68, 0.2);
 }

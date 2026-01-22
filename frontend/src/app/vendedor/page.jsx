@@ -1,97 +1,56 @@
-"use client";
+"use client"
 
-import { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
-import styles from "./DashboardVendedor.module.css";
+import { useState, useEffect } from "react"
+import Sidebar from "../../components/layout/Sidebar/Sidebar"
+import { Building2, Mail, Phone, MapPin, FileText, Globe, Lock, Edit, Save, X, Trash2, AlertTriangle, ChartColumnIncreasing, Info, CalendarCheck, Loader2 } from "lucide-react"
+import Button from "../../components/ui/Button/Button"
+import Input from "../../components/ui/Input/Input"
+import FormField from "../../components/ui/FormField/FormField"
+import DataCard from "../../components/ui/DataCard/DataCard"
+import styles from "./DashboardVendedor.module.css"
 
-export default function VendedorPage() {
-  const router = useRouter();
+export default function EmpresaPage() {
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
+  const [isEditing, setIsEditing] = useState(false)
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState(null)
+  const [showDeleteModal, setShowDeleteModal] = useState(false)
+  const [saving, setSaving] = useState(false)
 
-  const [empresa, setEmpresa] = useState({
-    nombre: "SuperTienda",
-    nit: "123456",
-    estado: "Activo",
-  });
 
-  const [clientes, setClientes] = useState([
-    { email: "cliente1@mail.com", nombre: "Cliente 1", estado: "Activo" },
-    { email: "cliente2@mail.com", nombre: "Cliente 2", estado: "Activo" },
-  ]);
+  // Estado para la empresa
 
-  const [productos, setProductos] = useState([
-    { nombre: "Producto A", stock: 10, precio: 25 },
-    { nombre: "Producto B", stock: 5, precio: 15 },
-  ]);
+  // ------------------- FUNCIONES -------------------
+  //const getToken = () => localStorage.getItem("access")
 
-  // Verificar login y rol
-  useEffect(() => {
-    const rol = localStorage.getItem("rol");
-    if (!rol || rol !== "vendedor") {
-      router.push("/login");
-    }
-  }, []);
-
-  const handleLogout = () => {
-    localStorage.clear();
-    router.push("/login");
-  };
+  // Si está cargando
+  if (loading) {
+    return (
+      <div className={styles.dashboardContainer}>
+        <Sidebar collapsed={sidebarCollapsed} setCollapsed={setSidebarCollapsed} />
+        <div className={`${styles.mainContent} ${sidebarCollapsed ? styles.collapsed : ""}`}>
+          <div className={styles.loadingContainer}>
+            <p>Cargando información de la empresa...</p>
+          </div>
+        </div>
+      </div>
+    )
+  }
 
   return (
-    <div className={styles.container}>
-      <h1 className={styles.title}>Dashboard Vendedor</h1>
+    <div className={styles.dashboardContainer}>
+      <Sidebar collapsed={sidebarCollapsed} setCollapsed={setSidebarCollapsed} />
 
-      <section className={styles.section}>
-        <h2>Empresa</h2>
-        <p><strong>Nombre:</strong> {empresa.nombre}</p>
-        <p><strong>NIT:</strong> {empresa.nit}</p>
-        <p><strong>Estado:</strong> {empresa.estado}</p>
-      </section>
-
-      <section className={styles.section}>
-        <h2>Clientes</h2>
-        <table className={styles.table}>
-          <thead>
-            <tr>
-              <th>Email</th>
-              <th>Nombre</th>
-              <th>Estado</th>
-            </tr>
-          </thead>
-          <tbody>
-            {clientes.map((c, i) => (
-              <tr key={i}>
-                <td>{c.email}</td>
-                <td>{c.nombre}</td>
-                <td>{c.estado}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </section>
-
-      <section className={styles.section}>
-        <h2>Productos</h2>
-        <table className={styles.table}>
-          <thead>
-            <tr>
-              <th>Nombre</th>
-              <th>Stock</th>
-              <th>Precio</th>
-            </tr>
-          </thead>
-          <tbody>
-            {productos.map((p, i) => (
-              <tr key={i}>
-                <td>{p.nombre}</td>
-                <td>{p.stock}</td>
-                <td>${p.precio}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </section>
-
-      <button className={styles.logout} onClick={handleLogout}>Cerrar Sesión</button>
+      <div className={`${styles.mainContent} ${sidebarCollapsed ? styles.collapsed : ""}`}>
+        <div className={styles.headerSection}>
+          <div>
+            <h1 className={styles.title}>{empresa.nombre}</h1>
+            <p className={styles.subtitle}>ID: {empresa.id_empresa} • Admin: {empresa.admin_registro.nombre}</p>
+          </div>
+          <div className={styles.actions}>
+          </div>
+        </div>
+      </div>
     </div>
-  );
+  )
 }

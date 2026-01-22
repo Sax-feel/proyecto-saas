@@ -191,9 +191,6 @@ export default function CategoriaSection() {
             </div>
           </div>
 
-          {loading && <p>Cargando categorias...</p>}
-          {error && <p className={styles.errorText}>{error}</p>}
-
           <SearchBar
             searchTerm={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}

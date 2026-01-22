@@ -69,12 +69,8 @@ const fetchVentas = async () => {
         const data = await res.json();
         if (!res.ok) throw new Error(JSON.stringify(data));
 
-        console.log(data.ventas)
         const ventasArray = data.ventas
-        console.log("arraty",ventasArray[0].cliente_info.nombre)
-        console.log(typeof ventasArray)
         setVentas(ventasArray)
-        console.log("v", ventas);
 
         setError(null);
     } catch (err) {
@@ -93,11 +89,13 @@ useEffect(() => {
 const columns = [
   {
     label: "Vendedor",
-    key: ".vendedor_info.email",
+    key: "vendedor_email", // Clave simple
+    render: (row) => row.vendedor_info?.email || "-"
   },
   {
     label: "Cliente",
     key: "cliente_info.nombre",
+    render: (row) => row.cliente_info?.nombre || "-"
   },
   {
     label: "Fecha de la Venta",
@@ -110,6 +108,7 @@ const columns = [
   {
     label: "Empresa",
     key: "empresa_info.nombre",
+    render: (row) => row.empresa_info?.nombre || "-"
   },
 ];
 

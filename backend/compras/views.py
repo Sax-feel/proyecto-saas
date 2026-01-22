@@ -6,7 +6,8 @@ from django_filters.rest_framework import DjangoFilterBackend
 from datetime import datetime
 import logging
 
-from .models import Compra, DetalleCompra
+from .models import Compra
+from detalle_compra.models import DetalleCompra
 from .serializers import CompraSerializer, RealizarCompraStockSerializer
 
 logger = logging.getLogger(__name__)

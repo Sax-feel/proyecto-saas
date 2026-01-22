@@ -1,5 +1,6 @@
 from rest_framework import serializers
-from .models import Compra, DetalleCompra
+from .models import Compra
+from detalle_compra.models import DetalleCompra
 from producto.models import Producto
 import logging
 

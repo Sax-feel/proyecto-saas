@@ -40,6 +40,7 @@ const allNavigation = {
 
   vendedor: [
     { name: "Productos", href: "/vendedor/productos_vendedor", icon: Package },
+    { name: "Ventas", href: "/vendedor/ventas", icon: CreditCard },
   ]
 }
 

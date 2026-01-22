@@ -31,12 +31,12 @@ export default function ProductosVendedor() {
   });
 
   //Autenticacion
-  /*const getToken = () => {
+  const getToken = () => {
     if (typeof window !== "undefined") {
       return localStorage.getItem("access")
     }
     return null;
-  }*/
+  }
 
   //sidebar
   const [collapsed, setCollapsed] = useState(false)
@@ -160,9 +160,6 @@ export default function ProductosVendedor() {
             <div>
               <h2>Productos ({filteredProductos.length})</h2>
               <div className={styles.headerActions}>
-                <Button onClick={handleOpenProductoForm} variant="secondary">
-                  + Agregar Productos
-                </Button>
               </div>
             </div>
 

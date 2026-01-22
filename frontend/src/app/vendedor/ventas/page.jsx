@@ -30,12 +30,29 @@ const getToken = () =>
 
 //Buscador
 const [searchTerm, setSearchTerm] = useState("")
-const filteredProductos = ventas.filter(ventas => {
-    const term = searchTerm.toLowerCase()
-    return ["cliente", "fecha_venta", "usuario_empresa"].some((key) =>
-      String(ventas[key]).toLowerCase().includes(term)
-    );
+const filteredVentas = ventas.filter(v => {
+  const term = searchTerm.toLowerCase();
+  return (
+    v.cliente_info?.nombre?.toLowerCase().includes(term) ||
+    v.empresa_info?.nombre?.toLowerCase().includes(term) ||
+    v.vendedor_info?.email?.toLowerCase().includes(term)
+  );
 });
+
+//Formato de FECHA
+const formatDate = (dateString) => {
+  if (!dateString) return "-";
+  const dateObj = new Date(dateString);
+  return isNaN(dateObj.getTime()) 
+    ? "-" 
+    : dateObj.toLocaleString("es-ES", {
+        day: "2-digit",
+        month: "2-digit",
+        year: "numeric",
+        hour: "2-digit",
+        minute: "2-digit",
+      });
+};
 
 //Obtener las Ventas
 const fetchVentas = async () => {
@@ -52,15 +69,20 @@ const fetchVentas = async () => {
         const data = await res.json();
         if (!res.ok) throw new Error(JSON.stringify(data));
 
-        const ventasArray = Array.isArray(data) ? data : data.ventas || []
+        console.log(data.ventas)
+        const ventasArray = data.ventas
+        console.log("arraty",ventasArray[0].cliente_info.nombre)
+        console.log(typeof ventasArray)
         setVentas(ventasArray)
+        console.log("v", ventas);
+
         setError(null);
     } catch (err) {
         setError(`Error al cargar productos:\n${err.message}`);
     } finally {
         setLoading(false);
     }
-}
+};
 
 //recarga
 useEffect(() => {
@@ -69,14 +91,27 @@ useEffect(() => {
 
 //tabla
 const columns = [
-    { key: "usuario_empresa", label: "Usuario de Empresa"},
-    { key: "cliente", label:"Cliente"},
-    { key: "fecha_venta", label:"Fecha de Venta"},
-    { key: "precio_total", label:"Precio Total"},
-    { key: "cliente_info", label:"Informacion del Cliente"},
-    { key: "vendedor_info", label:"Informacion del Vendedor"},
-    { key: "empresa_info", label:"Informacion de la Empresa"},
-]
+  {
+    label: "Vendedor",
+    key: ".vendedor_info.email",
+  },
+  {
+    label: "Cliente",
+    key: "cliente_info.nombre",
+  },
+  {
+    label: "Fecha de la Venta",
+    key: "fecha_venta",
+  },
+  {
+    label: "Precio Total",
+    key: "precio_total",
+  },
+  {
+    label: "Empresa",
+    key: "empresa_info.nombre",
+  },
+];
 
 return(
     <div className={styles.dashboardContainer}>
@@ -87,7 +122,7 @@ return(
             {/* ---------------- CLIENTES ---------------- */}
             <section className={styles.section}>
             <div className={styles.sectionHeader}>
-                <h2>Ventas ({filteredProductos.length})</h2>
+                <h2>Ventas ({filteredVentas.length})</h2>
                 <div className={styles.headerActions}>
                 </div>
             </div>
@@ -101,8 +136,8 @@ return(
 
             <Tables
                 columns={columns}
-                data={filteredProductos}
-                rowKey="id_producto"
+                data={filteredVentas}
+                rowKey="id_venta"
             />
             </section>
         </div>

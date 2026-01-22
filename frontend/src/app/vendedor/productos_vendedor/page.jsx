@@ -98,7 +98,6 @@ export default function ProductosVendedor() {
           )
         }
       })
-
       setError(null);
     } catch (err) {
       setError(`Error al cargar productos:\n${err.message}`);
@@ -106,6 +105,49 @@ export default function ProductosVendedor() {
       setLoading(false);
     }
   }
+
+  //Aumentar STOCK
+  const handleAumentarStock = async (producto) => {
+    const cantidad = parseInt(prompt("Cantidad a agregar al stock:"));
+    const precio = prompt("Precio unitario:");
+
+    if (!cantidad || cantidad <= 0 || !precio) {
+      showNotification("Datos inválidos", "error");
+      return;
+    }
+
+    try {
+      const token = getToken();
+
+      const res = await fetch("http://localhost:8000/api/compras/realizar/", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          detalles: [
+            {
+              id_producto: producto.id_producto,
+              cantidad: cantidad,
+              precio_unitario: precio,
+            },
+          ],
+        }),
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) throw new Error(data.detail || "Error al aumentar stock");
+
+      showNotification("Stock aumentado correctamente", "success");
+
+      fetchProductos();
+
+    } catch (err) {
+      showNotification(err.message, "error");
+    }
+  };
 
 
   //Obtener Proveedores
@@ -137,13 +179,8 @@ export default function ProductosVendedor() {
 
   const renderActions = (row) => (
     <div style={{ display: "flex", gap: "8px" }}>
-      <ActionMenu
-        id={row.id_producto}
-        onEliminar={() => deleteProducto(row.id_producto)}
-        onEditar={() => handleEditarProducto(row)}
-      />
-      <Button onClick={() => handleOpenImagenes(row)} variant="secondary">
-        Añadir Producto
+      <Button onClick={() => handleAumentarStock(row)} variant="secondary">
+        Aumentar Stock
       </Button>
     </div>
   );

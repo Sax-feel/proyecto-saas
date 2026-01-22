@@ -13,18 +13,6 @@ export default function DashboardVentas(){
     const [collapsed, setCollapsed] = useState(false);
     const [error, setError] = useState(null);
 
-//Guardar Datos
-const [ventaData, setVentaData] = useState({
-    id_venta: "",
-    usuario_empresa: "",
-    cliente: "",
-    fecha_venta: "",
-    precio_total: "",
-    cliente_info: "",
-    vendedor_info: "",
-    empresa_info: ""
-});
-
 //token
 const getToken = () =>
     typeof window !== "undefined" ? localStorage.getItem("access") : null;
@@ -120,6 +108,17 @@ useEffect(() => {
 
 //tabla
 const columns = [
+  {
+    label: "Detalles",
+    key: "detalles",
+    render: row => (
+      row.detalles_venta?.map(d => (
+        <div key={d.id_producto}>
+          {d.producto_nombre} / Cant: {d.cantidad} / Categoria: {d.categoria}Bs
+        </div>
+      )) || "-"
+    )
+  },
   {
     label: "Vendedor",
     key: "vendedor_email",

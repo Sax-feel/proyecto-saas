@@ -7,6 +7,14 @@ from django.db import models
 from .models import Producto
 from .serializers import ProductoSerializer, ProductoCreateSerializer, ProductoPublicSerializer
 from categoria.views import IsAdminEmpresa
+from rest_framework.response import Response
+from django.shortcuts import get_object_or_404
+from empresas.models import Empresa
+from .models import Producto
+from .serializers import ProductoPublicSerializer, ProductoSerializer
+import logging
+
+logger = logging.getLogger(__name__)
 
 class IsAdminEmpresaOrReadOnly(permissions.BasePermission):
     """
@@ -81,13 +89,63 @@ class ProductoCreateView(generics.CreateAPIView):
                     'message': 'Proveedor no encontrado'
                 }, status=status.HTTP_400_BAD_REQUEST)
         
+        
         producto = serializer.save(empresa=empresa)
+
+        if producto.stock_actual <= producto.stock_minimo:
+            self._crear_notificacion_stock_bajo(producto)
         
         return Response({
             'status': 'success',
             'message': 'Producto creado exitosamente',
             'data': ProductoSerializer(producto).data
         }, status=status.HTTP_201_CREATED)
+    
+    def _crear_notificacion_stock_bajo(self, producto):
+        """
+        Crea notificación de stock bajo para admin_empresa y vendedores
+        """
+        try:
+            from notificaciones.models import Notificacion
+            from relacion_notifica.models import Notifica
+            from usuario_empresa.models import Usuario_Empresa
+            from roles.models import Rol
+            
+            # Crear la notificación
+            notificacion = Notificacion.objects.create(
+                titulo=f'Stock bajo en producto nuevo: {producto.nombre}',
+                mensaje=(
+                    f'El producto "{producto.nombre}" fue creado con stock bajo. '
+                    f'Stock actual: {producto.stock_actual}, Stock mínimo: {producto.stock_minimo}. '
+                    f'Se recomienda reponer stock.'
+                ),
+                tipo='warning'
+            )
+            
+            # Obtener roles necesarios
+            rol_admin_empresa = Rol.objects.get(rol='admin_empresa')
+            rol_vendedor = Rol.objects.get(rol='vendedor')
+            
+            # Buscar admin_empresa y vendedores de la empresa
+            usuarios_empresa = Usuario_Empresa.objects.filter(
+                empresa=producto.empresa,
+                id_usuario__rol__in=[rol_admin_empresa, rol_vendedor],
+                estado='activo'
+            ).select_related('id_usuario')
+            
+            # Crear notificaciones para cada usuario
+            notificaciones_creadas = 0
+            for usuario_empresa in usuarios_empresa:
+                Notifica.objects.create(
+                    id_usuario=usuario_empresa.id_usuario,
+                    id_notificacion=notificacion
+                )
+                notificaciones_creadas += 1
+            
+            logger.info(f"Notificación de stock bajo creada para {notificaciones_creadas} usuarios en empresa {producto.empresa.nombre}")
+            
+        except Exception as e:
+            logger.error(f"Error al crear notificación de stock bajo: {str(e)}")
     
 class ProductoListView(generics.ListAPIView):
     """
@@ -144,9 +202,18 @@ class ProductoUpdateDeleteView(generics.RetrieveUpdateDestroyAPIView):
         return Producto.objects.filter(empresa=empresa).select_related('categoria', 'proveedor')
     
     def perform_update(self, serializer):
+        # Obtener instancia actual para comparar stock
+        instance = self.get_object()
+        stock_anterior = instance.stock_actual
+        
         # Mantener la empresa original
         empresa = self.request.user.usuario_empresa.empresa
-        serializer.save(empresa=empresa)
+        producto_actualizado = serializer.save(empresa=empresa)
+
+        if (producto_actualizado.stock_actual <= producto_actualizado.stock_minimo and 
+            stock_anterior > producto_actualizado.stock_minimo):
+            self._crear_notificacion_stock_bajo(producto_actualizado, es_actualizacion=True)
+
     
     def update(self, request, *args, **kwargs):
         partial = kwargs.pop('partial', False)
@@ -168,6 +235,76 @@ class ProductoUpdateDeleteView(generics.RetrieveUpdateDestroyAPIView):
             'status': 'success',
             'message': 'Producto eliminado exitosamente'
         }, status=status.HTTP_204_NO_CONTENT)
+    
+    def _crear_notificacion_stock_bajo(self, producto, es_actualizacion=False):
+        """
+        Crea notificación de stock bajo para admin_empresa y vendedores
+        """
+        try:
+            from notificaciones.models import Notificacion
+            from relacion_notifica.models import Notifica
+            from usuario_empresa.models import Usuario_Empresa
+            from roles.models import Rol
+            
+            # Determinar el mensaje según si es creación o actualización
+            if es_actualizacion:
+                titulo = f'Stock bajo en producto actualizado: {producto.nombre}'
+                mensaje = (
+                    f'El producto "{producto.nombre}" ha sido actualizado y ahora tiene stock bajo. '
+                    f'Stock actual: {producto.stock_actual}, Stock mínimo: {producto.stock_minimo}. '
+                    f'Se recomienda reponer stock.'
+                )
+            else:
+                titulo = f'Stock bajo en producto nuevo: {producto.nombre}'
+                mensaje = (
+                    f'El producto "{producto.nombre}" fue creado con stock bajo. '
+                    f'Stock actual: {producto.stock_actual}, Stock mínimo: {producto.stock_minimo}. '
+                    f'Se recomienda reponer stock.'
+                )
+            
+            # Crear la notificación
+            notificacion = Notificacion.objects.create(
+                titulo=titulo,
+                mensaje=mensaje,
+                tipo='warning'
+            )
+            
+            # Obtener roles necesarios
+            try:
+                rol_admin_empresa = Rol.objects.get(rol='admin_empresa')
+                rol_vendedor = Rol.objects.get(rol='vendedor')
+                
+                roles_filtro = [rol_admin_empresa, rol_vendedor]
+            except Rol.DoesNotExist:
+                # Si no existen los roles, usar solo admin_empresa como fallback
+                try:
+                    rol_admin_empresa = Rol.objects.get(rol='admin_empresa')
+                    roles_filtro = [rol_admin_empresa]
+                except Rol.DoesNotExist:
+                    logger.warning(f"Roles no encontrados para notificación de stock bajo")
+                    return
+            
+            # Buscar admin_empresa y vendedores de la empresa
+            usuarios_empresa = Usuario_Empresa.objects.filter(
+                empresa=producto.empresa,
+                id_usuario__rol__in=roles_filtro,
+                estado='activo'
+            ).select_related('id_usuario')
+            
+            # Crear notificaciones para cada usuario
+            notificaciones_creadas = 0
+            for usuario_empresa in usuarios_empresa:
+                Notifica.objects.create(
+                    id_usuario=usuario_empresa.id_usuario,
+                    id_notificacion=notificacion
+                )
+                notificaciones_creadas += 1
+            
+            logger.info(f"Notificación de stock bajo creada para {notificaciones_creadas} usuarios en empresa {producto.empresa.nombre}")
+            
+        except Exception as e:
+            logger.error(f"Error al crear notificación de stock bajo: {str(e)}")
+            # No fallar la actualización si hay error en notificación
 
 class ProductoStatsView(generics.GenericAPIView):
     """
@@ -196,12 +333,7 @@ class ProductoStatsView(generics.GenericAPIView):
             'data': stats
         })
     
-from rest_framework import generics, permissions, status
-from rest_framework.response import Response
-from django.shortcuts import get_object_or_404
-from empresas.models import Empresa
-from .models import Producto
-from .serializers import ProductoPublicSerializer, ProductoSerializer
+
 
 class ProductosPorEmpresaView(generics.ListAPIView):
     """

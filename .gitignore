@@ -1,4 +1,6 @@
 # Entornos virtuales de Python
+/media/
+!/media/.gitkeep
 env/
 venv/
 .env

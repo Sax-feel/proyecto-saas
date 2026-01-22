@@ -1,0 +1,208 @@
+.confirmOverlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.5);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 2000;
+    animation: fadeIn 0.2s ease-out;
+}
+
+.confirmModal {
+    background: white;
+    border-radius: 12px;
+    width: 90%;
+    max-width: 500px;
+    max-height: 90vh;
+    display: flex;
+    flex-direction: column;
+    animation: slideUp 0.3s ease-out;
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+}
+
+.modalHeader {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 1.5rem;
+    border-bottom: 1px solid #f0f0f0;
+}
+
+.modalHeader h3 {
+    font-size: 1.25rem;
+    font-weight: 700;
+    color: #1f2937;
+    margin: 0;
+}
+
+.closeButton {
+    background: none;
+    border: none;
+    font-size: 1.5rem;
+    cursor: pointer;
+    color: #6b7280;
+    padding: 0.25rem 0.5rem;
+    border-radius: 6px;
+    transition: all 0.2s;
+    line-height: 1;
+}
+
+.closeButton:hover {
+    background: #f3f4f6;
+    color: #374151;
+}
+
+.modalContent {
+    flex: 1;
+    overflow-y: auto;
+    padding: 1.5rem;
+}
+
+.errorMessage {
+    background: #fee2e2;
+    border: 1px solid #fecaca;
+    color: #dc2626;
+    padding: 0.75rem 1rem;
+    border-radius: 6px;
+    margin-bottom: 1rem;
+    font-size: 0.875rem;
+}
+
+.itemsList {
+    margin-bottom: 1.5rem;
+}
+
+.itemsList h4 {
+    font-size: 1rem;
+    font-weight: 600;
+    color: #1f2937;
+    margin-bottom: 1rem;
+}
+
+.itemRow {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0.75rem 0;
+    border-bottom: 1px solid #f3f4f6;
+}
+
+.itemRow:last-child {
+    border-bottom: none;
+}
+
+.itemName {
+    flex: 2;
+    font-size: 0.875rem;
+    color: #374151;
+}
+
+.itemDetails {
+    flex: 1;
+    text-align: center;
+    font-size: 0.875rem;
+    color: #6b7280;
+}
+
+.itemSubtotal {
+    flex: 1;
+    text-align: right;
+    font-size: 0.875rem;
+    font-weight: 600;
+    color: #1f2937;
+}
+
+.totalSection {
+    padding: 1rem 0;
+    border-top: 2px solid #e5e7eb;
+    border-bottom: 2px solid #e5e7eb;
+    margin: 1rem 0;
+}
+
+.totalRow {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.totalRow span:first-child {
+    font-size: 1rem;
+    font-weight: 600;
+    color: #1f2937;
+}
+
+.totalAmount {
+    font-size: 1.25rem;
+    font-weight: 700;
+    color: #10b981;
+}
+
+.confirmationNote {
+    background: #f0f9ff;
+    border: 1px solid #bae6fd;
+    border-radius: 6px;
+    padding: 1rem;
+    margin-top: 1rem;
+}
+
+.confirmationNote p {
+    color: #0369a1;
+    font-size: 0.875rem;
+    line-height: 1.4;
+    margin: 0;
+}
+
+.modalFooter {
+    display: flex;
+    gap: 1rem;
+    padding: 1.5rem;
+    border-top: 1px solid #f0f0f0;
+}
+
+.cancelButton {
+    flex: 1;
+    background: #f3f4f6;
+    color: #374151;
+    border: 1px solid #d1d5db;
+    padding: 0.75rem;
+    border-radius: 6px;
+    font-size: 0.875rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.cancelButton:hover:not(:disabled) {
+    background: #e5e7eb;
+}
+
+.cancelButton:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.confirmButton {
+    flex: 1;
+    background: #10b981;
+    color: white;
+    border: none;
+    padding: 0.75rem;
+    border-radius: 6px;
+    font-size: 0.875rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.confirmButton:hover:not(:disabled) {
+    background: #059669;
+}
+
+.confirmButton:disabled {
+    background: #9ca3af;
+    cursor: not-allowed;
+}

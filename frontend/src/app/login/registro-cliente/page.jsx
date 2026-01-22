@@ -15,31 +15,13 @@ export default function RegistroClienteForm() {
         nombre_cliente: "",
         direccion_cliente: "",
         telefono_cliente: "",
-        empresa_nombre: ""
     })
 
-    const [empresas, setEmpresas] = useState([])
     const [loading, setLoading] = useState(false)
     const [error, setError] = useState("")
     const [success, setSuccess] = useState("")
     const [showPassword, setShowPassword] = useState(false)
 
-    // Cargar empresas disponibles al montar el componente
-    useEffect(() => {
-        cargarEmpresas()
-    }, [])
-
-    const cargarEmpresas = async () => {
-        try {
-            const res = await fetch("http://localhost:8000/api/empresas/listar")
-            const data = await res.json()
-            if (res.ok && data) {
-                setEmpresas(data)
-            }
-        } catch (err) {
-            console.error("Error cargando empresas:", err)
-        }
-    }
 
     const handleChange = (field) => (e) => {
         setFormData({
@@ -65,10 +47,6 @@ export default function RegistroClienteForm() {
 
         if (!formData.nombre_cliente.trim()) {
             return "El nombre es obligatorio"
-        }
-
-        if (!formData.empresa_nombre.trim()) {
-            return "Debe seleccionar una empresa"
         }
 
         return null
@@ -100,7 +78,6 @@ export default function RegistroClienteForm() {
                     nombre_cliente: formData.nombre_cliente,
                     direccion_cliente: formData.direccion_cliente,
                     telefono_cliente: formData.telefono_cliente,
-                    empresa_nombre: formData.empresa_nombre
                 })
             })
 
@@ -226,50 +203,7 @@ export default function RegistroClienteForm() {
                         </div>
                     </div>
 
-                    {/* Selección de empresa */}
-                    <div className={styles.section}>
-                        <h2>Selección de empresa</h2>
-                        <div className={styles.row}>
-                            <div className={styles.fullColumn}>
-                                <div className={styles.empresaField}>
-                                    <label>Empresa a la que desea registrarse *</label>
-                                    <select
-                                        value={formData.empresa_nombre}
-                                        onChange={handleChange("empresa_nombre")}
-                                        className={styles.select}
-                                        required
-                                    >
-                                        <option value="">Seleccione una empresa...</option>
-                                        {empresas.map((empresa) => (
-                                            <option key={empresa.id_empresa} value={empresa.nombre}>
-                                                {empresa.nombre} {empresa.rubro ? `- ${empresa.rubro}` : ''}
-                                            </option>
-                                        ))}
-                                    </select>
-                                </div>
-                            </div>
-                        </div>
-
-                        {empresas.length === 0 && (
-                            <div className={styles.row}>
-                                <div className={styles.fullColumn}>
-                                    <p className={styles.infoMessage}>
-                                        Cargando empresas disponibles...
-                                    </p>
-                                </div>
-                            </div>
-                        )}
-
-                        {empresas.length > 0 && (
-                            <div className={styles.row}>
-                                <div className={styles.fullColumn}>
-                                    <div className={styles.empresasCount}>
-                                        <p>{empresas.length} empresas disponibles</p>
-                                    </div>
-                                </div>
-                            </div>
-                        )}
-                    </div>
+                    
 
                     {/* Botón de registro */}
                     <div className={styles.submitSection}>

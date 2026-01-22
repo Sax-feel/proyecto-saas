@@ -19,7 +19,9 @@ urlpatterns = [
     path('api/categorias/', include('categoria.urls')),
     path('api/productos/', include('producto.urls')),
     path('api/proveedores/', include('proveedor.urls')),
-
+    path('api/reservas/', include('reservas.urls')),
+    path('api/ventas/', include('ventas.urls')),
+    
     #ENDPOINTS DE DOCUMENTACIÓN
     path('api/schema/', SpectacularAPIView.as_view(), name='schema'),
     # Swagger UI:

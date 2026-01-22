@@ -1,0 +1,43 @@
+
+# Media files (IMPORTANTE: esto evita que se suban las imágenes)
+media/
+!media/.gitkeep  # Mantener estructura sin archivos
+
+# Archivos de base de datos
+*.sqlite3
+*.db
+
+# Archivos de entorno
+.env
+.env.local
+.env.production
+
+# Logs
+*.log
+logs/
+
+# Django
+__pycache__/
+*.py[cod]
+*$py.class
+celerybeat-schedule
+
+# Coverage
+.coverage
+htmlcov/
+
+# PyCharm
+.idea/
+
+# VS Code
+.vscode/
+
+# macOS
+.DS_Store
+
+# Pyre type checker
+.pyre/
+
+# Migrations (opcional - si no quieres versionar migraciones)
+# */migrations/*.py
+# !*/migrations/__init__.py

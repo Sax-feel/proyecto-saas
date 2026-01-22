@@ -9,7 +9,6 @@ import styles from "./productos.module.css"
 import SearchBar from "../../../components/ui/SearchBar/SearchBar";
 import FormField from "../../../components/ui/FormField/FormField";
 import SelectField from "../../../components/ui/SelectField/SelectField";
-import EditForm from "../../../components/ui/EditForm/EditForm";
 import Notification from "../../../components/ui/notificacion/notificacion"
 
 export default function ProductosSection() {
@@ -18,13 +17,18 @@ export default function ProductosSection() {
   const [editIndex, setEditIndex] = useState(null)
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+
+  // Estados para formularios
   const [showProductosForm, setShowProductosForm] = useState(false);
+  const [isEditing, setIsEditing] = useState(false); // Nuevo estado para saber si estamos editando
+  const [productoEditando, setProductoEditando] = useState(null); // Producto que se está editando
 
   const [formData, setFormData] = useState({
     nombre: "",
     descripcion: "",
     precio: "",
     stock_actual: "",
+    stock_minimo: "",
     categoria: "",
     proveedor: ""
   });
@@ -44,7 +48,7 @@ export default function ProductosSection() {
   const [searchTerm, setSearchTerm] = useState("")
   const filteredProductos = productos.filter(producto => {
     const term = searchTerm.toLowerCase()
-    return ["nombre", "descripcion", "categoria","proveedor"].some((key) =>
+    return ["nombre", "descripcion", "categoria", "proveedor"].some((key) =>
       String(producto[key]).toLowerCase().includes(term)
     );
   });
@@ -90,7 +94,7 @@ export default function ProductosSection() {
             `Producto "${producto.nombre}" sin stock`,
             "error"
           )
-        } else if (producto.stock_actual <= 5) {
+        } else if (producto.stock_actual <= producto.stock_minimo) {
           showNotification(
             `Producto "${producto.nombre}" con stock bajo`,
             "warning"
@@ -110,12 +114,11 @@ export default function ProductosSection() {
   const [categorias, setCategorias] = useState([]);
   const fetchCategorias = async () => {
     const token = getToken();
-    const res = await fetch("http://localhost:8000/api/categorias/listar/", {
+    const res = await fetch("http://localhost:8000/api/categorias/mi-empresa/", {
       headers: { Authorization: `Bearer ${token}` },
     });
     const data = await res.json();
-    //console.log("Data categorias:", data[1]);
-    setCategorias(Array.isArray(data) ? data : []);
+    setCategorias(Array.isArray(data.categorias) ? data.categorias : []);
   };
 
   //Obtener Proveedores
@@ -126,7 +129,6 @@ export default function ProductosSection() {
       headers: { Authorization: `Bearer ${token}` },
     });
     const data = await res.json();
-    console.log("Data proveedores:", data);
     setProveedores(Array.isArray(data.proveedores) ? data.proveedores : []);
   };
 
@@ -141,12 +143,54 @@ export default function ProductosSection() {
   const handleOpenProductoForm = () => {
     fetchCategorias();
     fetchProveedores();
+    setIsEditing(false);
+    setProductoEditando(null);
+    setFormData({
+      nombre: "",
+      descripcion: "",
+      precio: "",
+      stock_actual: "",
+      stock_minimo: "",
+      categoria: "",
+      proveedor: ""
+    });
     setShowProductosForm(true);
   };
+
   const handleCloseProductoForm = () => {
     setShowProductosForm(false);
-    setFormData({  nombre: "", descripcion: "", precio: "", stock_actual: "", categoria: "", proveedor: ""})
-  }
+    setIsEditing(false);
+    setProductoEditando(null);
+    setFormData({
+      nombre: "",
+      descripcion: "",
+      precio: "",
+      stock_actual: "",
+      stock_minimo: "",
+      categoria: "",
+      proveedor: ""
+    });
+  };
+
+  // Editar producto
+  const handleEditarProducto = (producto) => {
+    fetchCategorias();
+    fetchProveedores();
+    setIsEditing(true);
+    setProductoEditando(producto);
+
+    setFormData({
+      nombre: producto.nombre,
+      descripcion: producto.descripcion || "",
+      precio: producto.precio,
+      stock_actual: producto.stock_actual,
+      stock_minimo: producto.stock_minimo,
+      categoria: producto.categoria?.id_categoria || producto.categoria || "",
+      proveedor: producto.proveedor?.id_proveedor || producto.proveedor || "",
+    });
+
+    setShowProductosForm(true);
+  };
 
   //ver desde el inicio los productos
   useEffect(() => {
@@ -232,20 +276,21 @@ export default function ProductosSection() {
 
     try {
       const token = getToken();
-      if (!token) throw new Error ("No Autenticado");
+      if (!token) throw new Error("No Autenticado");
 
       const res = await fetch(
         "http://localhost:8000/api/productos/crear/",
         {
           method: "POST",
-          headers: { 
-            Authorization: `Bearer ${token}`, 
+          headers: {
+            Authorization: `Bearer ${token}`,
             "Content-Type": "application/json",
           },
           body: JSON.stringify({
             ...formData,
             precio: Number(formData.precio),
             stock_actual: Number(formData.stock_actual),
+            stock_minimo: Number(formData.stock_minimo),
             categoria: Number(formData.categoria),
             proveedor: Number(formData.proveedor),
           }),
@@ -262,7 +307,7 @@ export default function ProductosSection() {
             `El producto "${formData.nombre}" fue creado sin stock`,
             "error"
           )
-        } else if (Number(formData.stock_actual) <= 5) {
+        } else if (Number(formData.stock_actual) <= formData.stock_minimo) {
           showNotification(
             `El producto "${formData.nombre}" tiene stock bajo`,
             "warning"
@@ -277,6 +322,61 @@ export default function ProductosSection() {
     } catch (err) {
       console.error(err)
       alert("Error al registrar el producto")
+    }
+  };
+
+  // Editar Producto
+  const handleActualizarProducto = async (e) => {
+    e.preventDefault();
+
+    try {
+      const token = getToken();
+      if (!token) throw new Error("No Autenticado");
+
+      const res = await fetch(`http://localhost:8000/api/productos/${productoEditando.id_producto}/gestion/`, {
+        method: "PUT",
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+          nombre: formData.nombre,
+          descripcion: formData.descripcion,
+          precio: Number(formData.precio),
+          stock_actual: Number(formData.stock_actual),
+          stock_minimo: Number(formData.stock_minimo),
+          categoria: Number(formData.categoria),
+          proveedor: Number(formData.proveedor),
+        }),
+      });
+
+      const data = await res.json();
+      console.log("Respuesta backend:", res.status, data);
+
+      if (res.ok) {
+        showNotification("Producto actualizado exitosamente", "success")
+
+        if (Number(formData.stock_actual) === 0) {
+          showNotification(
+            `Producto "${formData.nombre}" quedó sin stock`,
+            "error"
+          )
+        } else if (Number(formData.stock_actual) <= formData.stock_minimo) {
+          showNotification(
+            `Producto "${formData.nombre}" tiene stock bajo`,
+            "warning"
+          )
+        }
+
+        alert("Producto actualizado exitosamente");
+        handleCloseProductoForm();
+        fetchProductos();
+      } else {
+        alert(data.detail || data.error || "Error al actualizar");
+      }
+    } catch (err) {
+      console.error(err);
+      alert("Error al actualizar el producto");
     }
   };
 
@@ -315,37 +415,21 @@ export default function ProductosSection() {
     { label: "Proveedor", key: "proveedor" },
     { label: "Precio", key: "precio" },
     { label: "Stock Actual", key: "stock_actual" },
+    { label: "Stock Minimo", key: "stock_minimo" },
   ]
 
-  //Editar Productos
-  const [editForm, setEditForm] = useState({});
-  const [editingProducto, setEditingProducto] = useState(null);
-  
   const renderActions = (row) => (
     <div style={{ display: "flex", gap: "8px" }}>
       <ActionMenu
         id={row.id_producto}
         onEliminar={() => deleteProducto(row.id_producto)}
-        onEditar={() => {
-          setEditingProducto(row);
-          setFormData({
-            nombre: row.nombre,
-            descripcion: row.descripcion,
-            precio: row.precio,
-            stock_actual: row.stock_actual,
-            categoria: row.categoria?.id_categoria || row.categoria || "",
-            proveedor: row.proveedor?.id_proveedor || row.proveedor || "",
-          });
-          fetchCategorias();
-          fetchProveedores();
-        }}
+        onEditar={() => handleEditarProducto(row)}
       />
       <Button onClick={() => handleOpenImagenes(row)} variant="secondary">
         Imágenes
       </Button>
     </div>
   );
-
 
   /* ====== UI ====== */
   return (
@@ -385,42 +469,55 @@ export default function ProductosSection() {
               rowKey="id_producto"
             />
 
+            {/* Modal de formulario (CREAR o EDITAR) */}
             {showProductosForm && (
               <div className={styles.modalOverlay}>
                 <div className={styles.modal}>
                   <div className={styles.modalHeader}>
-                  <h3> Registrar nuevo Producto </h3>
-                    <form onSubmit={handleAgregarProducto}>
+                    <h3>
+                      {isEditing ? "Editar Producto" : "Registrar nuevo Producto"}
+                    </h3>
+
+                    <form onSubmit={isEditing ? handleActualizarProducto : handleAgregarProducto}>
                       <FormField
-                          type="text"
-                          name="nombre"
-                          label="Nombre del Producto"
-                          placeholder="Nombre del Producto"
-                          value={formData.nombre}
-                          onChange={handleProductoFormChange}
-                          required
+                        type="text"
+                        name="nombre"
+                        label="Nombre del Producto"
+                        placeholder="Nombre del Producto"
+                        value={formData.nombre}
+                        onChange={handleProductoFormChange}
+                        required
                       />
                       <FormField
                         type="text"
                         name="descripcion"
-                        label="Descripcion"
-                        placeholder="Maximo 250 caracteres"
+                        label="Descripción"
+                        placeholder="Máximo 250 caracteres"
                         value={formData.descripcion}
                         onChange={handleProductoFormChange}
                       />
-                      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "16px" }}>
+                      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: "16px" }}>
                         <FormField
                           type="number"
                           name="precio"
                           label="Precio"
                           value={formData.precio}
                           onChange={handleProductoFormChange}
+                          required
                         />
                         <FormField
                           type="number"
                           name="stock_actual"
                           label="Stock Actual"
                           value={formData.stock_actual}
+                          onChange={handleProductoFormChange}
+                          required
+                        />
+                        <FormField
+                          type="number"
+                          name="stock_minimo"
+                          label="Stock Mínimo"
+                          value={formData.stock_minimo}
                           onChange={handleProductoFormChange}
                           required
                         />
@@ -448,134 +545,47 @@ export default function ProductosSection() {
                         required
                       />
                       <div className={styles.modalActions}>
-                        <Button type="submit" variant="primary">Guardar</Button>
-                        <Button type="button" variant="secondary" onClick={handleCloseProductoForm}>Cancelar</Button>
+                        <Button type="submit" variant="primary">
+                          {isEditing ? "Actualizar" : "Guardar"}
+                        </Button>
+                        <Button type="button" variant="secondary" onClick={handleCloseProductoForm}>
+                          Cancelar
+                        </Button>
                       </div>
                     </form>
                   </div>
                 </div>
               </div>
-            )
-            }
+            )}
+
           </section>
 
-      {/* Editar Producto */}
-      {editingProducto && (
-        <EditForm
-          data={formData}
-          fields={[
-            { name: "nombre", label: "Nombre Producto" },
-            { name: "descripcion", label: "Descripcion" },
-            { name: "precio", label: "Precio" },
-            { name: "stock_actual", label: "Stock Actual" },
-            { 
-              name: "categoria", 
-              label: "Categoria", 
-              type: "select", 
-              options: categorias.map(c => ({value: c.id_categoria, label: c.nombre}))
-            },
-            { 
-              name: "proveedor", 
-              label: "Proveedor", 
-              type: "select", 
-              options: proveedores.map(p => ({value: p.id_proveedor, label: p.nombre}))
-            },
-          ]}
-          onSave={async (updatedData) => {
-            try {
-              const token = getToken();
-              const res = await fetch(`http://localhost:8000/api/productos/${editingProducto.id_producto}/gestion/`, {
-                method: "PUT",
-                headers: { 
-                  Authorization: `Bearer ${token}`, 
-                  "Content-Type": "application/json" 
-                },
-                body: JSON.stringify({
-                  nombre: updatedData.nombre,
-                  descripcion: updatedData.descripcion,
-                  precio: Number(updatedData.precio),
-                  stock_actual: Number(updatedData.stock_actual),
-                  categoria: Number(updatedData.categoria),
-                  proveedor: Number(updatedData.proveedor),
-                }),
-              });
+          {showImagenesModal && (
+            <div className={styles.modalOverlay}>
+              <div className={styles.modal}>
+                <h3>Imágenes de {productoSeleccionado.nombre}</h3>
 
-              const data = await res.json();
-              console.log("Respuesta backend:", res.status, data);
+                <div>
+                  {imagenesProducto.map(img => (
+                    <div key={img.id_archivo} style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                      <img src={`http://localhost:8000${img.archivo}`} alt="" width="80" />
+                      <Button onClick={() => handleDeleteImagen(img.id_archivo)} variant="secondary">Eliminar</Button>
+                    </div>
+                  ))}
+                </div>
 
-              if (res.ok) {
-                showNotification("Producto actualizado exitosamente", "success")
+                <form onSubmit={handleUploadImagen}>
+                  <input type="file" onChange={(e) => setArchivoSeleccionado(e.target.files[0])} />
+                  <Button type="submit" variant="primary">Subir Imagen</Button>
+                </form>
 
-                if (Number(updatedData.stock_actual) === 0) {
-                  showNotification(
-                    `Producto "${updatedData.nombre}" quedó sin stock`,
-                    "error"
-                  )
-                } else if (Number(updatedData.stock_actual) <= 5) {
-                  showNotification(
-                    `Producto "${updatedData.nombre}" tiene stock bajo`,
-                    "warning"
-                  )
-                }
-
-                alert("Producto actualizado exitosamente");
-                setEditingProducto(null);
-                setFormData({
-                  nombre: "",
-                  descripcion: "",
-                  precio: "",
-                  stock_actual: "",
-                  categoria: "",
-                  proveedor: ""
-                });
-                fetchProductos();
-              } else {
-                alert(data.detail || data.error || "Error al actualizar");
-              }
-            } catch (err) {
-              console.error(err);
-              alert("Error al actualizar el producto");
-            }
-          }}
-          onCancel={() => {
-            setEditingProducto(null);
-            setFormData({
-              nombre: "",
-              descripcion: "",
-              precio: "",
-              stock_actual: "",
-              categoria: "",
-              proveedor: ""
-            });
-          }}
-        />
-      )}
-
-      {showImagenesModal && (
-    <div className={styles.modalOverlay}>
-      <div className={styles.modal}>
-        <h3>Imágenes de {productoSeleccionado.nombre}</h3>
-
-        <div>
-          {imagenesProducto.map(img => (
-            <div key={img.id_archivo} style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-              <img src={`http://localhost:8000${img.archivo}`} alt="" width="80" />
-              <Button onClick={() => handleDeleteImagen(img.id_archivo)} variant="secondary">Eliminar</Button>
+                <Button onClick={() => setShowImagenesModal(false)} variant="secondary">Cerrar</Button>
+              </div>
             </div>
-          ))}
+          )}
+
         </div>
-
-        <form onSubmit={handleUploadImagen}>
-          <input type="file" onChange={(e) => setArchivoSeleccionado(e.target.files[0])} />
-          <Button type="submit" variant="primary">Subir Imagen</Button>
-        </form>
-
-        <Button onClick={() => setShowImagenesModal(false)} variant="secondary">Cerrar</Button>
       </div>
-    </div>
-  )}
-
-    </div>
-    </div>
-  </>
-)}
+    </>
+  )
+}

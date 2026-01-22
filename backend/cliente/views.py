@@ -15,25 +15,23 @@ from usuario_empresa.models import Usuario_Empresa
 from .serializers import RegistroClienteSerializer, ClienteSerializer, EmailEmpresaSerializer
 from .models import AuditoriaCliente
 from .serializers import AuditoriaClienteSerializer, FiltroAuditoriaSerializer
-
 import logging
-
 
 logger = logging.getLogger(__name__)
 
 class RegistroClienteView(generics.CreateAPIView):
     """
-    Vista pública para que un cliente se registre en una empresa específica.
+    Vista pública para que un cliente se registre SIN empresa inicial.
     Accesible por cualquiera (sin autenticación requerida)
     """
     serializer_class = RegistroClienteSerializer
-    permission_classes = [AllowAny]  #  Acceso público
+    permission_classes = [AllowAny]  # Acceso público
     
     @transaction.atomic
     def create(self, request, *args, **kwargs):
         """
-        Registro público de cliente con selección de empresa.
-        Crea usuario + cliente + relación con empresa seleccionada.
+        Registro público de cliente SIN empresa inicial.
+        Crea solo usuario + cliente, sin relación con empresa.
         """
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
@@ -43,11 +41,7 @@ class RegistroClienteView(generics.CreateAPIView):
             
             validated_data = serializer.validated_data
             
-            # 1. Obtener la empresa seleccionada
-            empresa = validated_data['empresa_nombre']
-            logger.info(f"Cliente se registra en empresa: {empresa.nombre}")
-            
-            # 2. Obtener rol 'cliente'
+            # 1. Obtener rol 'cliente'
             try:
                 rol_cliente = Rol.objects.get(rol='cliente', estado='activo')
             except Rol.DoesNotExist:
@@ -60,7 +54,7 @@ class RegistroClienteView(generics.CreateAPIView):
                     status=status.HTTP_400_BAD_REQUEST
                 )
             
-            # 3. Crear usuario
+            # 2. Crear usuario
             user = User.objects.create_user(
                 email=validated_data['email'],
                 password=validated_data['password'],
@@ -70,7 +64,7 @@ class RegistroClienteView(generics.CreateAPIView):
             
             logger.info(f"Usuario creado para cliente: {user.email}")
             
-            # 4. Crear cliente
+            # 3. Crear cliente (sin empresa inicial)
             cliente = Cliente.objects.create(
                 id_usuario=user,
                 nit=validated_data['nit'],
@@ -79,43 +73,28 @@ class RegistroClienteView(generics.CreateAPIView):
                 telefono_cliente=validated_data['telefono_cliente']
             )
             
-            logger.info(f"Cliente registrado exitosamente: {cliente.nit}")
+            logger.info(f"Cliente registrado exitosamente: {cliente.nit} - SIN EMPRESA INICIAL")
             
-            # 5. Crear relación en tabla 'tiene' (cliente → empresa)
-            tiene_relacion = Tiene.objects.create(
-                id_cliente=cliente,
-                id_empresa=empresa,
-                estado='activo'
-            )
-            
-            logger.info(f"Relación creada: Cliente '{cliente.nombre_cliente}' - Empresa '{empresa.nombre}'")
-            
-            
-            # 7. Preparar respuesta completa
+            # 5. Preparar respuesta indicando que no tiene empresa
             response_data = {
                 'message': 'Cliente registrado exitosamente',
-                'detail': f'Te has registrado en la empresa {empresa.nombre}',
+                'detail': 'Tu cuenta ha sido creada. Ahora puedes registrarte en empresas disponibles.',
                 'cliente': {
                     'nit': cliente.nit,
                     'nombre': cliente.nombre_cliente,
                     'email': user.email,
-                    'telefono': cliente.telefono_cliente
+                    'telefono': cliente.telefono_cliente,
+                    'fecha_registro': cliente.fecha_registro.isoformat()
                 },
-                'empresa': {
-                    'id': empresa.id_empresa,
-                    'nombre': empresa.nombre,
-                    'nit': empresa.nit,
-                    'telefono': empresa.telefono,
-                    'direccion': empresa.direccion
-                },
-                'registro': {
-                    'fecha': tiene_relacion.fecha_registro.isoformat(),
-                    'estado': tiene_relacion.estado
+                'empresas': {
+                    'tiene_empresas': False,
+                    'cantidad': 0,
+                    'mensaje': 'No estás registrado en ninguna empresa aún'
                 },
                 'instrucciones': {
                     'login': 'Usa tus credenciales para iniciar sesión',
-                    'empresa': 'Puedes registrarte en otras empresas desde tu panel',
-                    'contacto': f'Contacta a {empresa.nombre}: {empresa.telefono}'
+                    'empresas_disponibles': 'Ve a la sección "Empresas Disponibles" para registrarte',
+                    'solicitar_registro': 'También puedes solicitar registro a empresas específicas'
                 },
                 'status': 'success'
             }
@@ -340,15 +319,6 @@ class RegistrarClienteExistenteView(generics.CreateAPIView):
         except Usuario_Empresa.DoesNotExist:
             logger.warning(f"Usuario {user.email} no pertenece a empresa {empresa.nombre}")
             return None
-
-from rest_framework import generics, status
-from rest_framework.response import Response
-from rest_framework.permissions import IsAuthenticated
-from empresas.models import Empresa
-from relacion_tiene.models import Tiene
-import logging
-
-logger = logging.getLogger(__name__)
 
 class MisEmpresasView(generics.ListAPIView):
     """

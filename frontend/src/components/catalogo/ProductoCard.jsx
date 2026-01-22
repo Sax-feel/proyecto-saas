@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import styles from './ProductoCard.module.css';
+import CartModal from './CartModal';
 
 export default function ProductoCard({ producto, empresaId }) {
     // Si el stock es 0, no renderizar el producto
@@ -9,6 +10,8 @@ export default function ProductoCard({ producto, empresaId }) {
 
     const [cantidad, setCantidad] = useState(1);
     const [imagenActual, setImagenActual] = useState(0);
+    const [showCartModal, setShowCartModal] = useState(false);
+
 
     const precio = parseFloat(producto.precio);
     const tieneStock = producto.stock_actual > 0;
@@ -37,18 +40,45 @@ export default function ProductoCard({ producto, empresaId }) {
         }
     };
 
-    const handleAgregarCarrito = () => {
-        console.log(`Agregado ${cantidad} de ${producto.nombre} al carrito`);
-        alert(`Agregado ${cantidad} ${producto.nombre} al carrito`);
+    const handleAgregarCarrito = async () => {
+        // Verificar si está logueado como cliente
+        const token = localStorage.getItem('access');
+        const userRole = localStorage.getItem('userRole');
+
+        if (!token || userRole !== 'cliente') {
+            setShowCartModal(true);
+            return;
+        }
+
+        // Si está logueado, crear la reserva
+        try {
+            const response = await fetch('http://localhost:8000/api/reservas/crear/', {
+                method: 'POST',
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    id_producto: producto.id_producto,
+                    cantidad: cantidad
+                })
+            });
+
+            const data = await response.json();
+
+            if (response.ok) {
+                alert(`¡${cantidad} ${producto.nombre} reservado(s) exitosamente!`);
+                setCantidad(1);
+            } else {
+                alert(data.detail || data.error || 'Error al reservar producto');
+            }
+        } catch (error) {
+            console.error('Error reservando producto:', error);
+            alert('Error al reservar producto');
+        }
     };
 
-    // Debug: verificar las imágenes del producto
-    console.log(`Producto ${producto.id_producto} tiene ${producto.imagenes?.length || 0} imágenes:`);
-    if (producto.imagenes) {
-        producto.imagenes.forEach((img, idx) => {
-            console.log(`  Imagen ${idx}:`, img);
-        });
-    }
+
 
     return (
         <div className={styles.productoCard}>
@@ -75,7 +105,7 @@ export default function ProductoCard({ producto, empresaId }) {
                                 backgroundRepeat: 'no-repeat'
                             }}
                         />
-                        
+
                         {/* Controles de navegación solo si hay más de 1 imagen */}
                         {producto.imagenes.length > 1 && (
                             <>
@@ -93,7 +123,7 @@ export default function ProductoCard({ producto, empresaId }) {
                                 >
                                     ›
                                 </button>
-                                
+
                                 {/* Indicadores de posición */}
                                 <div className={styles.imagenIndicators}>
                                     {producto.imagenes.map((_, index) => (
@@ -107,7 +137,7 @@ export default function ProductoCard({ producto, empresaId }) {
                                 </div>
                             </>
                         )}
-                        
+
                         {/* Mostrar nombre de la imagen como tooltip o subtítulo */}
                         {producto.imagenes[imagenActual]?.nombre && (
                             <div className={styles.imagenNombre}>
@@ -160,7 +190,7 @@ export default function ProductoCard({ producto, empresaId }) {
                 >
                     {tieneStock ? '🛒 Agregar al carrito' : 'Agotado'}
                 </button>
-                
+
                 {/* Información adicional */}
                 <div className={styles.productoFooter}>
                     <span className={styles.stockInfo}>
@@ -172,6 +202,17 @@ export default function ProductoCard({ producto, empresaId }) {
                         </span>
                     )}
                 </div>
+
+                <CartModal
+                    isOpen={showCartModal}
+                    onClose={() => setShowCartModal(false)}
+                    empresaId={empresaId}
+                    onLoginSuccess={() => {
+                        // Después de login exitoso, intentar reservar de nuevo
+                        setShowCartModal(false);
+                        handleAgregarCarrito();
+                    }}
+                />
             </div>
         </div>
     );

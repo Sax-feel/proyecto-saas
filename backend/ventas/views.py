@@ -1,5 +1,5 @@
 # ventas/views.py
-import datetime
+from datetime import datetime
 from rest_framework import generics, status, permissions, filters
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
@@ -209,7 +209,6 @@ class RealizarCompraView(generics.CreateAPIView):
                     'precio_total': float(precio_total),
                     'vendedor_asignado': {
                         'id': vendedor_asignado.id_usuario.id_usuario,
-                        'nombre': vendedor_asignado.id_usuario.nombre,
                         'email': vendedor_asignado.id_usuario.email
                     },
                     'productos_comprados': detalles_venta,
@@ -523,7 +522,6 @@ class ListaVentasVendedorView(generics.ListAPIView):
                 'vendedor_info': {
                     'id': request.user.id_usuario,
                     'email': request.user.email,
-                    'nombre': request.user.nombre,
                     'empresa': {
                         'id': empresa.id_empresa,
                         'nombre': empresa.nombre,

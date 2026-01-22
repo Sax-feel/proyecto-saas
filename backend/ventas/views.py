@@ -209,7 +209,6 @@ class RealizarCompraView(generics.CreateAPIView):
                     'precio_total': float(precio_total),
                     'vendedor_asignado': {
                         'id': vendedor_asignado.id_usuario.id_usuario,
-                        'nombre': vendedor_asignado.id_usuario.nombre,
                         'email': vendedor_asignado.id_usuario.email
                     },
                     'productos_comprados': detalles_venta,

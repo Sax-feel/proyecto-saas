@@ -10,6 +10,7 @@ import styles from "./EmpleadosSection.module.css"
 const API_LIST = "http://localhost:8000/api/relaciones/mis-clientes/"
 const API_REGISTRAR_EXISTENTE = "http://localhost:8000/api/clientes/registrar-existente/"
 const API_ACTUALIZAR_ESTADO = "http://localhost:8000/api/relaciones/actualizar-estado/"
+const API_REGISTRAR_VENDEDOR = "http://localhost:8000/api/usuarios-empresa/registrar/"
 
 export default function EmpleadosPage() {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
@@ -138,6 +139,46 @@ export default function EmpleadosPage() {
            email.toLowerCase().includes(busquedaLower)
   })
 
+  //VENDEDORES
+  const [showClienteForm, setShowClienteForm] = useState(false)
+  const [showVendedorForm, setShowVendedorForm] = useState(false)
+
+  const [formCliente, setFormCliente] = useState({ email: "" })
+
+  const [formVendedor, setFormVendedor] = useState({
+    email: "",
+    password: "",
+  })
+
+  const agregarVendedor = async (e) => {
+    e.preventDefault()
+    try {
+      const token = getToken()
+      const res = await fetch(API_REGISTRAR_VENDEDOR, {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          email: formVendedor.email,
+          password: formVendedor.password,
+          rol_nombre: "vendedor",
+        }),
+      })
+
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.detail || "Error")
+
+      alert("Vendedor registrado correctamente")
+      setFormVendedor({ email: "", password: "" })
+      setShowVendedorForm(false)
+    } catch (err) {
+      alert(err.message)
+    }
+  }
+
+
   // ------------------- JSX -------------------
   return (
     <div className={styles.dashboardContainer}>
@@ -158,6 +199,9 @@ export default function EmpleadosPage() {
         <div className={styles.actionsContainer}>
           <Button onClick={() => setShowForm(true)}>
             Agregar cliente existente
+          </Button>
+          <Button onClick={() => setShowVendedorForm(true)}>
+            Registrar Vendedor
           </Button>
         </div>
 
@@ -268,6 +312,41 @@ export default function EmpleadosPage() {
             </div>
           </div>
         )}
+
+        {showVendedorForm && (
+        <div className={styles.modalOverlay}>
+          <div className={styles.modal}>
+            <h2>Registrar Vendedor</h2>
+            <form onSubmit={agregarVendedor}>
+              <FormField
+                label="Email"
+                type="email"
+                value={formVendedor.email}
+                onChange={(e) =>
+                  setFormVendedor({ ...formVendedor, email: e.target.value })
+                }
+                required
+              />
+              <FormField
+                label="Contraseña"
+                type="password"
+                value={formVendedor.password}
+                onChange={(e) =>
+                  setFormVendedor({ ...formVendedor, password: e.target.value })
+                }
+                required
+              />
+              <div className={styles.modalActions}>
+                <Button type="submit">Registrar</Button>
+                <Button type="button" variant="secondary" onClick={() => setShowVendedorForm(false)}>
+                  Cancelar
+                </Button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
       </div>
     </div>
   )

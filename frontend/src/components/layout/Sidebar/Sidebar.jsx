@@ -36,11 +36,13 @@ const allNavigation = {
     { name: "Productos", href: "/usuario_empresa/producto-section", icon: Package },
     { name: "Categorias", href: "/usuario_empresa/categorias", icon: Tag},
     { name: "Suscripción", href: "/usuario_empresa/suscripciones", icon: CreditCard },
+    { name: "Vendedores", href: "/usuario_empresa/vendedora", icon:Users }
   ],
 
   vendedor: [
     { name: "Productos", href: "/vendedor/productos_vendedor", icon: Package },
     { name: "Ventas", href: "/vendedor/ventas", icon: CreditCard },
+    { name: "Historial", href: "/vendedor/historial", icon: CreditCard },
   ]
 }
 

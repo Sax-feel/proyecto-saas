@@ -37,7 +37,6 @@ class VentaSerializer(serializers.ModelSerializer):
         try:
             return {
                 'id': obj.usuario_empresa.id_usuario.id_usuario,
-                'nombre': obj.usuario_empresa.id_usuario.nombre,
                 'email': obj.usuario_empresa.id_usuario.email
             }
         except Exception:

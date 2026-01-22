@@ -552,3 +552,89 @@ class ListaVentasVendedorView(generics.ListAPIView):
                 'detail': str(e),
                 'status': 'error'
             }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+class EliminarVentaView(generics.DestroyAPIView):
+    """
+    Vista para que un vendedor elimine una venta específica
+    """
+    permission_classes = [IsAuthenticated, EsVendedorPermission]
+    
+    def delete(self, request, id_venta, *args, **kwargs):
+        """
+        Elimina una venta específica
+        """
+        try:
+            # 1. Verificar que el usuario sea vendedor y tenga empresa
+            try:
+                usuario_empresa = Usuario_Empresa.objects.get(id_usuario=request.user)
+            except Usuario_Empresa.DoesNotExist:
+                return Response({
+                    'error': 'Vendedor sin empresa asignada',
+                    'detail': 'No tienes una empresa asignada',
+                    'status': 'error'
+                }, status=status.HTTP_400_BAD_REQUEST)
+            
+            # 2. Buscar la venta específica que pertenezca a este vendedor
+            try:
+                venta = Venta.objects.get(
+                    id_venta=id_venta,
+                )
+            except Venta.DoesNotExist:
+                logger.warning(f"Venta no encontrada: ID {id_venta}")
+                return Response({
+                    'error': 'Venta no encontrada',
+                    'detail': f'No existe la venta con ID {id_venta} o no tienes permisos para eliminarla',
+                    'status': 'error'
+                }, status=status.HTTP_404_NOT_FOUND)
+            
+            venta_id = venta.id_venta
+            
+            # 3. Obtener detalles para logging
+            detalles_venta = DetalleVenta.objects.filter(id_venta=venta)
+            
+            # 4. Registrar información
+            info_venta = {
+                'id_venta': venta.id_venta,
+                'fecha_venta': venta.fecha_venta.isoformat(),
+                'precio_total': float(venta.precio_total),
+                'cliente_nombre': venta.cliente.nombre_cliente,
+                'cantidad_productos': detalles_venta.count(),
+            }
+            
+            logger.info(f"Vendedor {request.user.email} eliminando venta ID: {venta_id}")
+            
+            # 5. Eliminar detalles primero
+            detalles_eliminados = detalles_venta.delete()
+            logger.info(f"Detalles eliminados: {detalles_eliminados}")
+            
+            # 6. Eliminar venta
+            venta.delete()
+            
+            logger.info(f"Venta ID: {venta_id} eliminada exitosamente")
+            
+            # 7. Notificación (opcional)
+            try:
+                self._crear_notificacion_eliminacion(request.user, info_venta)
+            except Exception as notif_error:
+                logger.error(f"Error en notificación: {str(notif_error)}")
+                # No fallar la eliminación por error en notificación
+            
+            return Response({
+                'message': 'Venta eliminada exitosamente',
+                'detalles': {
+                    'venta_id': venta_id,
+                    'fecha_eliminacion': datetime.now().isoformat(),
+                    'eliminado_por': request.user.email,
+                    'informacion': info_venta
+                },
+                'advertencia': 'Esta acción no restaura el stock de los productos vendidos',
+                'status': 'success'
+            }, status=status.HTTP_200_OK)
+            
+        except Exception as e:
+            logger.error(f"Error eliminando venta: {str(e)}", exc_info=True)
+            return Response({
+                'error': 'Error al eliminar la venta',
+                'detail': str(e),
+                'status': 'error'
+            }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)

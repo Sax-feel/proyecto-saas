@@ -107,7 +107,7 @@ class CrearReservaSerializer(serializers.Serializer):
         reserva_existente = Reserva.objects.filter(
             id_cliente=cliente,
             id_producto=producto,
-            estado__in=['pendiente', 'confirmada']
+            estado__in=['pendiente']
         ).exists()
         
         if reserva_existente:

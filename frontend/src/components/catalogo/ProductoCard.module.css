@@ -11,6 +11,7 @@
 }
 .producto{
     display: flex;
+    flex-direction: column;
 }
 
 .productoCard:hover {

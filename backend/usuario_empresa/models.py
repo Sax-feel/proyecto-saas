@@ -16,4 +16,3 @@ class Usuario_Empresa(models.Model):
     class Meta:
         db_table = "usuario_empresa"
         ordering = ["id_usuario"]
-

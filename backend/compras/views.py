@@ -13,25 +13,25 @@ from .serializers import CompraSerializer, RealizarCompraStockSerializer
 logger = logging.getLogger(__name__)
 
 
-class EsVendedorPermission(permissions.BasePermission):
-    """Permiso personalizado para verificar que el usuario sea vendedor"""
+class EsVendedorOAdminEmpresaPermission(permissions.BasePermission):
+    """Permiso personalizado para verificar que el usuario sea vendedor O admin_empresa"""
     
     def has_permission(self, request, view):
         return (
             request.user and 
             request.user.is_authenticated and 
             hasattr(request.user, 'rol') and 
-            request.user.rol.rol == 'vendedor'
+            request.user.rol.rol in ['vendedor', 'admin_empresa']
         )
 
 
 class RealizarCompraStockView(generics.CreateAPIView):
     """
-    Vista para que un vendedor realice compra de nuevo stock
-    Accesible solo para rol 'vendedor'
+    Vista para que un vendedor o admin_empresa realice compra de nuevo stock
+    Accesible solo para rol 'vendedor' o 'admin_empresa'
     """
     serializer_class = RealizarCompraStockSerializer
-    permission_classes = [IsAuthenticated, EsVendedorPermission]
+    permission_classes = [IsAuthenticated, EsVendedorOAdminEmpresaPermission]
     
     @transaction.atomic
     def create(self, request, *args, **kwargs):
@@ -47,7 +47,7 @@ class RealizarCompraStockView(generics.CreateAPIView):
             productos_info = validated_data['productos_info']
             precio_total = validated_data['precio_total']
             
-            logger.info(f"Vendedor {request.user.email} realizando compra de stock. Total: {precio_total}")
+            logger.info(f"Usuario {request.user.email} (rol: {request.user.rol.rol}) realizando compra de stock. Total: {precio_total}")
             
             # 1. Crear la compra
             compra = Compra.objects.create(
@@ -61,6 +61,7 @@ class RealizarCompraStockView(generics.CreateAPIView):
             detalles_compra = []
             for info in productos_info:
                 producto = info['producto']
+                proveedor = info['proveedor']  # Obtener proveedor
                 cantidad = info['cantidad']
                 precio_unitario = info['precio_unitario']
                 subtotal = info['subtotal']
@@ -74,10 +75,11 @@ class RealizarCompraStockView(generics.CreateAPIView):
                 
                 producto.save()
                 
-                # Crear detalle de compra
+                # Crear detalle de compra con proveedor
                 detalle = DetalleCompra.objects.create(
                     id_producto=producto,
                     id_compra=compra,
+                    id_proveedor=proveedor,  # Incluir proveedor
                     cantidad=cantidad,
                     precio_unitario=precio_unitario,
                     subtotal=subtotal
@@ -88,13 +90,14 @@ class RealizarCompraStockView(generics.CreateAPIView):
                     'cantidad': cantidad,
                     'stock_nuevo': producto.stock_actual,
                     'precio_unitario': float(precio_unitario),
-                    'subtotal': float(subtotal)
+                    'subtotal': float(subtotal),
+                    'proveedor': proveedor.nombre  # Incluir nombre del proveedor
                 })
                 
-                logger.info(f"Stock actualizado: {producto.nombre} +{cantidad} = {producto.stock_actual}")
+                logger.info(f"Stock actualizado: {producto.nombre} +{cantidad} = {producto.stock_actual} (Proveedor: {proveedor.nombre})")
             
             # 3. Crear notificación (opcional)
-            self._crear_notificacion_compra(request.user, compra, detalles_compra)
+            self._notificar_compra_stock(request.user, compra, detalles_compra)
             
             # 4. Preparar respuesta
             response_data = {
@@ -121,9 +124,10 @@ class RealizarCompraStockView(generics.CreateAPIView):
                 'status': 'error'
             }, status=status.HTTP_400_BAD_REQUEST)
     
-    def _crear_notificacion_compra(self, vendedor, compra, detalles_compra):
+    def _crear_notificacion_compra(self, usuario, compra, detalles_compra):
         """
-        Crea notificación para el vendedor sobre la compra de stock
+        Crea notificación para el usuario sobre la compra de stock
+        SOLO para el vendedor que hizo la compra
         """
         try:
             from notificaciones.models import Notificacion
@@ -139,33 +143,102 @@ class RealizarCompraStockView(generics.CreateAPIView):
             notificacion = Notificacion.objects.create(
                 titulo=f'Compra de stock #{compra.id_compra} realizada',
                 mensaje=(
-                    f'Has realizado una compra de stock por un total de Bs. {compra.precio_total}. '
+                    f'Has realizado una compra de stock por un total de Bs. {compra.precio_total:.2f}. '
                     f'Productos: {productos_texto}. '
                     f'Stock actualizado exitosamente.'
                 ),
                 tipo='info'
             )
             
-            # Asociar notificación al vendedor
+            # Asociar notificación al usuario
             Notifica.objects.create(
-                id_usuario=vendedor,
+                id_usuario=usuario,
                 id_notificacion=notificacion
             )
             
-            logger.info(f"Notificación creada para vendedor {vendedor.email}")
+            logger.info(f"Notificación creada para usuario {usuario.email}")
             
         except Exception as e:
             logger.error(f"Error al crear notificación de compra: {str(e)}")
-            # No fallar la compra si hay error en notificación
+
+    def _notificar_compra_stock(self, usuario, compra, detalles_compra):
+        """
+        Crea notificación de compra de stock para el vendedor que hizo la compra 
+        y el admin_empresa de la empresa
+        """
+        try:
+            from notificaciones.models import Notificacion
+            from relacion_notifica.models import Notifica
+            from usuario_empresa.models import Usuario_Empresa
+            from roles.models import Rol
+            
+            # Obtener empresa del usuario
+            usuario_empresa = Usuario_Empresa.objects.get(id_usuario=usuario)
+            empresa = usuario_empresa.empresa
+            
+            # Resumen de productos comprados
+            productos_texto = ", ".join([f"{detalle['cantidad']}x {detalle['producto']}" 
+                                        for detalle in detalles_compra[:3]])
+            if len(detalles_compra) > 3:
+                productos_texto += f" y {len(detalles_compra) - 3} productos más"
+            
+            # Crear notificación
+            notificacion = Notificacion.objects.create(
+                titulo=f'Compra de stock #{compra.id_compra} realizada',
+                mensaje=(
+                    f'Se ha realizado una compra de stock por Bs. {compra.precio_total:.2f}. '
+                    f'Productos: {productos_texto}. '
+                    f'Stock actualizado exitosamente.'
+                ),
+                tipo='info'
+            )
+            
+            # 1. Notificar al vendedor que hizo la compra
+            Notifica.objects.create(
+                id_usuario=usuario,
+                id_notificacion=notificacion
+            )
+            
+            # 2. Notificar al admin_empresa de la empresa
+            try:
+                # Buscar rol admin_empresa
+                rol_admin = Rol.objects.get(rol='admin_empresa')
+                
+                # Buscar admin_empresa de la misma empresa (excluyendo al usuario actual si es admin)
+                admins_empresa = Usuario_Empresa.objects.filter(
+                    empresa=empresa,
+                    id_usuario__rol=rol_admin,
+                    estado='activo'
+                ).exclude(
+                    id_usuario=usuario  # Excluir al usuario actual si es admin_empresa
+                ).select_related('id_usuario')
+                
+                # Crear notificaciones para cada admin_empresa
+                for admin in admins_empresa:
+                    Notifica.objects.create(
+                        id_usuario=admin.id_usuario,
+                        id_notificacion=notificacion
+                    )
+                    logger.info(f"Notificación de compra de stock enviada a admin_empresa {admin.id_usuario.email}")
+                
+            except Rol.DoesNotExist:
+                logger.warning("Rol admin_empresa no encontrado")
+            except Exception as e:
+                logger.error(f"Error notificando a admin_empresa: {str(e)}")
+            
+            logger.info(f"Notificación de compra de stock creada para vendedor {usuario.email}")
+            
+        except Exception as e:
+            logger.error(f"Error al crear notificación de compra de stock: {str(e)}")
 
 
 class ListaComprasVendedorView(generics.ListAPIView):
     """
-    Vista para que un vendedor liste todas sus compras realizadas
-    Accesible solo para rol 'vendedor'
+    Vista para que un vendedor o admin_empresa liste todas sus compras realizadas
+    Accesible solo para rol 'vendedor' o 'admin_empresa'
     """
     serializer_class = CompraSerializer
-    permission_classes = [IsAuthenticated, EsVendedorPermission]
+    permission_classes = [IsAuthenticated, EsVendedorOAdminEmpresaPermission]
     filter_backends = [DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter]
     filterset_fields = ['fecha']
     ordering_fields = ['fecha', 'precio_total']
@@ -173,15 +246,13 @@ class ListaComprasVendedorView(generics.ListAPIView):
     
     def get_queryset(self):
         """
-        Retorna las compras realizadas por el vendedor autenticado
+        Retorna las compras realizadas por el usuario autenticado (vendedor o admin_empresa)
         """
         try:
             from usuario_empresa.models import Usuario_Empresa
             usuario_empresa = Usuario_Empresa.objects.get(id_usuario=self.request.user)
             
-            queryset = Compra.objects.filter(
-                usuario_empresa=usuario_empresa
-            ).select_related(
+            queryset = Compra.objects.all().select_related(
                 'usuario_empresa',
                 'usuario_empresa__id_usuario',
                 'usuario_empresa__empresa'
@@ -199,10 +270,10 @@ class ListaComprasVendedorView(generics.ListAPIView):
             return queryset
             
         except Usuario_Empresa.DoesNotExist:
-            logger.warning(f"Usuario vendedor {self.request.user.email} no tiene empresa asignada")
+            logger.warning(f"Usuario {self.request.user.email} no tiene empresa asignada")
             return Compra.objects.none()
         except Exception as e:
-            logger.error(f"Error obteniendo compras del vendedor: {str(e)}")
+            logger.error(f"Error obteniendo compras del usuario: {str(e)}")
             return Compra.objects.none()
     
     def list(self, request, *args, **kwargs):
@@ -254,7 +325,7 @@ class ListaComprasVendedorView(generics.ListAPIView):
             })
             
         except Exception as e:
-            logger.error(f"Error listando compras del vendedor: {str(e)}")
+            logger.error(f"Error listando compras del usuario: {str(e)}")
             return Response({
                 'error': 'Error al obtener compras',
                 'detail': str(e),
@@ -264,16 +335,16 @@ class ListaComprasVendedorView(generics.ListAPIView):
 
 class DetalleCompraVendedorView(generics.RetrieveAPIView):
     """
-    Vista para que un vendedor vea el detalle de una compra específica
-    Accesible solo para rol 'vendedor'
+    Vista para que un vendedor o admin_empresa vea el detalle de una compra específica
+    Accesible solo para rol 'vendedor' o 'admin_empresa'
     """
     serializer_class = CompraSerializer
-    permission_classes = [IsAuthenticated, EsVendedorPermission]
+    permission_classes = [IsAuthenticated, EsVendedorOAdminEmpresaPermission]
     lookup_field = 'id_compra'
     
     def get_queryset(self):
         """
-        Retorna solo las compras realizadas por el vendedor autenticado
+        Retorna solo las compras realizadas por el usuario autenticado
         """
         try:
             from usuario_empresa.models import Usuario_Empresa
@@ -290,16 +361,16 @@ class DetalleCompraVendedorView(generics.RetrieveAPIView):
     
     def retrieve(self, request, *args, **kwargs):
         """
-        Sobrescribimos para agregar detalles completos
+        Sobrescribimos para agregar detalles completos con proveedor
         """
         try:
             compra = self.get_object()
             serializer = self.get_serializer(compra)
             
-            # Obtener detalles de la compra
+            # Obtener detalles de la compra con proveedor
             detalles = DetalleCompra.objects.filter(
                 id_compra=compra
-            ).select_related('id_producto')
+            ).select_related('id_producto', 'id_proveedor')
             
             detalles_data = []
             for detalle in detalles:
@@ -310,9 +381,15 @@ class DetalleCompraVendedorView(generics.RetrieveAPIView):
                     'cantidad': detalle.cantidad,
                     'precio_unitario': float(detalle.precio_unitario),
                     'subtotal': float(detalle.subtotal),
-                    'stock_anterior': detalle.id_producto.stock_actual - detalle.cantidad,  # Stock antes de la compra
+                    'stock_anterior': detalle.id_producto.stock_actual - detalle.cantidad,
                     'stock_actual': detalle.id_producto.stock_actual,
-                    'stock_minimo': detalle.id_producto.stock_minimo
+                    'stock_minimo': detalle.id_producto.stock_minimo,
+                    'proveedor_info': {
+                        'id': detalle.id_proveedor.id_proveedor,
+                        'nombre': detalle.id_proveedor.nombre,
+                        'telefono': detalle.id_proveedor.telefono,
+                        'email': detalle.id_proveedor.email
+                    }
                 })
             
             return Response({
@@ -337,36 +414,36 @@ class DetalleCompraVendedorView(generics.RetrieveAPIView):
 
 class EliminarCompraView(generics.DestroyAPIView):
     """
-    Vista para que un vendedor elimine una compra específica
-    Accesible solo para rol 'vendedor'
+    Vista para que un vendedor o admin_empresa elimine una compra específica
+    Accesible solo para rol 'vendedor' o 'admin_empresa'
     - Solo elimina el registro de compra, NO revierte el stock
     """
-    permission_classes = [IsAuthenticated, EsVendedorPermission]
+    permission_classes = [IsAuthenticated, EsVendedorOAdminEmpresaPermission]
     
     def delete(self, request, id_compra, *args, **kwargs):
         """
         Elimina una compra específica
         """
         try:
-            # 1. Verificar que el usuario sea vendedor y tenga empresa
+            # 1. Verificar que el usuario tenga empresa
             try:
                 from usuario_empresa.models import Usuario_Empresa
                 usuario_empresa = Usuario_Empresa.objects.get(id_usuario=request.user)
             except Usuario_Empresa.DoesNotExist:
                 return Response({
-                    'error': 'Vendedor sin empresa asignada',
+                    'error': 'Usuario sin empresa asignada',
                     'detail': 'No tienes una empresa asignada',
                     'status': 'error'
                 }, status=status.HTTP_400_BAD_REQUEST)
             
-            # 2. Buscar la compra específica que pertenezca a este vendedor
+            # 2. Buscar la compra específica que pertenezca a este usuario
             try:
                 compra = Compra.objects.get(
                     id_compra=id_compra,
                     usuario_empresa=usuario_empresa
                 )
             except Compra.DoesNotExist:
-                logger.warning(f"Compra no encontrada: ID {id_compra} para vendedor {request.user.email}")
+                logger.warning(f"Compra no encontrada: ID {id_compra} para usuario {request.user.email}")
                 return Response({
                     'error': 'Compra no encontrada',
                     'detail': f'No existe la compra con ID {id_compra} o no tienes permisos para eliminarla',
@@ -376,7 +453,7 @@ class EliminarCompraView(generics.DestroyAPIView):
             compra_id = compra.id_compra
             
             # 3. Obtener información de la compra antes de eliminar
-            detalles_compra = DetalleCompra.objects.filter(id_compra=compra)
+            detalles_compra = DetalleCompra.objects.filter(id_compra=compra).select_related('id_proveedor')
             info_compra = {
                 'id_compra': compra.id_compra,
                 'fecha': compra.fecha.isoformat(),
@@ -387,13 +464,14 @@ class EliminarCompraView(generics.DestroyAPIView):
                         'producto_id': detalle.id_producto.id_producto,
                         'producto_nombre': detalle.id_producto.nombre,
                         'cantidad': detalle.cantidad,
-                        'precio_unitario': float(detalle.precio_unitario)
+                        'precio_unitario': float(detalle.precio_unitario),
+                        'proveedor': detalle.id_proveedor.nombre  # Incluir proveedor
                     }
                     for detalle in detalles_compra
                 ]
             }
             
-            logger.info(f"Vendedor {request.user.email} eliminando compra ID: {compra_id}")
+            logger.info(f"Usuario {request.user.email} eliminando compra ID: {compra_id}")
             
             # 4. Primero eliminar los detalles de compra
             detalles_eliminados = detalles_compra.delete()
@@ -431,9 +509,9 @@ class EliminarCompraView(generics.DestroyAPIView):
                 'status': 'error'
             }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
     
-    def _crear_notificacion_eliminacion(self, vendedor, info_compra):
+    def _crear_notificacion_eliminacion(self, usuario, info_compra):
         """
-        Crea notificación para el vendedor sobre la eliminación de compra
+        Crea notificación para el usuario sobre la eliminación de compra
         """
         try:
             from notificaciones.models import Notificacion
@@ -449,13 +527,13 @@ class EliminarCompraView(generics.DestroyAPIView):
                 tipo='warning'
             )
             
-            # Asociar notificación al vendedor
+            # Asociar notificación al usuario
             Notifica.objects.create(
-                id_usuario=vendedor,
+                id_usuario=usuario,
                 id_notificacion=notificacion
             )
             
-            logger.info(f"Notificación de eliminación creada para vendedor {vendedor.email}")
+            logger.info(f"Notificación de eliminación creada para usuario {usuario.email}")
             
         except Exception as e:
             logger.error(f"Error al crear notificación de eliminación: {str(e)}")

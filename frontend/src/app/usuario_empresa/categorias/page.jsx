@@ -149,7 +149,6 @@ export default function CategoriaSection() {
     { label: "Nombre", key: "nombre" },
     { label: "Descripción", key: "descripcion" },
     { label: "Estado", key: "estado" },
-    { label: "Empresa", key: "empresa" },
     { label: "Nombre de la Empresa", key: "empresa_nombre" },
     { label: "Fecha Creacion", key: "fecha_creacion" },
   ]

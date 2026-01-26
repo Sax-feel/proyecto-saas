@@ -318,3 +318,20 @@ class ClienteResponseSerializer(serializers.ModelSerializer):
             }
         except Tiene.DoesNotExist:
             return None
+
+class NITEmpresaSerializer(serializers.Serializer):
+    """Serializador para registrar cliente existente mediante NIT"""
+    nit = serializers.CharField(max_length=20, required=True)
+    
+    def validate_nit(self, value):
+        """Validar que el cliente exista por NIT"""
+        try:
+            cliente = Cliente.objects.get(nit=value)
+            return value
+        except Cliente.DoesNotExist:
+            raise serializers.ValidationError("No existe un cliente con este NIT")
+    
+    def validate(self, data):
+        """Validación adicional"""
+        # Aquí puedes agregar más validaciones si es necesario
+        return data

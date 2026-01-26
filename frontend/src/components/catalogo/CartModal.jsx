@@ -1,11 +1,9 @@
+// frontend/src/components/catalogo/CartModal.jsx
 'use client';
 
-import { useState, useEffect } from 'react';
-import LoginForm from '../auth/LoginForm/LoginForm';
-import RegisterOptions from '../auth/RegisterOptions';
+import { useState, useEffect, useCallback } from 'react';
 import CartContent from './CartContent';
 import styles from './CartModal.module.css';
-import { useRouter } from 'next/navigation';
 
 export default function CartModal({
     isOpen,
@@ -13,37 +11,46 @@ export default function CartModal({
     empresaId,
     onLoginSuccess
 }) {
-    const router = useRouter();
     const [isLoggedIn, setIsLoggedIn] = useState(false);
-    const [showLogin, setShowLogin] = useState(true);
+    const [userRole, setUserRole] = useState(null);
+    const [isVendedor, setIsVendedor] = useState(false);
     const [reservas, setReservas] = useState([]);
     const [loading, setLoading] = useState(true);
+    const [selectedClient, setSelectedClient] = useState(null);
 
-    // Verificar si el usuario está logueado como cliente
     useEffect(() => {
         if (isOpen) {
             checkAuthStatus();
-            if (isLoggedIn) {
-                fetchReservas();
-            }
         }
-    }, [isOpen, isLoggedIn]);
+    }, [isOpen]);
+
+    useEffect(() => {
+        if (isLoggedIn && isVendedor) {
+            fetchReservas();
+        }
+    }, [isLoggedIn, isVendedor]);
 
     const checkAuthStatus = () => {
         if (typeof window !== 'undefined') {
             const token = localStorage.getItem('access');
-            const userRole = localStorage.getItem('userRole');
+            const role = localStorage.getItem('userRole');
 
-            if (token && userRole === 'cliente') {
+            if (token && (role === 'vendedor' || role === 'admin_empresa')) {
                 setIsLoggedIn(true);
+                setUserRole(role);
+                setIsVendedor(true);
             } else {
                 setIsLoggedIn(false);
-                setShowLogin(true);
+                setIsVendedor(false);
+                setUserRole(null);
             }
         }
     };
 
-    const fetchReservas = async () => {
+     // Función para cargar reservas
+    const fetchReservas = useCallback(async () => {
+        if (!isLoggedIn || !isVendedor) return;
+        
         try {
             setLoading(true);
             const token = localStorage.getItem('access');
@@ -62,14 +69,35 @@ export default function CartModal({
         } finally {
             setLoading(false);
         }
-    };
+    }, [isLoggedIn, isVendedor]);
 
-    const handleLoginSuccess = (userData) => {
-        setIsLoggedIn(true);
-        setShowLogin(false);
-        onLoginSuccess?.(userData);
-        fetchReservas();
-    };
+    useEffect(() => {
+        if (isOpen) {
+            checkAuthStatus();
+        }
+    }, [isOpen]);
+    useEffect(() => {
+        const handleRefreshCart = () => {
+            console.log('Refresh cart event received, reloading...');
+            fetchReservas();
+        };
+
+        const handleCartUpdated = (event) => {
+            console.log('Cart updated event received:', event.detail);
+            // Esperar un momento para que el backend procese y luego recargar
+            setTimeout(() => {
+                fetchReservas();
+            }, 500);
+        };
+
+        window.addEventListener('refreshCart', handleRefreshCart);
+        window.addEventListener('cartUpdated', handleCartUpdated);
+        
+        return () => {
+            window.removeEventListener('refreshCart', handleRefreshCart);
+            window.removeEventListener('cartUpdated', handleCartUpdated);
+        };
+    }, [fetchReservas]);
 
     const handleLogout = () => {
         localStorage.removeItem('access');
@@ -77,12 +105,18 @@ export default function CartModal({
         localStorage.removeItem('userRole');
         localStorage.removeItem('userEmail');
         setIsLoggedIn(false);
-        setShowLogin(true);
+        setIsVendedor(false);
+        setUserRole(null);
         setReservas([]);
+        setSelectedClient(null);
     };
 
-    const handleRegisterClick = () => {
-        router.push(`/login/registro-cliente/${empresaId}`);
+    const handleClientSelect = (client) => {
+        setSelectedClient(client);
+    };
+
+    const handleEditClient = () => {
+        setSelectedClient(null);
     };
 
     if (!isOpen) return null;
@@ -92,7 +126,7 @@ export default function CartModal({
             <div className={styles.modalContainer}>
                 <div className={styles.modalHeader}>
                     <h2 className={styles.modalTitle}>
-                        {isLoggedIn ? 'Mi Carrito de Compras' : 'Iniciar Sesión'}
+                        {isLoggedIn && isVendedor ? 'Carrito de Venta' : 'Carrito'}
                     </h2>
                     <button onClick={onClose} className={styles.closeButton}>
                         &times;
@@ -101,30 +135,25 @@ export default function CartModal({
 
                 <div className={styles.modalContent}>
                     {!isLoggedIn ? (
-                        showLogin ? (
-                            <>
-                                <LoginForm
-                                    onSuccess={handleLoginSuccess}
-                                    userType="cliente"
-                                />
-                                <div className={styles.registerSection}>
-                                    <p className={styles.registerText}>
-                                        ¿No tienes una cuenta?{' '}
-                                        <button
-                                            onClick={handleRegisterClick}
-                                            className={styles.registerLink}
-                                        >
-                                            Regístrate aquí
-                                        </button>
-                                    </p>
-                                </div>
-                            </>
-                        ) : (
-                            <RegisterOptions
-                                onLoginClick={() => setShowLogin(true)}
-                                empresaId={empresaId}
-                            />
-                        )
+                        <div className={styles.notLoggedInMessage}>
+                            <div className={styles.notLoggedInIcon}>🔒</div>
+                            <h3>Acceso requerido</h3>
+                            <p>Para acceder al carrito de venta, debes iniciar sesión como vendedor o administrador de empresa.</p>
+                            <p className={styles.loginHint}>
+                                Usa el botón <strong>"Mi Cuenta"</strong> en la parte superior para iniciar sesión.
+                            </p>
+                            <button onClick={onClose} className={styles.closeMessageButton}>
+                                Entendido
+                            </button>
+                        </div>
+                    ) : !isVendedor ? (
+                        <div className={styles.wrongRole}>
+                            <h3>Rol incorrecto</h3>
+                            <p>Solo vendedores y administradores de empresa pueden acceder al carrito de venta.</p>
+                            <button onClick={handleLogout} className={styles.logoutButton}>
+                                Cerrar Sesión
+                            </button>
+                        </div>
                     ) : (
                         <CartContent
                             reservas={reservas}
@@ -132,6 +161,10 @@ export default function CartModal({
                             onRefresh={fetchReservas}
                             onLogout={handleLogout}
                             empresaId={empresaId}
+                            userRole={userRole}
+                            selectedClient={selectedClient}
+                            onClientSelect={handleClientSelect}
+                            onEditClient={handleEditClient}
                         />
                     )}
                 </div>

@@ -40,7 +40,7 @@ export default function LoginForm() {
       if (rol === "admin") router.push("/admin")
       else if (rol === "cliente") router.push("/cliente")
       else if (rol === "admin_empresa") router.push("/usuario_empresa")
-      else if (rol === "vendedor") router.push("/vendedor")
+      else if (rol === "vendedor") router.push("/vendedor/productos_vendedor")
       else router.push("/login")
 
     } catch (err) {

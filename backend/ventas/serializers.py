@@ -4,9 +4,6 @@ from .models import Venta
 from usuario_empresa.models import Usuario_Empresa
 from detalle_venta.models import DetalleVenta
 import logging
-
-
-
 logger = logging.getLogger(__name__)
 
 class VentaSerializer(serializers.ModelSerializer):
@@ -56,7 +53,7 @@ class VentaSerializer(serializers.ModelSerializer):
             }
         except Exception:
             return None
-        
+    
     def get_detalles_venta(self, obj):
         """Obtiene detalles de la venta con información de productos"""
         try:
@@ -85,7 +82,6 @@ class VentaSerializer(serializers.ModelSerializer):
             logger.error(f"Error obteniendo detalles de venta: {str(e)}")
             return []
 
-
 class DetalleVentaSerializer(serializers.Serializer):
     """Serializador para detalle de venta"""
     id_producto = serializers.IntegerField(required=True)
@@ -96,26 +92,33 @@ class DetalleVentaSerializer(serializers.Serializer):
         min_value=0.01
     )
 
-
 class RealizarCompraSerializer(serializers.Serializer):
-    """Serializador para realizar una compra"""
+    """Serializador para realizar una venta (ahora lo hace el vendedor)"""
     detalles = DetalleVentaSerializer(many=True, required=True)
+    cliente_id = serializers.IntegerField(required=True)  # ID del cliente para quien se hace la venta
     
     def validate(self, data):
         user = self.context['request'].user
         
-        # Verificar que el usuario sea cliente
-        if not hasattr(user, 'rol') or user.rol.rol != 'cliente':
-            raise serializers.ValidationError("Solo clientes pueden realizar compras")
+        # Verificar que el usuario sea vendedor o admin_empresa
+        if not hasattr(user, 'rol') or user.rol.rol not in ['vendedor', 'admin_empresa']:
+            raise serializers.ValidationError("Solo vendedores y administradores de empresa pueden realizar ventas")
+        
+        # Verificar que el vendedor tenga empresa asignada
+        try:
+            from usuario_empresa.models import Usuario_Empresa
+            vendedor = Usuario_Empresa.objects.get(id_usuario=user)
+        except Usuario_Empresa.DoesNotExist:
+            raise serializers.ValidationError("Vendedor no encontrado")
         
         # Verificar que el cliente exista
         try:
             from cliente.models import Cliente
-            cliente = Cliente.objects.get(id_usuario=user)
+            cliente = Cliente.objects.get(id_usuario_id=data['cliente_id'])
         except Cliente.DoesNotExist:
             raise serializers.ValidationError("Cliente no encontrado")
         
-        # Validar cada detalle de compra
+        # Validar cada detalle de venta
         productos_info = []
         precio_total = 0
         
@@ -151,10 +154,10 @@ class RealizarCompraSerializer(serializers.Serializer):
                 'subtotal': subtotal
             })
         
-        # Verificar si hay reservas pendientes para estos productos
+        # Verificar si el vendedor tiene reservas pendientes para estos productos
         reservas_pendientes = []
         for info in productos_info:
-            reserva = self._verificar_reserva(cliente, info['producto'], info['cantidad'])
+            reserva = self._verificar_reserva(user, info['producto'], info['cantidad'])
             if reserva:
                 reservas_pendientes.append(reserva)
         
@@ -166,23 +169,32 @@ class RealizarCompraSerializer(serializers.Serializer):
         
         return data
     
-    def _verificar_reserva(self, cliente, producto, cantidad):
-        """Verifica si existe una reserva pendiente para este cliente y producto"""
+    def _verificar_reserva(self, user, producto, cantidad):
+        """Verifica si existe una reserva pendiente para este user y producto"""
         try:
             from reservas.models import Reserva
+            from usuario_empresa.models import Usuario_Empresa
+        
+            # Obtener la instancia de Usuario_Empresa asociada al User
+            try:
+                usuario_empresa = Usuario_Empresa.objects.get(id_usuario=user)
+            except Usuario_Empresa.DoesNotExist:
+                return None  # Si no es usuario_empresa, no puede tener reservas
+        
+            # Buscar reserva usando la instancia de Usuario_Empresa
             reserva = Reserva.objects.get(
-                id_cliente=cliente,
+                id_usuario=usuario_empresa,  # ← CAMBIO IMPORTANTE
                 id_producto=producto,
                 estado='pendiente'
             )
-            
-            # Verificar que la cantidad coincida
+        
+        # Verificar que la cantidad coincida
             if reserva.cantidad != cantidad:
                 raise serializers.ValidationError(
-                    f"La cantidad solicitada para {producto.nombre} no coincide con tu reserva. "
+                    f"La cantidad solicitada para {producto.nombre} no coincide con la reserva del cliente. "
                     f"Reservado: {reserva.cantidad}, Solicitado: {cantidad}"
                 )
-            
+        
             return reserva
         except Reserva.DoesNotExist:
             return None

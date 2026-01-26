@@ -22,6 +22,7 @@ urlpatterns = [
     path('api/reservas/', include('reservas.urls')),
     path('api/ventas/', include('ventas.urls')),
     path('api/compras/', include('compras.urls')),
+    path('api/notificaciones/', include('relacion_notifica.urls')),
     
     #ENDPOINTS DE DOCUMENTACIÓN
     path('api/schema/', SpectacularAPIView.as_view(), name='schema'),

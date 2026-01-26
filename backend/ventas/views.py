@@ -7,172 +7,89 @@ from django_filters.rest_framework import DjangoFilterBackend
 from django.db import transaction
 from decimal import Decimal
 import logging
-
 from .models import Venta
 from detalle_venta.models import DetalleVenta
 from .serializers import VentaSerializer, RealizarCompraSerializer
-from reservas.views import EsClientePermission
+from reservas.views import EsVendedorOAdminEmpresaPermission
 from usuario_empresa.models import Usuario_Empresa
-
 logger = logging.getLogger(__name__)
-
-class AsignarVendedorService:
-    """
-    Servicio para asignar automáticamente un vendedor a una venta
-    """
-    
-    @staticmethod
-    def asignar_vendedor_automatico(empresa_id):
-        """
-        Asigna automáticamente un vendedor a la venta
-        
-        Reglas:
-        1. Busca usuarios con rol 'vendedor' en la empresa
-        2. Si solo hay uno, ese será asignado
-        3. Si hay más de uno, escoge al que tenga menos ventas asignadas
-        4. Si hay empate, escoge al primero disponible
-        """
-        try:
-            # Importaciones dentro del método para evitar circular imports
-            from usuario_empresa.models import Usuario_Empresa
-            from roles.models import Rol
-            
-            # 1. Obtener rol 'vendedor'
-            try:
-                rol_vendedor = Rol.objects.get(rol='vendedor')
-            except Rol.DoesNotExist:
-                logger.error("Rol 'vendedor' no encontrado en el sistema")
-                return None
-            
-            # 2. Buscar vendedores activos en la empresa
-            vendedores = Usuario_Empresa.objects.filter(
-                empresa_id=empresa_id,
-                id_usuario__rol=rol_vendedor,
-                estado='activo'
-            ).select_related('id_usuario')
-            
-            if not vendedores:
-                logger.warning(f"No hay vendedores activos en la empresa {empresa_id}")
-                return None
-            
-            # 3. Si solo hay un vendedor, asignarlo
-            if vendedores.count() == 1:
-                vendedor = vendedores.first()
-                logger.info(f"Un solo vendedor disponible: {vendedor.id_usuario.email}")
-                return vendedor
-            
-            # 4. Si hay más de uno, contar ventas por vendedor
-            vendedores_con_ventas = []
-            for vendedor in vendedores:
-                ventas_count = Venta.objects.filter(usuario_empresa=vendedor).count()
-                vendedores_con_ventas.append({
-                    'vendedor': vendedor,
-                    'ventas_count': ventas_count
-                })
-            
-            # 5. Ordenar por menor cantidad de ventas
-            vendedores_con_ventas.sort(key=lambda x: x['ventas_count'])
-            
-            # 6. Tomar el vendedor con menos ventas
-            menor_ventas = vendedores_con_ventas[0]['ventas_count']
-            candidatos = [
-                v['vendedor'] for v in vendedores_con_ventas 
-                if v['ventas_count'] == menor_ventas
-            ]
-            
-            # 7. Si hay empate, tomar el primero (podría mejorarse con disponibilidad)
-            vendedor_asignado = candidatos[0]
-            
-            logger.info(
-                f"Vendedor asignado automáticamente: {vendedor_asignado.id_usuario.email} "
-                f"con {menor_ventas} ventas"
-            )
-            
-            return vendedor_asignado
-            
-        except Exception as e:
-            logger.error(f"Error al asignar vendedor automático: {str(e)}", exc_info=True)
-            return None
-
 
 class RealizarCompraView(generics.CreateAPIView):
     """
-    Vista para que un cliente realice una compra
+    Vista para que un vendedor realice una venta (no un cliente)
     """
     serializer_class = RealizarCompraSerializer
-    permission_classes = [IsAuthenticated, EsClientePermission]
-    
+    permission_classes = [IsAuthenticated, EsVendedorOAdminEmpresaPermission]    
     @transaction.atomic
     def create(self, request, *args, **kwargs):
         try:
-            logger.info(f"Intento de compra por cliente: {request.user.email}")
-            
+            logger.info(f"Intento de venta por vendedor: {request.user.email}")          
             serializer = self.get_serializer(data=request.data, context={'request': request})
-            serializer.is_valid(raise_exception=True)
-            
+            serializer.is_valid(raise_exception=True)            
             validated_data = serializer.validated_data
             cliente = validated_data['cliente']
             productos_info = validated_data['productos_info']
             precio_total = validated_data['precio_total']
             reservas_pendientes = validated_data['reservas_pendientes']
             
-            # 1. Determinar empresa (asumimos que todos los productos son de la misma empresa)
-            empresa = productos_info[0]['producto'].empresa
-            
-            # 2. Asignar vendedor automáticamente
-            vendedor_asignado = AsignarVendedorService.asignar_vendedor_automatico(
-                empresa.id_empresa
-            )
-            
-            if not vendedor_asignado:
+            # 1. Obtener el usuario_empresa (vendedor) que está realizando la venta
+            try:
+                vendedor = Usuario_Empresa.objects.get(id_usuario=request.user)
+            except Usuario_Empresa.DoesNotExist:
                 return Response({
-                    'error': 'No hay vendedores disponibles para atender la compra',
-                    'detail': 'Por favor contacte al administrador de la empresa',
+                    'error': 'Vendedor no encontrado',
+                    'detail': 'No tienes una cuenta de vendedor válida',
                     'status': 'error'
-                }, status=status.HTTP_400_BAD_REQUEST)
+                }, status=status.HTTP_400_BAD_REQUEST)            
             
-            # 3. Crear venta
+            # 2. Crear venta
             venta = Venta.objects.create(
-                usuario_empresa=vendedor_asignado,
+                usuario_empresa=vendedor,  # Usar el vendedor logueado
                 cliente=cliente,
                 precio_total=precio_total
-            )
+            )            
+            logger.info(f"Venta creada ID: {venta.id_venta} por vendedor: {vendedor.id_usuario.email}")
             
-            logger.info(f"Venta creada ID: {venta.id_venta}")
-            
-            # 4. Crear detalles de venta y actualizar stock
+            # 3. Crear detalles de venta y actualizar stock
             detalles_venta = []
+            productos_agotados = []
             for info in productos_info:
                 producto = info['producto']
                 cantidad = info['cantidad']
                 precio_unitario = info['precio_unitario']
-                subtotal = info['subtotal']
+                subtotal = info['subtotal']                
                 
                 # Verificar stock nuevamente (doble verificación)
                 if producto.stock_actual < cantidad:
                     raise serializers.ValidationError(
                         f"Stock insuficiente para {producto.nombre} durante el procesamiento"
-                    )
+                    )                
                 
                 # Reducir stock
-                producto.stock_actual -= cantidad
+                producto.stock_actual -= cantidad                
                 
                 # Actualizar estado si es necesario
                 if producto.stock_actual <= 0:
                     producto.estado = 'agotado'
+                    # Agregar a lista de productos agotados
+                    productos_agotados.append({
+                        'nombre': producto.nombre,
+                        'stock_anterior': producto.stock_actual + cantidad,
+                        'stock_actual': producto.stock_actual
+                    })
                 elif producto.stock_actual <= producto.stock_minimo:
-                    producto.estado = 'activo'  # Mantener activo pero con stock bajo
+                    producto.estado = 'activo' # Mantener activo pero con stock bajo                
                 
                 producto.save()
                 
-                # Crear detalle de venta
+                # Detalle venta
                 detalle = DetalleVenta.objects.create(
                     id_venta=venta,
                     id_producto=producto,
                     cantidad=cantidad,
                     precio_unitario=precio_unitario,
                     subtotal=subtotal
-                )
+                )                
                 
                 detalles_venta.append({
                     'producto': producto.nombre,
@@ -180,59 +97,58 @@ class RealizarCompraView(generics.CreateAPIView):
                     'precio_unitario': float(precio_unitario),
                     'subtotal': float(subtotal)
                 })
-                
-                logger.info(f"Detalle venta creado: {producto.nombre} x{cantidad}")
+                logger.info(f"Stock actualizado para {producto.nombre}: {producto.stock_actual}")
             
-            # 5. Actualizar estado de reservas a 'confirmada'
-            reservas_confirmadas = []
+            # 4. Eliminar las reservas (en lugar de solo confirmarlas)
+            reservas_eliminadas = []
             for reserva in reservas_pendientes:
-                reserva.estado = 'confirmada'
-                reserva.save()
-                reservas_confirmadas.append({
+                reservas_eliminadas.append({
                     'producto': reserva.id_producto.nombre,
                     'cantidad': reserva.cantidad
                 })
-                logger.info(f"Reserva confirmada: {reserva.id_producto.nombre}")
+                # Eliminar la reserva de la base de datos
+                reserva.delete()
+                logger.info(f"Reserva eliminada: {reserva.id_producto.nombre}")
             
-            # 6. Crear notificación para el cliente
+            # 5. Crear notificación para el cliente
             self._crear_notificacion_compra(cliente, venta, detalles_venta)
+            self._crear_notificacion_venta_vendedor(venta, detalles_venta)
 
-            self._crear_notificacion_compra_vendedores(venta, detalles_venta)
+            if productos_agotados:
+                self._notificar_agotamiento_stock(venta, productos_agotados)
             
-            # 7. Preparar respuesta
+            # 6. Preparar respuesta
             response_data = {
-                'message': 'Compra realizada exitosamente',
+                'message': 'Venta realizada exitosamente',
                 'venta': VentaSerializer(venta).data,
                 'detalles': {
                     'numero_venta': venta.id_venta,
                     'fecha': venta.fecha_venta.isoformat(),
                     'precio_total': float(precio_total),
-                    'vendedor_asignado': {
-                        'id': vendedor_asignado.id_usuario.id_usuario,
-                        'email': vendedor_asignado.id_usuario.email
+                    'vendedor': {
+                        'id': vendedor.id_usuario.id_usuario,
+                        'email': vendedor.id_usuario.email
                     },
-                    'productos_comprados': detalles_venta,
-                    'reservas_confirmadas': reservas_confirmadas if reservas_confirmadas else None
+                    'productos_vendidos': detalles_venta,
+                    'reservas_eliminadas': reservas_eliminadas if reservas_eliminadas else None
                 },
                 'status': 'success'
-            }
+            }            
             
-            logger.info(f"Compra completada exitosamente ID Venta: {venta.id_venta}")
-            
+            logger.info(f"Venta completada exitosamente ID: {venta.id_venta}")
             return Response(response_data, status=status.HTTP_201_CREATED)
-        
             
         except Exception as e:
-            logger.error(f"Error al realizar compra: {str(e)}", exc_info=True)
+            logger.error(f"Error al realizar venta: {str(e)}", exc_info=True)
             return Response({
-                'error': 'Error al procesar la compra',
+                'error': 'Error al procesar la venta',
                 'detail': str(e),
                 'status': 'error'
-            }, status=status.HTTP_400_BAD_REQUEST)
+            }, status=status.HTTP_400_BAD_REQUEST)    
     
     def _crear_notificacion_compra_vendedores(self, venta, detalles_venta):
         """
-        Crea notificación de compra para todos los vendedores de la empresa
+        Crea notificación de venta para otros vendedores de la empresa
         """
         try:
             from notificaciones.models import Notificacion
@@ -243,7 +159,7 @@ class RealizarCompraView(generics.CreateAPIView):
             # Obtener empresa de la venta
             empresa = venta.usuario_empresa.empresa
             
-            # Crear resumen de productos comprados
+            # Crear resumen de productos vendidos
             productos_texto = ", ".join([f"{detalle['cantidad']}x {detalle['producto']}" 
                                         for detalle in detalles_venta[:3]])  # Primeros 3 productos
             if len(detalles_venta) > 3:
@@ -253,24 +169,24 @@ class RealizarCompraView(generics.CreateAPIView):
             notificacion = Notificacion.objects.create(
                 titulo=f'Nueva venta #{venta.id_venta} realizada',
                 mensaje=(
-                    f'El cliente {venta.cliente.nombre_cliente} ha realizado una compra. '
+                    f'El vendedor {venta.usuario_empresa.id_usuario.email} ha realizado una venta. '
+                    f'Cliente: {venta.cliente.nombre_cliente}. '
                     f'Total: ${venta.precio_total}. '
-                    f'Productos: {productos_texto}. '
-                    f'Vendedor asignado: {venta.usuario_empresa.id_usuario.nombre}'
+                    f'Productos: {productos_texto}.'
                 ),
                 tipo='success'
             )
             
             # Obtener rol vendedor
-            rol_vendedor = Rol.objects.get(rol='vendedor')
+            rol_vendedor = Rol.objects.get(rol='vendedor')            
             
-            # Buscar TODOS los vendedores activos de la empresa (no solo el asignado)
+            # Buscar TODOS los vendedores activos de la empresa (no solo el que hizo la venta)
             vendedores_empresa = Usuario_Empresa.objects.filter(
                 empresa=empresa,
                 id_usuario__rol=rol_vendedor,
                 estado='activo'
             ).exclude(
-                id_usuario=venta.usuario_empresa.id_usuario  # Excluir al vendedor asignado
+                id_usuario=venta.usuario_empresa.id_usuario  # Excluir al vendedor que hizo la venta
             ).select_related('id_usuario')
             
             # Crear notificaciones para cada vendedor
@@ -282,10 +198,10 @@ class RealizarCompraView(generics.CreateAPIView):
                 )
                 notificaciones_creadas += 1
             
-            logger.info(f"Notificación de compra creada para {notificaciones_creadas} vendedores en empresa {empresa.nombre}")
+            logger.info(f"Notificación de venta creada para {notificaciones_creadas} vendedores en empresa {empresa.nombre}")
             
         except Exception as e:
-            logger.error(f"Error al crear notificación de compra para vendedores: {str(e)}")
+            logger.error(f"Error al crear notificación de venta para vendedores: {str(e)}")
     
     def _crear_notificacion_compra(self, cliente, venta, detalles_venta):
         """
@@ -299,75 +215,170 @@ class RealizarCompraView(generics.CreateAPIView):
             notificacion = Notificacion.objects.create(
                 titulo='Compra realizada exitosamente',
                 mensaje=(
-                    f'Tu compra #{venta.id_venta} ha sido procesada exitosamente. '
+                    f'El vendedor {venta.usuario_empresa.id_usuario.email} ha procesado tu compra #{venta.id_venta}. '
                     f'Total: ${venta.precio_total}. '
-                    f'Vendedor asignado: {venta.usuario_empresa.id_usuario.nombre}'
                 ),
                 tipo='success'
             )
             
             # Asociar notificación al cliente
             Notifica.objects.create(
-                id_cliente=cliente,
+                id_usuario=cliente,
                 id_notificacion=notificacion
             )
-            
             logger.info(f"Notificación creada para cliente {cliente.nombre_cliente}")
             
         except Exception as e:
             logger.error(f"Error al crear notificación: {str(e)}")
-            # No fallar la compra si hay error en notificación
+            # No fallar la venta si hay error en notificación
 
+    def _notificar_agotamiento_stock(self, venta, productos_agotados):
+        """
+        Crea notificación cuando un producto se agota por la venta
+        Solo para vendedores y admin_empresa de la misma empresa
+        """
+        try:
+            from notificaciones.models import Notificacion
+            from relacion_notifica.models import Notifica
+            from usuario_empresa.models import Usuario_Empresa
+            from roles.models import Rol
+        
+            # Obtener empresa de la venta
+            empresa = venta.usuario_empresa.empresa
+        
+            # Crear lista de productos agotados
+            productos_texto = ", ".join([f"{producto['nombre']}" for producto in productos_agotados[:3]])
+            if len(productos_agotados) > 3:
+                productos_texto += f" y {len(productos_agotados) - 3} más"
+        
+            # Crear notificación
+            notificacion = Notificacion.objects.create(
+                titulo=f'Producto(s) agotado(s) por venta #{venta.id_venta}',
+                mensaje=(
+                    f'La venta #{venta.id_venta} ha agotado el stock de: {productos_texto}. '
+                    f'Es necesario reponer stock.'
+                ),
+                tipo='warning'
+            )
+            
+            # Obtener roles permitidos (vendedor y admin_empresa)
+            roles_permitidos = Rol.objects.filter(rol__in=['vendedor', 'admin_empresa'])
+            
+            # Buscar TODOS los usuarios de la empresa con roles vendedor o admin_empresa
+            usuarios_empresa = Usuario_Empresa.objects.filter(
+                empresa=empresa,
+                id_usuario__rol__in=roles_permitidos,
+                estado='activo'
+            ).exclude(
+                id_usuario=venta.usuario_empresa.id_usuario  # Excluir al vendedor que hizo la venta
+            ).select_related('id_usuario')
+            
+            # Crear notificaciones para cada usuario
+            notificaciones_creadas = 0
+            for usuario in usuarios_empresa:
+                Notifica.objects.create(
+                    id_usuario=usuario.id_usuario,
+                    id_notificacion=notificacion
+                )
+                notificaciones_creadas += 1
+            
+            logger.info(f"Notificación de agotamiento creada para {notificaciones_creadas} usuarios en empresa {empresa.nombre}")
+            
+        except Exception as e:
+            logger.error(f"Error al crear notificación de agotamiento: {str(e)}")
+
+    def _crear_notificacion_venta_vendedor(self, venta, detalles_venta):
+        """
+        Crea notificación solo para el vendedor que realizó la venta
+        """
+        try:
+            from notificaciones.models import Notificacion
+            from relacion_notifica.models import Notifica
+            
+            # Obtener vendedor que hizo la venta
+            vendedor = venta.usuario_empresa.id_usuario
+            
+            # Crear resumen de productos vendidos
+            productos_texto = ", ".join([f"{detalle['cantidad']}x {detalle['producto']}" 
+                                        for detalle in detalles_venta[:3]])
+            if len(detalles_venta) > 3:
+                productos_texto += f" y {len(detalles_venta) - 3} productos más"
+            
+            # Crear la notificación
+            notificacion = Notificacion.objects.create(
+                titulo=f'Venta #{venta.id_venta} completada',
+                mensaje=(
+                    f'Has realizado una venta exitosa. '
+                    f'Cliente: {venta.cliente.nombre_cliente}. '
+                    f'Total: Bs. {venta.precio_total:.2f}. '
+                    f'Productos: {productos_texto}.'
+                ),
+                tipo='success'
+            )
+            
+            # Asociar notificación solo al vendedor que hizo la venta
+            Notifica.objects.create(
+                id_usuario=vendedor,
+                id_notificacion=notificacion
+            )
+            
+            logger.info(f"Notificación de venta creada para vendedor {vendedor.email}")
+            
+        except Exception as e:
+            logger.error(f"Error al crear notificación de venta para vendedor: {str(e)}")
 
 class HistorialComprasClienteView(generics.ListAPIView):
     """
-    Vista para que un cliente vea su historial de compras
+    Vista para que un vendedor o admin_empresa vea el historial de compras de clientes
     """
     serializer_class = VentaSerializer
-    permission_classes = [IsAuthenticated, EsClientePermission]
-    
+    permission_classes = [IsAuthenticated, EsVendedorOAdminEmpresaPermission]    
     def get_queryset(self):
         """
-        Retorna las compras del cliente autenticado
+        Retorna las ventas de la empresa del vendedor
         """
         try:
-            from cliente.models import Cliente
-            cliente = Cliente.objects.get(id_usuario=self.request.user)
+            # Obtener el usuario_empresa (vendedor)
+            usuario_empresa = Usuario_Empresa.objects.get(id_usuario=self.request.user)
+            empresa = usuario_empresa.empresa
             
-            queryset = Venta.objects.filter(cliente=cliente)
+            # Obtener todas las ventas de la empresa
+            queryset = Venta.objects.filter(usuario_empresa__empresa=empresa)
             
-            # Filtrar por empresa si se proporciona
-            empresa_id = self.request.query_params.get('empresa_id', None)
-            if empresa_id:
-                queryset = queryset.filter(usuario_empresa__empresa_id=empresa_id)
+            # Filtrar por cliente específico si se proporciona
+            cliente_id = self.request.query_params.get('cliente_id', None)
+            if cliente_id:
+                queryset = queryset.filter(cliente_id=cliente_id)            
             
             # Filtrar por fecha si se proporciona
             fecha_desde = self.request.query_params.get('fecha_desde', None)
-            fecha_hasta = self.request.query_params.get('fecha_hasta', None)
+            fecha_hasta = self.request.query_params.get('fecha_hasta', None)            
             
             if fecha_desde:
                 queryset = queryset.filter(fecha_venta__gte=fecha_desde)
             if fecha_hasta:
-                queryset = queryset.filter(fecha_venta__lte=fecha_hasta)
+                queryset = queryset.filter(fecha_venta__lte=fecha_hasta)            
             
-            return queryset.order_by('-fecha_venta')
+            # Filtrar por vendedor si se proporciona
+            vendedor_id = self.request.query_params.get('vendedor_id', None)
+            if vendedor_id:
+                queryset = queryset.filter(usuario_empresa_id=vendedor_id)            
             
-        except Cliente.DoesNotExist:
-            return Venta.objects.none()
-    
+            return queryset.order_by('-fecha_venta')            
+            
+        except Usuario_Empresa.DoesNotExist:
+            return Venta.objects.none()    
     def list(self, request, *args, **kwargs):
-        queryset = self.filter_queryset(self.get_queryset())
-        
+        queryset = self.filter_queryset(self.get_queryset())        
         # Calcular estadísticas
-        total_compras = queryset.count()
-        total_gastado = sum([venta.precio_total for venta in queryset])
-        
+        total_ventas = queryset.count()
+        total_ganancias = sum([venta.precio_total for venta in queryset])        
         return Response({
-            'compras': self.get_serializer(queryset, many=True).data,
+            'ventas': self.get_serializer(queryset, many=True).data,
             'estadisticas': {
-                'total_compras': total_compras,
-                'total_gastado': float(total_gastado),
-                'promedio_compra': float(total_gastado / total_compras) if total_compras > 0 else 0
+                'total_ventas': total_ventas,
+                'total_ganancias': float(total_ganancias),
+                'promedio_venta': float(total_ganancias / total_ventas) if total_ventas > 0 else 0
             },
             'status': 'success'
         })
@@ -380,7 +391,7 @@ class EsVendedorPermission(permissions.BasePermission):
             request.user and 
             request.user.is_authenticated and 
             hasattr(request.user, 'rol') and 
-            request.user.rol.rol == 'vendedor'
+            request.user.rol.rol in ['vendedor', 'admin_empresa']
         )
 
 

@@ -4,6 +4,7 @@ from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.views import APIView
 from django.utils import timezone
+from rest_framework.permissions import AllowAny
 from datetime import timedelta
 import logging
 
@@ -17,64 +18,55 @@ from producto.models import Producto
 
 logger = logging.getLogger(__name__)
 
-class EsClientePermission(permissions.BasePermission):
-    """Permiso personalizado para verificar que el usuario sea cliente"""
+class EsVendedorOAdminEmpresaPermission(permissions.BasePermission):
+    """Permiso personalizado para verificar que el usuario sea vendedor o admin_empresa"""  # Cambiado
     
     def has_permission(self, request, view):
         return (
             request.user and 
             request.user.is_authenticated and 
             hasattr(request.user, 'rol') and 
-            request.user.rol.rol == 'cliente'
+            request.user.rol.rol in ['vendedor', 'admin_empresa']  # Cambiado
         )
 
 
 class CrearReservaView(generics.CreateAPIView):
     """
-    Vista para que un cliente cree una reserva (Debe estar logueado como cliente)
+    Vista para que un vendedor o admin_empresa cree una reserva
     """
     serializer_class = CrearReservaSerializer
-    permission_classes = [IsAuthenticated, EsClientePermission]
+    permission_classes = [IsAuthenticated, EsVendedorOAdminEmpresaPermission]  # Cambiado
     
     def create(self, request, *args, **kwargs):
         try:
-            logger.info(f"Intento de crear reserva por cliente: {request.user.email}")
+            logger.info(f"Intento de crear reserva por usuario empresa: {request.user.email}")
             
             serializer = self.get_serializer(data=request.data, context={'request': request})
             serializer.is_valid(raise_exception=True)
             
             validated_data = serializer.validated_data
-            cliente = validated_data['cliente']
+            usuario_empresa = validated_data['usuario_empresa']  # Cambiado
             producto = validated_data['producto']
             cantidad = validated_data['cantidad']
             fecha_expiracion = validated_data['fecha_expiracion']
             
             # 1. Reducir el stock del producto
-            producto.stock_actual -= cantidad
             
-            # Actualizar estado si es necesario
-            if producto.stock_actual <= 0:
-                producto.estado = 'agotado'
-            elif producto.stock_actual <= producto.stock_minimo:
-                producto.estado = 'activo'  # Mantener activo pero con stock bajo
-            
-            producto.save()
-            logger.info(f"Stock actualizado para {producto.nombre}: {producto.stock_actual}")
             
             # 2. Crear la reserva
             reserva = Reserva.objects.create(
-                id_cliente=cliente,
+                id_usuario=usuario_empresa,  # Cambiado
                 id_producto=producto,
                 cantidad=cantidad,
                 estado='pendiente',
                 fecha_expiracion=fecha_expiracion
             )
             
-            logger.info(f"Reserva creada exitosamente ID: {reserva.id_cliente}-{reserva.id_producto}")
+            logger.info(f"Reserva creada exitosamente ID: {reserva.id_usuario}-{reserva.id_producto}")  # Cambiado
             
-            # 3. Programar tarea para expiración automática (72 horas)
+    
             self._programar_expiracion_reserva(reserva)
-            # notificacion para vendedores
+            # notificacion para otros vendedores
             self._crear_notificacion_reserva_vendedores(reserva)
         
             return Response({
@@ -99,7 +91,7 @@ class CrearReservaView(generics.CreateAPIView):
     
     def _crear_notificacion_reserva_vendedores(self, reserva):
         """
-        Crea notificación de reserva para vendedores de la empresa
+        Crea notificación de reserva para otros vendedores de la empresa
         """
         try:
             from notificaciones.models import Notificacion
@@ -114,7 +106,7 @@ class CrearReservaView(generics.CreateAPIView):
             notificacion = Notificacion.objects.create(
                 titulo=f'Nueva reserva de producto: {reserva.id_producto.nombre}',
                 mensaje=(
-                    f'El cliente {reserva.id_cliente.nombre_cliente} ha reservado '
+                    f'El usuario {reserva.id_usuario.id_usuario.email} ha reservado '  # Cambiado
                     f'{reserva.cantidad} unidades de "{reserva.id_producto.nombre}". '
                     f'Stock reducido de {reserva.id_producto.stock_actual + reserva.cantidad} '
                     f'a {reserva.id_producto.stock_actual}. '
@@ -123,15 +115,15 @@ class CrearReservaView(generics.CreateAPIView):
                 tipo='info'
             )
             
-            # Obtener rol vendedor
+            # Obtener rol vendedor y admin_empresa
             rol_vendedor = Rol.objects.get(rol='vendedor')
             
-            # Buscar TODOS los vendedores activos de la empresa
+            # Buscar TODOS los vendedores activos de la empresa (excepto el que hizo la reserva)
             vendedores_empresa = Usuario_Empresa.objects.filter(
                 empresa=empresa,
                 id_usuario__rol=rol_vendedor,
                 estado='activo'
-            ).select_related('id_usuario')
+            ).exclude(id_usuario=reserva.id_usuario.id_usuario).select_related('id_usuario')  # Excluir al que hizo la reserva
             
             # Crear notificaciones para cada vendedor
             notificaciones_creadas = 0
@@ -150,23 +142,20 @@ class CrearReservaView(generics.CreateAPIView):
     def _programar_expiracion_reserva(self, reserva):
         """
         Programa la expiración automática de la reserva
-        (En producción, usaría Celery o Django Background Tasks)
         """
-        # Esta función se ejecutaría con un task scheduler
-        # Por ahora solo registramos el evento
         logger.info(f"Reserva programada para expirar: {reserva.fecha_expiracion}")
 
 
 class CancelarReservaView(generics.UpdateAPIView):
     """
-    Vista para que un cliente cancele una reserva
+    Vista para que un vendedor o admin_empresa cancele una reserva
     """
     serializer_class = CancelarReservaSerializer
-    permission_classes = [IsAuthenticated, EsClientePermission]
+    permission_classes = [IsAuthenticated, EsVendedorOAdminEmpresaPermission]  # Cambiado
     
     def update(self, request, *args, **kwargs):
         try:
-            logger.info(f"Intento de cancelar reserva por cliente: {request.user.email}")
+            logger.info(f"Intento de cancelar reserva por usuario empresa: {request.user.email}")
             
             serializer = self.get_serializer(data=request.data, context={'request': request})
             serializer.is_valid(raise_exception=True)
@@ -189,7 +178,7 @@ class CancelarReservaView(generics.UpdateAPIView):
             reserva.estado = 'cancelada'
             reserva.save()
             
-            logger.info(f"Reserva cancelada ID: {reserva.id_cliente}-{reserva.id_producto}")
+            logger.info(f"Reserva cancelada ID: {reserva.id_usuario}-{reserva.id_producto}")  # Cambiado
 
             self._crear_notificacion_cancelacion_reserva(reserva, producto)
             
@@ -213,7 +202,7 @@ class CancelarReservaView(generics.UpdateAPIView):
         
     def _crear_notificacion_cancelacion_reserva(self, reserva, producto):
         """
-        Crea notificación de cancelación de reserva para vendedores
+        Crea notificación de cancelación de reserva para otros vendedores
         """
         try:
             from notificaciones.models import Notificacion
@@ -228,7 +217,7 @@ class CancelarReservaView(generics.UpdateAPIView):
             notificacion = Notificacion.objects.create(
                 titulo=f'Reserva cancelada: {producto.nombre}',
                 mensaje=(
-                    f'El cliente {reserva.id_cliente.nombre_cliente} ha cancelado su reserva '
+                    f'El usuario {reserva.id_usuario.id_usuario.email} ha cancelado su reserva '  # Cambiado
                     f'de {reserva.cantidad} unidades de "{producto.nombre}". '
                     f'Stock restaurado a {producto.stock_actual}.'
                 ),
@@ -238,12 +227,12 @@ class CancelarReservaView(generics.UpdateAPIView):
             # Obtener rol vendedor
             rol_vendedor = Rol.objects.get(rol='vendedor')
             
-            # Buscar TODOS los vendedores activos de la empresa
+            # Buscar TODOS los vendedores activos de la empresa (excepto el que canceló)
             vendedores_empresa = Usuario_Empresa.objects.filter(
                 empresa=empresa,
                 id_usuario__rol=rol_vendedor,
                 estado='activo'
-            ).select_related('id_usuario')
+            ).exclude(id_usuario=reserva.id_usuario.id_usuario).select_related('id_usuario')
             
             # Crear notificaciones para cada vendedor
             notificaciones_creadas = 0
@@ -260,31 +249,31 @@ class CancelarReservaView(generics.UpdateAPIView):
             logger.error(f"Error al crear notificación de cancelación de reserva: {str(e)}")
 
 
-class ListarReservasClienteView(generics.ListAPIView):
+class ListarReservasUsuarioView(generics.ListAPIView):  # Cambiado nombre
     """
-    Vista para que un cliente liste sus reservas
+    Vista para que un vendedor o admin_empresa liste sus reservas
     """
     serializer_class = ReservaSerializer
-    permission_classes = [IsAuthenticated, EsClientePermission]
+    permission_classes = [IsAuthenticated, EsVendedorOAdminEmpresaPermission]  # Cambiado
     
     def get_queryset(self):
         """
-        Retorna las reservas del cliente autenticado
+        Retorna las reservas del usuario_empresa autenticado
         """
         try:
-            from cliente.models import Cliente
-            cliente = Cliente.objects.get(id_usuario=self.request.user)
+            from usuario_empresa.models import Usuario_Empresa
+            usuario_empresa = Usuario_Empresa.objects.get(id_usuario=self.request.user)
             
             # Filtrar por estado si se proporciona
             estado = self.request.query_params.get('estado', None)
-            queryset = Reserva.objects.filter(id_cliente=cliente)
+            queryset = Reserva.objects.filter(id_usuario=usuario_empresa)
             
             if estado:
                 queryset = queryset.filter(estado=estado)
             
             return queryset.order_by('-fecha_reserva')
             
-        except Cliente.DoesNotExist:
+        except Usuario_Empresa.DoesNotExist:
             return Reserva.objects.none()
     
     def list(self, request, *args, **kwargs):
@@ -309,9 +298,8 @@ class ListarReservasClienteView(generics.ListAPIView):
 class VerificarReservasExpiradasView(APIView):
     """
     Vista para verificar y expirar reservas automáticamente
-    (Esta vista sería llamada por un cron job)
     """
-    permission_classes = [permissions.AllowAny]  # Permiso especial para cron
+    permission_classes = [permissions.AllowAny]
     
     def get(self, request):
         """
@@ -336,8 +324,8 @@ class VerificarReservasExpiradasView(APIView):
                 reserva.save()
                 
                 reservas_expiradas.append({
-                    'id_reserva': f"{reserva.id_cliente.id_usuario}-{reserva.id_producto.id_producto}",
-                    'cliente': reserva.id_cliente.nombre_cliente,
+                    'id_reserva': f"{reserva.id_usuario.id_usuario}-{reserva.id_producto.id_producto}",  # Cambiado
+                    'usuario': reserva.id_usuario.id_usuario.email,  # Cambiado
                     'producto': reserva.id_producto.nombre,
                     'cantidad': reserva.cantidad
                 })
@@ -357,4 +345,60 @@ class VerificarReservasExpiradasView(APIView):
                 'error': 'Error al procesar reservas expiradas',
                 'detail': str(e),
                 'status': 'error'
+            }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+class EliminarReservaSinValidacionView(generics.DestroyAPIView):
+    """
+    Vista para eliminar una reserva sin validaciones
+    DELETE /api/reservas/eliminar-reserva-sin-validacion/{id_usuario}/{id_producto}/
+    """
+    permission_classes = [AllowAny]
+    queryset = Reserva.objects.all()
+    
+    def delete(self, request, id_usuario, id_producto, *args, **kwargs):  # Cambiado parámetro
+        """
+        Elimina una reserva específica sin validaciones
+        """
+        try:
+            logger.info(f"Eliminando reserva para usuario {id_usuario}, producto {id_producto}")
+            # Buscar la reserva por usuario_empresa y producto
+            reserva = Reserva.objects.get(
+                id_usuario_id=id_usuario,  # Cambiado
+                id_producto_id=id_producto
+            )
+            
+            # Guardar información antes de eliminar
+            reserva_info = {
+                'usuario_id': reserva.id_usuario_id,  # Cambiado
+                'producto_id': reserva.id_producto_id,
+                'cantidad': reserva.cantidad,
+                'estado': reserva.estado,
+                'fecha_reserva': reserva.fecha_reserva
+            }
+            
+            # Eliminar la reserva
+            reserva.delete()
+            
+            logger.info(f"Reserva eliminada sin validación: Usuario {id_usuario} - Producto {id_producto}")
+            
+            return Response({
+                'status': 'success',
+                'message': 'Reserva eliminada exitosamente',
+                'reserva_eliminada': reserva_info,
+                'advertencia': 'Esta acción se realizó sin validaciones de seguridad'
+            }, status=status.HTTP_200_OK)
+            
+        except Reserva.DoesNotExist:
+            return Response({
+                'status': 'error',
+                'error': 'Reserva no encontrada',
+                'detail': f'No existe reserva para usuario {id_usuario} y producto {id_producto}'  # Cambiado
+            }, status=status.HTTP_404_NOT_FOUND)
+            
+        except Exception as e:
+            logger.error(f"Error eliminando reserva sin validación: {str(e)}")
+            return Response({
+                'status': 'error',
+                'error': 'Error al eliminar reserva',
+                'detail': str(e)
             }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)

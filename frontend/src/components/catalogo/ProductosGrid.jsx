@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import ProductoCard from './ProductoCard';
 import styles from './ProductosGrid.module.css';
 
-export default function ProductosGrid({ productos, empresaId }) {
+export default function ProductosGrid({ productos, empresaId, onProductAdded }) {
     const [productosConImagenes, setProductosConImagenes] = useState([]);
 
     useEffect(() => {
@@ -65,6 +65,7 @@ export default function ProductosGrid({ productos, empresaId }) {
                     key={producto.id_producto}
                     producto={producto}
                     empresaId={empresaId}
+                    onProductAdded={onProductAdded}
                 />
             ))}
         </div>

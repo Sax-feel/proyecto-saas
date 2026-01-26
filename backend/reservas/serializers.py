@@ -10,15 +10,15 @@ logger = logging.getLogger(__name__)
 class ReservaSerializer(serializers.ModelSerializer):
     """Serializador para el modelo Reserva"""
     producto_info = serializers.SerializerMethodField()
-    cliente_info = serializers.SerializerMethodField()
+    usuario_info = serializers.SerializerMethodField()  # Cambiado
     tiempo_restante = serializers.SerializerMethodField()
     
     class Meta:
         model = Reserva
         fields = [
-            'id_cliente', 'id_producto', 'cantidad', 
+            'id_usuario', 'id_producto', 'cantidad', 
             'fecha_reserva', 'estado', 'fecha_expiracion',
-            'producto_info', 'cliente_info', 'tiempo_restante'
+            'producto_info', 'usuario_info', 'tiempo_restante'  # Cambiado
         ]
         read_only_fields = ['fecha_reserva', 'estado', 'fecha_expiracion']
     
@@ -35,14 +35,15 @@ class ReservaSerializer(serializers.ModelSerializer):
         except Exception:
             return None
     
-    def get_cliente_info(self, obj):
-        """Obtiene información del cliente"""
+    def get_usuario_info(self, obj):  # Cambiado
+        """Obtiene información del usuario (vendedor/admin_empresa)"""
         try:
-            from cliente.serializers import ClienteSerializer
+            from usuario_empresa.serializers import UsuarioEmpresaSerializer
             return {
-                'id': obj.id_cliente.id_usuario.id_usuario,
-                'nombre': obj.id_cliente.nombre_cliente,
-                'email': obj.id_cliente.id_usuario.email
+                'id': obj.id_usuario.id_usuario.id_usuario,
+                'email': obj.id_usuario.id_usuario.email,
+                'empresa': obj.id_usuario.empresa.nombre,
+                'rol': obj.id_usuario.id_usuario.rol.rol
             }
         except Exception:
             return None
@@ -76,16 +77,16 @@ class CrearReservaSerializer(serializers.Serializer):
         """Valida que la reserva sea posible"""
         user = self.context['request'].user
         
-        # 1. Verificar que el usuario sea cliente
-        if not hasattr(user, 'rol') or user.rol.rol != 'cliente':
-            raise serializers.ValidationError("Solo clientes pueden realizar reservas")
+        # 1. Verificar que el usuario sea vendedor o admin_empresa
+        if not hasattr(user, 'rol') or user.rol.rol not in ['vendedor', 'admin_empresa']:  # Cambiado
+            raise serializers.ValidationError("Solo vendedores y administradores de empresa pueden realizar reservas")  # Cambiado
         
-        # 2. Verificar que el cliente exista
+        # 2. Verificar que el usuario_empresa exista
         try:
-            from cliente.models import Cliente
-            cliente = Cliente.objects.get(id_usuario=user)
-        except Cliente.DoesNotExist:
-            raise serializers.ValidationError("Cliente no encontrado")
+            from usuario_empresa.models import Usuario_Empresa
+            usuario_empresa = Usuario_Empresa.objects.get(id_usuario=user)  # Cambiado
+        except Usuario_Empresa.DoesNotExist:
+            raise serializers.ValidationError("Usuario de empresa no encontrado")  # Cambiado
         
         # 3. Verificar que el producto exista
         try:
@@ -103,9 +104,9 @@ class CrearReservaSerializer(serializers.Serializer):
                 f"Stock insuficiente. Disponible: {producto.stock_actual}"
             )
         
-        # 5. Verificar si ya existe una reserva activa para este cliente-producto
+        # 5. Verificar si ya existe una reserva activa para este usuario-producto
         reserva_existente = Reserva.objects.filter(
-            id_cliente=cliente,
+            id_usuario=usuario_empresa,  # Cambiado
             id_producto=producto,
             estado__in=['pendiente']
         ).exists()
@@ -117,7 +118,7 @@ class CrearReservaSerializer(serializers.Serializer):
         fecha_expiracion = datetime.now() + timedelta(hours=72)
         
         # Agregar datos al contexto para la vista
-        data['cliente'] = cliente
+        data['usuario_empresa'] = usuario_empresa  # Cambiado
         data['producto'] = producto
         data['fecha_expiracion'] = fecha_expiracion
         
@@ -131,21 +132,21 @@ class CancelarReservaSerializer(serializers.Serializer):
     def validate(self, data):
         user = self.context['request'].user
         
-        # Verificar que el usuario sea cliente
-        if not hasattr(user, 'rol') or user.rol.rol != 'cliente':
-            raise serializers.ValidationError("Solo clientes pueden cancelar reservas")
+        # Verificar que el usuario sea vendedor o admin_empresa
+        if not hasattr(user, 'rol') or user.rol.rol not in ['vendedor', 'admin_empresa']:  # Cambiado
+            raise serializers.ValidationError("Solo vendedores y administradores de empresa pueden cancelar reservas")  # Cambiado
         
-        # Verificar que el cliente exista
+        # Verificar que el usuario_empresa exista
         try:
-            from cliente.models import Cliente
-            cliente = Cliente.objects.get(id_usuario=user)
-        except Cliente.DoesNotExist:
-            raise serializers.ValidationError("Cliente no encontrado")
+            from usuario_empresa.models import Usuario_Empresa
+            usuario_empresa = Usuario_Empresa.objects.get(id_usuario=user)  # Cambiado
+        except Usuario_Empresa.DoesNotExist:
+            raise serializers.ValidationError("Usuario de empresa no encontrado")  # Cambiado
         
         # Verificar que la reserva exista y esté pendiente
         try:
             reserva = Reserva.objects.get(
-                id_cliente=cliente,
+                id_usuario=usuario_empresa,  # Cambiado
                 id_producto_id=data['id_producto'],
                 estado='pendiente'
             )

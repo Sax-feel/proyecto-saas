@@ -1,9 +1,11 @@
+// frontend/src/components/auth/LoginForm/LoginForm.jsx
 'use client';
 
 import { useState } from 'react';
 import styles from './LoginForm.module.css';
+import FormField from "../../ui/FormField/FormField"
 
-export default function LoginForm({ onSuccess, userType = 'cliente' }) {
+export default function LoginForm({ onSuccess, showRoleSelector = false }) {
     const [formData, setFormData] = useState({
         email: '',
         password: ''
@@ -35,12 +37,6 @@ export default function LoginForm({ onSuccess, userType = 'cliente' }) {
             const data = await response.json();
 
             if (response.ok) {
-                // Verificar que el rol sea el correcto
-                if (data.user.rol !== userType) {
-                    setError(`Debes iniciar sesión como ${userType === 'cliente' ? 'cliente' : userType}`);
-                    return;
-                }
-
                 // Guardar tokens y datos de usuario
                 localStorage.setItem('access', data.tokens.access);
                 localStorage.setItem('refresh', data.tokens.refresh);
@@ -48,9 +44,10 @@ export default function LoginForm({ onSuccess, userType = 'cliente' }) {
                 localStorage.setItem('userEmail', data.user.email);
                 localStorage.setItem('userId', data.user.id_usuario);
 
+                // Llamar a onSuccess con los datos del usuario
                 onSuccess?.(data.user);
             } else {
-                setError(data.detail || 'Error en el inicio de sesión');
+                setError(data.detail || data.error || 'Error en el inicio de sesión');
             }
         } catch (err) {
             setError('Error de conexión');
@@ -74,36 +71,26 @@ export default function LoginForm({ onSuccess, userType = 'cliente' }) {
 
             <form onSubmit={handleSubmit} className={styles.form}>
                 <div className={styles.formGroup}>
-                    <label htmlFor="email" className={styles.label}>
-                        Email
-                    </label>
-                    <input
-                        type="email"
-                        id="email"
-                        name="email"
+                    <FormField
+                        type={"email"}
+                        name={"email"}
                         value={formData.email}
                         onChange={handleChange}
-                        className={styles.input}
-                        placeholder="usuario@ejemplo.com"
-                        required
-                        disabled={loading}
+                        placeholder={"usuario@ejemplo.com"}
+                        required={true}
+                        label={"Email"}
                     />
                 </div>
 
                 <div className={styles.formGroup}>
-                    <label htmlFor="password" className={styles.label}>
-                        Contraseña
-                    </label>
-                    <input
-                        type="password"
-                        id="password"
-                        name="password"
+                    <FormField
+                        type={"password"}
+                        name={"password"}
                         value={formData.password}
                         onChange={handleChange}
-                        className={styles.input}
-                        placeholder="••••••••"
-                        required
-                        disabled={loading}
+                        placeholder={"********"}
+                        required={true}
+                        label={"Contraseña"}
                     />
                 </div>
 

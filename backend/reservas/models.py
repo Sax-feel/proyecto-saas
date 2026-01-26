@@ -1,5 +1,5 @@
 from django.db import models
-from cliente.models import Cliente
+from usuario_empresa.models import Usuario_Empresa  # Cambiado
 from producto.models import Producto
 
 class Reserva(models.Model):
@@ -11,7 +11,7 @@ class Reserva(models.Model):
         ('completada', 'Completada'),
     ]
     
-    id_cliente = models.ForeignKey(Cliente, on_delete=models.CASCADE)
+    id_usuario = models.ForeignKey(Usuario_Empresa, on_delete=models.CASCADE)  # Cambiado
     id_producto = models.ForeignKey(Producto, on_delete=models.CASCADE)
     cantidad = models.PositiveIntegerField()
     fecha_reserva = models.DateTimeField(auto_now_add=True)
@@ -20,5 +20,5 @@ class Reserva(models.Model):
     
     class Meta:
         db_table = "reserva"
-        unique_together = ('id_cliente', 'id_producto')
+        unique_together = ('id_usuario', 'id_producto')  # Cambiado
         ordering = ["-fecha_reserva"]

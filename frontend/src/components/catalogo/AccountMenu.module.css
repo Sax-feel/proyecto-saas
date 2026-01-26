@@ -1,0 +1,364 @@
+/* frontend/src/components/catalogo/AccountMenu.module.css */
+.accountContainer {
+    position: relative;
+    display: inline-block;
+}
+
+.accountButton {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 16px;
+    background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%);
+    color: white;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    font-weight: 500;
+    transition: all 0.2s;
+}
+
+.accountButton:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(59, 130, 246, 0.4);
+}
+
+.accountButton .icon {
+    width: 20px;
+    height: 20px;
+}
+
+/* Overlay para cerrar al hacer click fuera */
+.overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 998;
+}
+
+/* Menú desplegable */
+.menuDropdown {
+    position: absolute;
+    top: calc(100% + 8px);
+    right: 0;
+    width: 380px;
+    background: white;
+    border-radius: 12px;
+    box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 
+                0 10px 10px -5px rgba(0, 0, 0, 0.04);
+    z-index: 999;
+    overflow: hidden;
+    animation: slideDown 0.2s ease-out;
+    border: 1px solid #e5e7eb;
+}
+
+@keyframes slideDown {
+    from {
+        opacity: 0;
+        transform: translateY(-10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.menuHeader {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 16px 20px;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+}
+
+.menuTitle {
+    margin: 0;
+    font-size: 1.1rem;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.closeButton {
+    background: rgba(255, 255, 255, 0.2);
+    border: none;
+    color: white;
+    font-size: 1.5rem;
+    width: 32px;
+    height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    cursor: pointer;
+    transition: background-color 0.2s;
+}
+
+.closeButton:hover {
+    background: rgba(255, 255, 255, 0.3);
+}
+
+.menuContent {
+    padding: 20px;
+    max-height: 500px;
+    overflow-y: auto;
+}
+
+/* Loading state */
+.loading {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 40px 20px;
+    text-align: center;
+}
+
+.spinner {
+    width: 40px;
+    height: 40px;
+    border: 3px solid #e5e7eb;
+    border-top-color: #667eea;
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+    margin-bottom: 16px;
+}
+
+@keyframes spin {
+    to { transform: rotate(360deg); }
+}
+
+.loading p {
+    color: #6b7280;
+    margin: 0;
+}
+
+/* User card (logueado) */
+.userCard {
+    display: flex;
+    gap: 16px;
+    margin-bottom: 24px;
+    padding-bottom: 20px;
+    border-bottom: 1px solid #e5e7eb;
+}
+
+.userAvatar {
+    width: 64px;
+    height: 64px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    flex-shrink: 0;
+}
+
+.userInfo {
+    flex: 1;
+    min-width: 0;
+}
+
+.userName {
+    margin: 0 0 12px 0;
+    font-size: 1.2rem;
+    color: #1f2937;
+    font-weight: 600;
+}
+
+.userDetails {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.detailItem {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 0.9rem;
+    color: #4b5563;
+}
+
+.detailItem svg {
+    flex-shrink: 0;
+    opacity: 0.7;
+}
+
+.roleBadge {
+    display: inline-flex;
+    padding: 4px 12px;
+    background: #dbeafe;
+    color: #1e40af;
+    border-radius: 20px;
+    font-weight: 500;
+    width: fit-content;
+}
+
+.statusActive {
+    color: #10b981;
+    font-weight: 500;
+}
+
+.statusInactive {
+    color: #ef4444;
+    font-weight: 500;
+}
+
+/* Menu actions */
+.menuActions {
+    margin-bottom: 20px;
+}
+
+.logoutButton {
+    width: 100%;
+    padding: 12px 20px;
+    background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+    color: white;
+    border: none;
+    border-radius: 8px;
+    font-weight: 600;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    transition: all 0.2s;
+}
+
+.logoutButton:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(239, 68, 68, 0.4);
+}
+
+/* Menu footer */
+.menuFooter {
+    padding-top: 16px;
+    border-top: 1px solid #e5e7eb;
+}
+
+.lastUpdate {
+    color: #9ca3af;
+    font-size: 0.8rem;
+    display: block;
+    text-align: center;
+}
+
+/* Not logged in state */
+.notLoggedIn {
+    text-align: center;
+    padding: 20px 0;
+}
+
+.notLoggedInIcon {
+    margin: 0 auto 16px;
+    width: 80px;
+    height: 80px;
+    border-radius: 50%;
+    background: #f3f4f6;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #9ca3af;
+}
+
+.notLoggedInTitle {
+    margin: 0 0 8px 0;
+    color: #374151;
+    font-size: 1.2rem;
+}
+
+.notLoggedInText {
+    margin: 0 0 24px 0;
+    color: #6b7280;
+    font-size: 0.95rem;
+    line-height: 1.5;
+}
+
+.notLoggedInActions {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+.loginActionButton {
+    width: 100%;
+    padding: 12px 20px;
+    background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%);
+    color: white;
+    border: none;
+    border-radius: 8px;
+    font-weight: 600;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    transition: all 0.2s;
+}
+
+.loginActionButton:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(59, 130, 246, 0.4);
+}
+
+.roleHint {
+    margin: 0;
+    color: #6b7280;
+    font-size: 0.85rem;
+    padding: 8px 12px;
+    background: #f9fafb;
+    border-radius: 6px;
+    border: 1px solid #e5e7eb;
+}
+
+/* Login section */
+.loginSection {
+    padding: 10px 0;
+}
+
+.loginTitle {
+    margin: 0 0 8px 0;
+    color: #1f2937;
+    font-size: 1.1rem;
+}
+
+.loginSubtitle {
+    margin: 0 0 20px 0;
+    color: #6b7280;
+    font-size: 0.9rem;
+}
+
+.backButton {
+    width: 100%;
+    padding: 10px;
+    background: #f3f4f6;
+    color: #374151;
+    border: 1px solid #d1d5db;
+    border-radius: 6px;
+    font-weight: 500;
+    cursor: pointer;
+    margin-top: 16px;
+    transition: background-color 0.2s;
+}
+
+.backButton:hover {
+    background: #e5e7eb;
+}
+
+/* Responsive */
+@media (max-width: 480px) {
+    .menuDropdown {
+        position: fixed;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        width: 90%;
+        max-width: 380px;
+        max-height: 90vh;
+    }
+}

@@ -50,9 +50,13 @@
     background: white;
     border: 1px solid #e5e7eb;
     border-radius: 8px;
+    box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.619);
     padding: 1rem;
     transition: all 0.2s;
+    width: calc(50% - 5px);
+    box-sizing: border-box;
 }
+
 
 .reservationItem.selected {
     border-color: #4f46e5;
@@ -186,4 +190,79 @@
     font-size: 0.75rem;
     color: #dc2626;
     font-weight: 500;
+}
+
+/* Agrega estos estilos al archivo ReservationItem.module.css */
+
+.deleteButton {
+    background-color: #ef4444;
+    color: white;
+    border: none;
+    padding: 6px 8px;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: background-color 0.5s;
+    margin-left: 8px;
+}
+
+.deleteButton:hover:not(:disabled) {
+    background-color: #dc2626;
+}
+
+.deleteButton:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.deleteButtonCompact {
+    background-color: #ef4444;
+    color: white;
+    border: none;
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    font-size: 12px;
+    margin-left: 8px;
+}
+
+.deleteButtonCompact:hover:not(:disabled) {
+    background-color: #dc2626;
+}
+
+.deleteButtonCompact:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.errorMessage {
+    background-color: #fee2e2;
+    color: #991b1b;
+    padding: 8px 12px;
+    border-radius: 4px;
+    margin-bottom: 8px;
+    font-size: 0.85rem;
+}
+
+.itemActions {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+}
+
+/* Ajustes para el header con múltiples botones */
+.itemHeader {
+    display: flex;
+    justify-content: space-between;
+    
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+.productName {
+    flex: 1;
+    margin-right: 8px;
 }

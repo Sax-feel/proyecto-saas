@@ -1,10 +1,19 @@
 'use client';
 
+import { useState } from 'react';
 import styles from './ReservationItem.module.css';
+import { Trash2 } from 'lucide-react';
 
-export default function ReservationItem({ reserva, onSelect, isSelected, compact = false }) {
+export default function ReservationItem({ 
+    reserva, 
+    compact = false,
+    onDelete, // Nuevo prop para manejar eliminación
+    showDeleteButton = false // Controla si mostrar botón de eliminar
+}) {
     const producto = reserva.producto_info || {};
-    const cliente = reserva.cliente_info || {};
+    const id_usuario = reserva.id_usuario || {};
+    const [isDeleting, setIsDeleting] = useState(false);
+    const [deleteError, setDeleteError] = useState(null);
 
     const getStatusColor = (estado) => {
         switch (estado) {
@@ -36,6 +45,48 @@ export default function ReservationItem({ reserva, onSelect, isSelected, compact
         });
     };
 
+    const handleDelete = async () => {
+        if (!confirm('¿Estás seguro de que quieres eliminar esta reserva? Esta acción no se puede deshacer.')) {
+            return;
+        }
+
+        setIsDeleting(true);
+        setDeleteError(null);
+
+        try {
+            // Usar el endpoint sin validaciones
+            const response = await fetch(
+                `http://localhost:8000/api/reservas/eliminar-reserva-sin-validacion/${id_usuario}/${producto.id}/`,
+                {
+                    method: 'DELETE',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    }
+                }
+            );
+
+            const data = await response.json();
+
+            if (!response.ok) {
+                throw new Error(data.detail || data.error || 'Error al eliminar la reserva');
+            }
+
+            // Notificar al componente padre que se eliminó la reserva
+            if (onDelete) {
+                onDelete(reserva);
+            }
+
+            alert('Reserva eliminada exitosamente');
+
+        } catch (err) {
+            console.error('Error eliminando reserva:', err);
+            setDeleteError(err.message);
+            alert(`Error al eliminar reserva: ${err.message}`);
+        } finally {
+            setIsDeleting(false);
+        }
+    };
+
     if (compact) {
         return (
             <div className={styles.compactItem}>
@@ -54,21 +105,37 @@ export default function ReservationItem({ reserva, onSelect, isSelected, compact
                         {formatDate(reserva.fecha_reserva)}
                     </span>
                 </div>
+                {showDeleteButton && (
+                    <button
+                        onClick={handleDelete}
+                        disabled={isDeleting}
+                        className={styles.deleteButtonCompact}
+                    >
+                        {isDeleting ? 'Eliminando...' : '✕'}
+                    </button>
+                )}
             </div>
         );
     }
 
     return (
-        <div className={`${styles.reservationItem} ${isSelected ? styles.selected : ''}`}>
+        <div className={styles.reservationItem}>
+            {deleteError && (
+                <div className={styles.errorMessage}>
+                    {deleteError}
+                </div>
+            )}
+
             <div className={styles.itemHeader}>
                 <h4 className={styles.productName}>{producto.nombre || 'Producto'}</h4>
                 <div className={styles.itemActions}>
-                    {onSelect && reserva.estado === 'pendiente' && (
+                    {showDeleteButton && (
                         <button
-                            onClick={onSelect}
-                            className={styles.selectButton}
+                            onClick={handleDelete}
+                            disabled={isDeleting}
+                            className={styles.deleteButton}
                         >
-                            {isSelected ? '✓ Seleccionado' : 'Seleccionar'}
+                            <Trash2 size={20}/>
                         </button>
                     )}
                 </div>
@@ -89,36 +156,6 @@ export default function ReservationItem({ reserva, onSelect, isSelected, compact
                         Bs. {(producto.precio * reserva.cantidad).toFixed(2) || '0.00'}
                     </span>
                 </div>
-                {producto.empresa && (
-                    <div className={styles.detailRow}>
-                        <span className={styles.detailLabel}>Empresa:</span>
-                        <span className={styles.detailValue}>{producto.empresa}</span>
-                    </div>
-                )}
-            </div>
-
-            <div className={styles.itemFooter}>
-                <div className={styles.statusBadge}>
-                    <span
-                        className={styles.statusDot}
-                        style={{ backgroundColor: getStatusColor(reserva.estado) }}
-                    />
-                    <span className={styles.statusText}>
-                        {getStatusText(reserva.estado)}
-                    </span>
-                </div>
-
-                <div className={styles.dateInfo}>
-                    <span className={styles.dateLabel}>Reservado:</span>
-                    <span className={styles.dateValue}>{formatDate(reserva.fecha_reserva)}</span>
-                </div>
-
-                {reserva.tiempo_restante && reserva.estado === 'pendiente' && (
-                    <div className={styles.timeRemaining}>
-                        <span className={styles.timeLabel}>Expira en:</span>
-                        <span className={styles.timeValue}>{reserva.tiempo_restante}</span>
-                    </div>
-                )}
             </div>
         </div>
     );

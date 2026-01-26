@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import styles from './ConfirmPurchase.module.css';
 
-export default function ConfirmPurchase({ items, onClose, onSuccess, empresaId }) {
+export default function ConfirmPurchase({ items, clienteId, onClose, onSuccess, empresaId }) {
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
 
@@ -14,7 +14,7 @@ export default function ConfirmPurchase({ items, onClose, onSuccess, empresaId }
     };
 
     const handleConfirm = async () => {
-        if (!items.length) return;
+        if (!items.length || !clienteId) return;
 
         setLoading(true);
         setError('');
@@ -34,20 +34,23 @@ export default function ConfirmPurchase({ items, onClose, onSuccess, empresaId }
                     'Authorization': `Bearer ${token}`,
                     'Content-Type': 'application/json'
                 },
-                body: JSON.stringify({ detalles })
+                body: JSON.stringify({
+                    detalles,
+                    cliente_id: clienteId
+                })
             });
 
             const data = await response.json();
 
             if (response.ok) {
-                alert('¡Compra realizada exitosamente!');
+                alert('¡Venta realizada exitosamente!');
                 onSuccess();
                 onClose();
             } else {
-                setError(data.detail || data.error || 'Error al procesar la compra');
+                setError(data.detail || data.error || 'Error al procesar la venta');
             }
         } catch (err) {
-            setError('Error de conexión al procesar la compra');
+            setError('Error de conexión al procesar la venta');
         } finally {
             setLoading(false);
         }
@@ -57,7 +60,7 @@ export default function ConfirmPurchase({ items, onClose, onSuccess, empresaId }
         <div className={styles.confirmOverlay}>
             <div className={styles.confirmModal}>
                 <div className={styles.modalHeader}>
-                    <h3>Confirmar Compra</h3>
+                    <h3>Confirmar Venta</h3>
                     <button onClick={onClose} className={styles.closeButton}>
                         &times;
                     </button>
@@ -70,8 +73,13 @@ export default function ConfirmPurchase({ items, onClose, onSuccess, empresaId }
                         </div>
                     )}
 
+                    <div className={styles.clientInfoSection}>
+                        <h4>Datos del cliente</h4>
+                        <p>ID del cliente: {clienteId}</p>
+                    </div>
+
                     <div className={styles.itemsList}>
-                        <h4>Productos a comprar ({items.length})</h4>
+                        <h4>Productos a vender ({items.length})</h4>
                         {items.map((item, index) => (
                             <div key={index} className={styles.itemRow}>
                                 <span className={styles.itemName}>{item.nombre}</span>
@@ -87,7 +95,7 @@ export default function ConfirmPurchase({ items, onClose, onSuccess, empresaId }
 
                     <div className={styles.totalSection}>
                         <div className={styles.totalRow}>
-                            <span>Total a pagar:</span>
+                            <span>Total de la venta:</span>
                             <span className={styles.totalAmount}>
                                 Bs. {calcularTotal().toFixed(2)}
                             </span>
@@ -96,8 +104,8 @@ export default function ConfirmPurchase({ items, onClose, onSuccess, empresaId }
 
                     <div className={styles.confirmationNote}>
                         <p>
-                            Al confirmar, se procesará tu compra y se asignará un vendedor automáticamente.
-                            Las reservas seleccionadas se marcarán como confirmadas.
+                            Al confirmar, se procesará la venta y se descontará del stock.
+                            Las reservas seleccionadas se eliminarán.
                         </p>
                     </div>
                 </div>
@@ -115,7 +123,7 @@ export default function ConfirmPurchase({ items, onClose, onSuccess, empresaId }
                         className={styles.confirmButton}
                         disabled={loading || items.length === 0}
                     >
-                        {loading ? 'Procesando...' : 'Confirmar Compra'}
+                        {loading ? 'Procesando...' : 'Confirmar Venta'}
                     </button>
                 </div>
             </div>

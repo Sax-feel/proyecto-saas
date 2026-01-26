@@ -3,7 +3,7 @@
   top: 0;
   left: 0;
   height: 100vh;
-  width: 260px;
+  width: 280px;
   background-color: #0f172a;
   color: #e5e7eb;
   display: flex;
@@ -15,7 +15,7 @@
 }
 
 .sidebar.collapsed {
-  width: 64px;
+  width: 75px;
 }
 
 .sidebarHeader {
@@ -26,6 +26,7 @@
   justify-content: space-between;
   border-bottom: 1px solid #1e293b;
   flex-shrink: 0;
+  gap: 8px;
 }
 
 .sidebarBrand {
@@ -36,7 +37,7 @@
 }
 
 .sidebarLogo {
-  background-color: #2563eb;
+  background: transparent !important; /* Cambia esto */
   width: 32px;
   height: 32px;
   border-radius: 8px;
@@ -44,6 +45,7 @@
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
+  position: relative; /* Añade esto */
 }
 
 .sidebarBrand span {
@@ -93,6 +95,37 @@
   white-space: nowrap;
   min-height: 44px; /* Altura mínima para mejor touch */
 }
+.navLogOut{
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.75rem 1rem;
+  border: none;
+  border-radius: 8px;
+  background-color: #ff000028;
+  color: #dc2626;
+  text-decoration: none;
+  font-size: 0.95rem;
+  transition: all 0.2s;
+  white-space: nowrap;
+  width: 100%;
+  min-height: 44px; /* Altura mínima para mejor touch */
+}
+
+/* Hacer que el botón de logout se adapte mejor */
+.logout {
+  color: #dc2626;
+  margin-top: 0.5rem;
+}
+
+.logout:hover {
+  background-color: #fee2e2;
+  color: #b91c1c;
+}
+.navLogOut:hover{
+  background-color: #1e293b;
+  color: #fff;
+}
 
 .navItem:hover {
   background-color: #1e293b;
@@ -140,14 +173,6 @@
   flex-shrink: 0;
 }
 
-.logout {
-  color: #f87171;
-}
-
-.logout:hover {
-  background-color: rgba(248, 113, 113, 0.1);
-}
-
 /* Scrollbar personalizado */
 .sidebarNav::-webkit-scrollbar {
   width: 4px;
@@ -173,4 +198,92 @@
 
 .sidebar.collapsed .sidebarHeader {
   justify-content: center;
+}
+
+/* Agrega estos estilos al archivo existente */
+
+.userInfo {
+  padding: 0.75rem 1rem;
+  margin-bottom: 0.5rem;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.userEmail {
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: #1f2937;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.userRole {
+  font-size: 0.75rem;
+  color: #6b7280;
+  text-transform: capitalize;
+  margin-top: 0.25rem;
+}
+
+
+/* Ajustar header del sidebar */
+.sidebarBrand {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+/* Estilos para la campanita de notificaciones */
+
+.sidebar.collapsed .notificationContainer {
+  margin: 0 auto;
+}
+
+.sidebar.collapsed .sidebarHeader {
+  justify-content: center;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.sidebar.collapsed .headerActions {
+  flex-direction: column;
+}
+
+.sidebar.collapsed .bellButton {
+  width: 32px;
+  height: 32px;
+}
+
+.notificationBellContainer {
+  width: 32px;
+  height: 32px;
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.notificationBellContainer .bellButton {
+  width: 100%;
+  height: 100%;
+  background: #2563eb;
+  border-radius: 8px;
+  border: none;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+}
+
+.notificationBellContainer .bellButton.hasUnread {
+  background: transparent;
+  color: #fbbf24;
+}
+
+.notificationBellContainer .bellButton:hover {
+  background: #1d4ed8;
+}
+
+.notificationBellContainer .bellButton.hasUnread:hover {
+  background: rgba(251, 191, 36, 0.1);
 }

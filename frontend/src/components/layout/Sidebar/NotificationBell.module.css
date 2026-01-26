@@ -1,0 +1,328 @@
+.notificationContainer {
+    position: relative;
+    display: inline-block;
+    width: 100%;
+    height: 100%;
+    z-index: 20;
+}
+
+.bellButton {
+    position: relative;
+    background: #2563eb;
+    border: none;
+    width: 100%;
+    height: 100%;
+    padding: 0;
+    border-radius: 8px;
+    cursor: pointer;
+    color: white;
+    transition: all 0.2s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 10;
+}
+
+.bellButton:hover {
+    background-color: #1d4ed8;
+}
+
+.bellButton.hasUnread {
+    background: transparent;
+    color: #fbbf24;
+}
+
+.bellButton.hasUnread:hover {
+    background-color: rgba(251, 191, 36, 0.1);
+}
+
+/* Animación de campaneo */
+.bellButton.shaking {
+    animation: shake 0.5s ease-in-out infinite alternate;
+}
+
+@keyframes shake {
+    0% {
+        transform: rotate(-10deg);
+    }
+    100% {
+        transform: rotate(10deg);
+    }
+}
+
+/* Badge para contador */
+.badge {
+    position: absolute;
+    top: -4px;
+    right: -4px;
+    background-color: #ef4444;
+    color: white;
+    font-size: 9px;
+    font-weight: 600;
+    min-width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0;
+    border: 2px solid #0f172a;
+    box-sizing: content-box;
+}
+
+/* Dropdown */
+.dropdown {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    width: 250px;
+    background: white;
+    border: 1px solid #e5e7eb;
+    border-radius: 12px;
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+    z-index: 1000;
+    margin-top: 8px;
+    overflow: hidden;
+}
+
+.dropdownHeader {
+    padding: 16px;
+    border-bottom: 1px solid #f3f4f6;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background: #f9fafb;
+}
+
+.dropdownHeader h3 {
+    margin: 0;
+    font-size: 13px;
+    font-weight: 600;
+    color: #111827;
+}
+
+.markAllButton {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 10px;
+    background: #3b82f6;
+    color: white;
+    border: none;
+    border-radius: 6px;
+    font-size: 12px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: background 0.2s;
+    white-space: nowrap;
+}
+
+.markAllButton:hover:not(:disabled) {
+    background: #2563eb;
+}
+
+.markAllButton:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+/* Lista de notificaciones */
+.notificationsList {
+    max-height: 400px;
+    overflow-y: auto;
+}
+
+/* Item de notificación */
+.notificationItem {
+    padding: 0;
+    border-bottom: 1px solid #f3f4f6;
+    transition: background 0.2s;
+    cursor: pointer;
+}
+
+.notificationItem:hover {
+    background: #f9fafb;
+}
+
+.notificationItem.unread {
+    background: #eff6ff;
+}
+
+.notificationItem.unread:hover {
+    background: #dbeafe;
+}
+
+.notificationItem.expanded {
+    background: #f8fafc;
+}
+
+/* Encabezado de notificación */
+.notificationHeader {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 12px 16px;
+    min-height: 56px;
+}
+
+.headerContent {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    min-width: 0;
+}
+
+.typeIndicator {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    flex-shrink: 0;
+}
+
+.notificationTitle {
+    font-size: 13px;
+    color: #111827;
+    font-weight: 600;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    text-align: left;
+}
+
+.timeAgo {
+    font-size: 11px;
+    color: #6b7280;
+    white-space: nowrap;
+}
+
+.expandButton {
+    background: none;
+    border: none;
+    color: #6b7280;
+    cursor: pointer;
+    padding: 4px;
+    border-radius: 4px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: color 0.2s;
+}
+
+.expandButton:hover {
+    color: #374151;
+    background: #f3f4f6;
+}
+
+/* Contenido expandido */
+.expandedContent {
+    padding: 0 16px 12px 56px;
+    animation: slideDown 0.2s ease-out;
+}
+
+@keyframes slideDown {
+    from {
+        opacity: 0;
+        transform: translateY(-10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.notificationMessage {
+    margin: 0 0 12px 0;
+    font-size: 13px;
+    color: #4b5563;
+    line-height: 1.5;
+    padding: 8px 0;
+    border-top: 1px solid #f1f1f1;
+}
+
+/* Acciones */
+.notificationActions {
+    display: flex;
+    gap: 8px;
+    flex-shrink: 0;
+}
+
+.markReadButton,
+.deleteButton {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    padding: 6px 10px;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: background 0.2s;
+    font-size: 12px;
+    font-weight: 500;
+}
+
+.markReadButton {
+    background: #10b981;
+    color: white;
+}
+
+.markReadButton:hover {
+    background: #059669;
+}
+
+.deleteButton {
+    background: #fee2e2;
+    color: #dc2626;
+}
+
+.deleteButton:hover {
+    background: #fecaca;
+}
+
+/* Estado vacío */
+.emptyState {
+    padding: 48px 24px;
+    text-align: center;
+    color: #9ca3af;
+}
+
+.emptyState svg {
+    margin-bottom: 16px;
+}
+
+.emptyState p {
+    margin: 0;
+    font-size: 14px;
+}
+
+/* Footer del dropdown */
+.dropdownFooter {
+    padding: 12px 16px;
+    border-top: 1px solid #f3f4f6;
+    text-align: center;
+    background: #f9fafb;
+}
+
+.totalCount {
+    font-size: 12px;
+    color: #6b7280;
+}
+
+/* Scrollbar personalizado */
+.notificationsList::-webkit-scrollbar {
+    width: 6px;
+}
+
+.notificationsList::-webkit-scrollbar-track {
+    background: #f1f1f1;
+    border-radius: 3px;
+}
+
+.notificationsList::-webkit-scrollbar-thumb {
+    background: #c1c1c1;
+    border-radius: 3px;
+}
+
+.notificationsList::-webkit-scrollbar-thumb:hover {
+    background: #a1a1a1;
+}

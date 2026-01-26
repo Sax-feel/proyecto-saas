@@ -1,7 +1,9 @@
+// frontend/src/components/catalogo/HeaderCatalogo.jsx
 import { useState } from 'react';
 import styles from './HeaderCatalogo.module.css';
-import { Store, ShoppingCart, UserRound } from "lucide-react";
+import { Store, ShoppingCart } from "lucide-react";
 import CartModal from './CartModal';
+import AccountMenu from './AccountMenu'; // Importa el nuevo componente
 
 export default function HeaderCatalogo({ empresa, categorias, categoriaSeleccionada, onCategoriaClick }) {
     const [showCartModal, setShowCartModal] = useState(false);
@@ -25,10 +27,8 @@ export default function HeaderCatalogo({ empresa, categorias, categoriaSeleccion
                                 <ShoppingCart className={styles.icon} />
                                 <span>Carrito</span>
                             </button>
-                            <button className={styles.accountButton}>
-                                <UserRound className={styles.icon} />
-                                <span>Mi Cuenta</span>
-                            </button>
+                            {/* Reemplaza el botón viejo por el nuevo componente */}
+                            <AccountMenu empresaId={empresa.empresa.id_empresa} />
                         </div>
                     </div>
                 </div>
@@ -67,4 +67,3 @@ export default function HeaderCatalogo({ empresa, categorias, categoriaSeleccion
         </>
     );
 }
-

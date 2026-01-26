@@ -1,8 +1,8 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useRef } from "react"
 import Button from "../../../components/ui/Button/Button";
-import ActionMenu from "../../../components/ui/ActionMenu/ActionMenu";
+import ActionMenu from "../../../components/ui/ActionMenu/ActionMenuStock";
 import Sidebar from "../../../components/layout/Sidebar/Sidebar";
 import Tables from "../../../components/ui/tables/table";
 import styles from "./productos.module.css"
@@ -10,6 +10,7 @@ import SearchBar from "../../../components/ui/SearchBar/SearchBar";
 import FormField from "../../../components/ui/FormField/FormField";
 import SelectField from "../../../components/ui/SelectField/SelectField";
 import Notification from "../../../components/ui/notificacion/notificacion"
+import { ChevronLeft, ChevronRight, X, Plus } from "lucide-react"
 
 export default function ProductosSection() {
   const [productos, setProductos] = useState([])
@@ -20,8 +21,26 @@ export default function ProductosSection() {
 
   // Estados para formularios
   const [showProductosForm, setShowProductosForm] = useState(false);
-  const [isEditing, setIsEditing] = useState(false); // Nuevo estado para saber si estamos editando
-  const [productoEditando, setProductoEditando] = useState(null); // Producto que se está editando
+  const [isEditing, setIsEditing] = useState(false);
+  const [productoEditando, setProductoEditando] = useState(null);
+
+  // Estado para formulario de añadir stock
+  const [showAñadirStockForm, setShowAñadirStockForm] = useState(false);
+  const [productoParaStock, setProductoParaStock] = useState(null);
+  const [stockFormData, setStockFormData] = useState({
+    cantidad: "",
+    precio_unitario: "",
+    id_proveedor: ""
+  });
+
+  // Estado para formulario de registrar proveedor
+  const [showRegistrarProveedorForm, setShowRegistrarProveedorForm] = useState(false);
+  const [proveedorFormData, setProveedorFormData] = useState({
+    nombre: "",
+    telefono: "",
+    email: "",
+    direccion: ""
+  });
 
   const [formData, setFormData] = useState({
     nombre: "",
@@ -32,6 +51,14 @@ export default function ProductosSection() {
     categoria: "",
     proveedor: ""
   });
+
+  // Carrusel de imágenes
+  const [imagenesProducto, setImagenesProducto] = useState([]);
+  const [showImagenesModal, setShowImagenesModal] = useState(false);
+  const [productoSeleccionado, setProductoSeleccionado] = useState(null);
+  const [archivoSeleccionado, setArchivoSeleccionado] = useState(null);
+  const [indiceImagenActual, setIndiceImagenActual] = useState(0);
+  const carruselRef = useRef(null);
 
   //Autenticacion
   const getToken = () => {
@@ -48,7 +75,7 @@ export default function ProductosSection() {
   const [searchTerm, setSearchTerm] = useState("")
   const filteredProductos = productos.filter(producto => {
     const term = searchTerm.toLowerCase()
-    return ["nombre", "descripcion", "categoria", "proveedor"].some((key) =>
+    return ["nombre", "descripcion", "categoria", "proveedor_nombre"].some((key) =>
       String(producto[key]).toLowerCase().includes(term)
     );
   });
@@ -125,7 +152,7 @@ export default function ProductosSection() {
   const [proveedores, setProveedores] = useState([]);
   const fetchProveedores = async () => {
     const token = getToken();
-    const res = await fetch("http://localhost:8000/api/proveedores/public/listar/", {
+    const res = await fetch("http://localhost:8000/api/proveedores/listar/", {
       headers: { Authorization: `Bearer ${token}` },
     });
     const data = await res.json();
@@ -186,10 +213,178 @@ export default function ProductosSection() {
       stock_actual: producto.stock_actual,
       stock_minimo: producto.stock_minimo,
       categoria: producto.categoria?.id_categoria || producto.categoria || "",
-      proveedor: producto.proveedor?.id_proveedor || producto.proveedor || "",
+      proveedor: producto.proveedor_nombre,
     });
 
     setShowProductosForm(true);
+  };
+
+  // Añadir Stock - Abrir formulario
+  const handleAñadirStock = (producto) => {
+    setProductoParaStock(producto);
+    fetchProveedores();
+    setStockFormData({
+      cantidad: "",
+      precio_unitario: producto.precio || "",
+      id_proveedor: ""
+    });
+    setShowAñadirStockForm(true);
+  };
+
+  // Cerrar formulario de añadir stock
+  const handleCloseAñadirStockForm = () => {
+    setShowAñadirStockForm(false);
+    setProductoParaStock(null);
+    setStockFormData({
+      cantidad: "",
+      precio_unitario: "",
+      id_proveedor: ""
+    });
+  };
+
+  // Manejar cambios en formulario de stock
+  const handleStockFormChange = (e) => {
+    setStockFormData({
+      ...stockFormData,
+      [e.target.name]: e.target.value,
+    });
+  };
+
+  // Abrir formulario de registrar proveedor
+  const handleOpenRegistrarProveedor = () => {
+    setProveedorFormData({
+      nombre: "",
+      telefono: "",
+      email: "",
+      direccion: ""
+    });
+    setShowRegistrarProveedorForm(true);
+  };
+
+  // Cerrar formulario de registrar proveedor
+  const handleCloseRegistrarProveedor = () => {
+    setShowRegistrarProveedorForm(false);
+    setProveedorFormData({
+      nombre: "",
+      telefono: "",
+      email: "",
+      direccion: ""
+    });
+  };
+
+  // Manejar cambios en formulario de proveedor
+  const handleProveedorFormChange = (e) => {
+    setProveedorFormData({
+      ...proveedorFormData,
+      [e.target.name]: e.target.value,
+    });
+  };
+
+  // Registrar nuevo proveedor
+  const handleRegistrarProveedor = async (e) => {
+    e.preventDefault();
+    
+    // Validaciones básicas
+    if (!proveedorFormData.nombre.trim() || !proveedorFormData.email.trim()) {
+      alert("Nombre y email son campos obligatorios");
+      return;
+    }
+
+    try {
+      const token = getToken();
+      if (!token) throw new Error("No Autenticado");
+
+      const res = await fetch(
+        "http://localhost:8000/api/proveedores/crear/",
+        {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify(proveedorFormData),
+        }
+      );
+
+      const data = await res.json();
+
+      if (res.ok) {
+        showNotification("Proveedor registrado exitosamente", "success");
+        
+        // Actualizar lista de proveedores
+        fetchProveedores();
+        
+        // Cerrar el formulario
+        handleCloseRegistrarProveedor();
+        
+        // Opcional: Seleccionar automáticamente el proveedor recién creado
+        if (data.proveedor && data.proveedor.id_proveedor) {
+          setStockFormData(prev => ({
+            ...prev,
+            id_proveedor: data.proveedor.id_proveedor
+          }));
+        }
+      } else {
+        alert(data.detail || data.error || "Error al registrar proveedor");
+      }
+    } catch (err) {
+      console.error(err);
+      alert("Error al registrar el proveedor");
+    }
+  };
+
+  // Realizar compra de stock
+  const handleRealizarCompra = async (e) => {
+    e.preventDefault();
+
+    try {
+      const token = getToken();
+      if (!token) throw new Error("No Autenticado");
+      if (!productoParaStock) throw new Error("No hay producto seleccionado");
+
+      const compraData = {
+        detalles: [
+          {
+            id_producto: productoParaStock.id_producto,
+            cantidad: Number(stockFormData.cantidad),
+            precio_unitario: stockFormData.precio_unitario,
+            id_proveedor: Number(stockFormData.id_proveedor)
+          }
+        ]
+      };
+
+      console.log("Datos de compra:", compraData);
+
+      const res = await fetch("http://localhost:8000/api/compras/realizar/", {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(compraData),
+      });
+
+      const data = await res.json();
+      console.log("Respuesta backend:", res.status, data);
+
+      if (res.ok) {
+        // Mostrar notificación de éxito
+        showNotification("Compra realizada exitosamente", "success");
+        
+        // Actualizar la lista de productos
+        fetchProductos();
+        
+        // Cerrar el formulario
+        handleCloseAñadirStockForm();
+      } else {
+        // Mostrar error del backend
+        const errorMsg = data.detail || data.error || "Error desconocido";
+        showNotification(`Error: ${errorMsg}`, "error");
+      }
+    } catch (err) {
+      console.error("Error al realizar compra:", err);
+      showNotification(`Error: ${err.message}`, "error");
+    }
   };
 
   //ver desde el inicio los productos
@@ -197,28 +392,47 @@ export default function ProductosSection() {
     fetchProductos();
   }, []);
 
-  //Imagenes
-  const [imagenesProducto, setImagenesProducto] = useState([]);
-  const [showImagenesModal, setShowImagenesModal] = useState(false);
-  const [productoSeleccionado, setProductoSeleccionado] = useState(null);
-  const [archivoSeleccionado, setArchivoSeleccionado] = useState(null);
-
+  // Funciones para el carrusel de imágenes
   const handleOpenImagenes = async (producto) => {
     setProductoSeleccionado(producto);
-    setShowImagenesModal(true);
-
-    // Obtener imágenes existentes del producto
+    setIndiceImagenActual(0);
+    
     try {
       const token = getToken();
       const res = await fetch(`http://localhost:8000/api/archivos/producto/${producto.id_producto}/`, {
         headers: { Authorization: `Bearer ${token}` }
       });
       const data = await res.json();
-      setImagenesProducto(Array.isArray(data) ? data : []);
+      const imagenesArray = Array.isArray(data) ? data : [];
+      
+      // Ordenar por el campo "orden" si está disponible
+      if (imagenesArray.length > 0 && imagenesArray[0].orden !== undefined) {
+        imagenesArray.sort((a, b) => a.orden - b.orden);
+      }
+      
+      setImagenesProducto(imagenesArray);
+      setShowImagenesModal(true);
     } catch (err) {
       console.error("Error al cargar imágenes:", err);
       setImagenesProducto([]);
+      setShowImagenesModal(true);
     }
+  };
+
+  const handleSiguienteImagen = () => {
+    setIndiceImagenActual((prevIndex) => 
+      prevIndex === imagenesProducto.length - 1 ? 0 : prevIndex + 1
+    );
+  };
+
+  const handleAnteriorImagen = () => {
+    setIndiceImagenActual((prevIndex) => 
+      prevIndex === 0 ? imagenesProducto.length - 1 : prevIndex - 1
+    );
+  };
+
+  const handleSeleccionarImagen = (index) => {
+    setIndiceImagenActual(index);
   };
 
   const handleUploadImagen = async (e) => {
@@ -240,7 +454,10 @@ export default function ProductosSection() {
       const data = await res.json();
       if (res.ok) {
         alert("Imagen subida exitosamente");
-        setImagenesProducto(prev => [...prev, data]);
+        
+        // Actualizar lista de imágenes
+        const nuevasImagenes = Array.isArray(imagenesProducto) ? [...imagenesProducto, data] : [data];
+        setImagenesProducto(nuevasImagenes);
         setArchivoSeleccionado(null);
       } else {
         alert(data.detail || "Error al subir imagen");
@@ -268,6 +485,24 @@ export default function ProductosSection() {
       console.error("Error al eliminar imagen:", err);
     }
   };
+
+  // Lógica para manejar teclas en el carrusel
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      if (!showImagenesModal) return;
+      
+      if (e.key === 'ArrowLeft') {
+        handleAnteriorImagen();
+      } else if (e.key === 'ArrowRight') {
+        handleSiguienteImagen();
+      } else if (e.key === 'Escape') {
+        setShowImagenesModal(false);
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [showImagenesModal]);
 
   /* ====== LÓGICA ====== */
   // Agregar Producto
@@ -412,7 +647,7 @@ export default function ProductosSection() {
     { label: "Nombre", key: "nombre" },
     { label: "Descripción", key: "descripcion" },
     { label: "Categoría", key: "categoria" },
-    { label: "Proveedor", key: "proveedor" },
+    { label: "Proveedor", key: "proveedor_nombre" },
     { label: "Precio", key: "precio" },
     { label: "Stock Actual", key: "stock_actual" },
     { label: "Stock Minimo", key: "stock_minimo" },
@@ -422,8 +657,10 @@ export default function ProductosSection() {
     <div style={{ display: "flex", gap: "8px" }}>
       <ActionMenu
         id={row.id_producto}
+        producto={row}
         onEliminar={() => deleteProducto(row.id_producto)}
         onEditar={() => handleEditarProducto(row)}
+        onAñadirStock={() => handleAñadirStock(row)}
       />
       <Button onClick={() => handleOpenImagenes(row)} variant="secondary">
         Imágenes
@@ -558,28 +795,245 @@ export default function ProductosSection() {
               </div>
             )}
 
+            {/* Modal para Añadir Stock */}
+            {showAñadirStockForm && productoParaStock && (
+              <div className={styles.modalOverlay}>
+                <div className={styles.modal}>
+                  <div className={styles.modalHeader}>
+                    <h3>Añadir Stock a: {productoParaStock.nombre}</h3>
+                    <p>Stock actual: {productoParaStock.stock_actual}</p>
+                    
+                    <form onSubmit={handleRealizarCompra}>
+                      <FormField
+                        type="number"
+                        name="cantidad"
+                        label="Cantidad a comprar"
+                        placeholder="Ej: 10"
+                        value={stockFormData.cantidad}
+                        onChange={handleStockFormChange}
+                        required
+                        min="1"
+                      />
+                      
+                      <FormField
+                        type="number"
+                        name="precio_unitario"
+                        label="Precio unitario de compra"
+                        placeholder="Ej: 25.50"
+                        value={stockFormData.precio_unitario}
+                        onChange={handleStockFormChange}
+                        required
+                        step="0.01"
+                        min="0.01"
+                      />
+                      
+                      <div className={styles.proveedorContainer}>
+                        <div className={styles.proveedorSelectRow}>
+                          <SelectField
+                            label="Proveedor"
+                            name="id_proveedor"
+                            value={stockFormData.id_proveedor}
+                            onChange={handleStockFormChange}
+                            options={[
+                              { value: "", label: "Seleccionar proveedor..." },
+                              ...proveedores.map(p => ({
+                                value: p.id_proveedor,
+                                label: p.nombre
+                              }))
+                            ]}
+                            required
+                          />
+                          <Button 
+                            type="button" 
+                            variant="secondary" 
+                            onClick={handleOpenRegistrarProveedor}
+                            className={styles.registrarProveedorButton}
+                          >
+                            <Plus size={16} />
+                            Registrar Proveedor
+                          </Button>
+                        </div>
+                      </div>
+                      
+                      <div className={styles.modalActions}>
+                        <Button type="submit" variant="primary">
+                          Realizar Compra
+                        </Button>
+                        <Button 
+                          type="button" 
+                          variant="secondary" 
+                          onClick={handleCloseAñadirStockForm}
+                        >
+                          Cancelar
+                        </Button>
+                      </div>
+                    </form>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Modal para Registrar Proveedor */}
+            {showRegistrarProveedorForm && (
+              <div className={styles.modalOverlay}>
+                <div className={styles.modal}>
+                  <div className={styles.modalHeader}>
+                    <h3>Registrar Nuevo Proveedor</h3>
+                  </div>
+                  
+                  <form onSubmit={handleRegistrarProveedor}>
+                    <FormField
+                      label="Nombre *"
+                      name="nombre"
+                      value={proveedorFormData.nombre}
+                      onChange={handleProveedorFormChange}
+                      required
+                      placeholder="Ej: Distribuidora XYZ"
+                    />
+                    <FormField
+                      label="Email *"
+                      type="email"
+                      name="email"
+                      value={proveedorFormData.email}
+                      onChange={handleProveedorFormChange}
+                      required
+                      placeholder="ejemplo@proveedor.com"
+                    />
+                    <FormField
+                      label="Teléfono"
+                      type="tel"
+                      name="telefono"
+                      value={proveedorFormData.telefono}
+                      onChange={handleProveedorFormChange}
+                      placeholder="77777777"
+                    />
+                    <FormField
+                      label="Dirección"
+                      name="direccion"
+                      value={proveedorFormData.direccion}
+                      onChange={handleProveedorFormChange}
+                      placeholder="Calle Principal #123"
+                    />
+                    
+                    <div className={styles.modalActions}>
+                      <Button type="submit" variant="primary">
+                        Registrar Proveedor
+                      </Button>
+                      <Button 
+                        type="button" 
+                        variant="secondary" 
+                        onClick={handleCloseRegistrarProveedor}
+                      >
+                        Cancelar
+                      </Button>
+                    </div>
+                  </form>
+                </div>
+              </div>
+            )}
+
           </section>
 
+          {/* Modal del carrusel de imágenes */}
           {showImagenesModal && (
             <div className={styles.modalOverlay}>
-              <div className={styles.modal}>
-                <h3>Imágenes de {productoSeleccionado.nombre}</h3>
-
-                <div>
-                  {imagenesProducto.map(img => (
-                    <div key={img.id_archivo} style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-                      <img src={`http://localhost:8000${img.archivo}`} alt="" width="80" />
-                      <Button onClick={() => handleDeleteImagen(img.id_archivo)} variant="secondary">Eliminar</Button>
-                    </div>
-                  ))}
+              <div className={styles.carruselModal}>
+                <div className={styles.carruselHeader}>
+                  <h3>Imágenes de {productoSeleccionado?.nombre}</h3>
+                  <Button 
+                    onClick={() => setShowImagenesModal(false)} 
+                    variant="secondary"
+                    className={styles.closeButton}
+                  >
+                    <X size={20} />
+                  </Button>
                 </div>
 
-                <form onSubmit={handleUploadImagen}>
-                  <input type="file" onChange={(e) => setArchivoSeleccionado(e.target.files[0])} />
-                  <Button type="submit" variant="primary">Subir Imagen</Button>
-                </form>
+                <div className={styles.carruselContainer}>
+                  {imagenesProducto.length > 0 ? (
+                    <>
+                      <div className={styles.imagenPrincipalContainer}>
+                        <Button 
+                          onClick={handleAnteriorImagen}
+                          variant="secondary"
+                          className={styles.navButton}
+                          disabled={imagenesProducto.length <= 1}
+                        >
+                          <ChevronLeft size={24} />
+                        </Button>
+                        
+                        <div className={styles.imagenPrincipal}>
+                          <img 
+                            src={imagenesProducto[indiceImagenActual]?.archivo} 
+                            alt={`Imagen ${indiceImagenActual + 1} de ${productoSeleccionado?.nombre}`}
+                            className={styles.imagen}
+                          />
+                        </div>
+                        
+                        <Button 
+                          onClick={handleSiguienteImagen}
+                          variant="secondary"
+                          className={styles.navButton}
+                          disabled={imagenesProducto.length <= 1}
+                        >
+                          <ChevronRight size={24} />
+                        </Button>
+                      </div>
 
-                <Button onClick={() => setShowImagenesModal(false)} variant="secondary">Cerrar</Button>
+                      <div className={styles.contador}>
+                        {indiceImagenActual + 1} / {imagenesProducto.length}
+                      </div>
+
+                      {imagenesProducto.length > 1 && (
+                        <div className={styles.miniaturasContainer}>
+                          {imagenesProducto.map((img, index) => (
+                            <button
+                              key={img.id_archivo}
+                              onClick={() => handleSeleccionarImagen(index)}
+                              className={`${styles.miniatura} ${index === indiceImagenActual ? styles.miniaturaActiva : ''}`}
+                            >
+                              <img 
+                                src={img.archivo} 
+                                alt={`Miniatura ${index + 1}`}
+                                className={styles.miniaturaImagen}
+                              />
+                            </button>
+                          ))}
+                        </div>
+                      )}
+
+                      <div className={styles.imagenInfo}>
+                        <Button 
+                          onClick={() => handleDeleteImagen(imagenesProducto[indiceImagenActual]?.id_archivo)}
+                          variant="danger"
+                          size="small"
+                          className={styles.deleteImageButton}
+                        >
+                          Eliminar Imagen
+                        </Button>
+                      </div>
+                    </>
+                  ) : (
+                    <div className={styles.sinImagenes}>
+                      <p>No hay imágenes para este producto</p>
+                    </div>
+                  )}
+
+                  <div className={styles.uploadSection}>
+                    <h4>Subir nueva imagen</h4>
+                    <form onSubmit={handleUploadImagen}>
+                      <input 
+                        type="file" 
+                        onChange={(e) => setArchivoSeleccionado(e.target.files[0])}
+                        accept="image/*"
+                        className={styles.fileInput}
+                      />
+                      <Button type="submit" variant="primary">
+                        Subir Imagen
+                      </Button>
+                    </form>
+                  </div>
+                </div>
               </div>
             </div>
           )}

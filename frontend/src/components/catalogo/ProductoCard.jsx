@@ -1,8 +1,8 @@
-import { useState } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import styles from './ProductoCard.module.css';
 import CartModal from './CartModal';
 
-export default function ProductoCard({ producto, empresaId }) {
+export default function ProductoCard({ producto, empresaId, onProductAdded }) {
     // Si el stock es 0, no renderizar el producto
     if (producto.stock_actual === 0) {
         return null;
@@ -11,7 +11,46 @@ export default function ProductoCard({ producto, empresaId }) {
     const [cantidad, setCantidad] = useState(1);
     const [imagenActual, setImagenActual] = useState(0);
     const [showCartModal, setShowCartModal] = useState(false);
+    const [userRole, setUserRole] = useState(null);
+    const [isVendedor, setIsVendedor] = useState(false);
+    const [isAdding, setIsAdding] = useState(false);
 
+    const checkAuthStatus = useCallback(() => {
+        if (typeof window !== 'undefined') {
+            const role = localStorage.getItem('userRole');
+            console.log('ProductoCard: verificando rol:', role);
+            setUserRole(role);
+            setIsVendedor(role === 'vendedor' || role === 'admin_empresa');
+        }
+    }, []);
+    // Verificar estado inicial
+    useEffect(() => {
+        checkAuthStatus();
+    }, [checkAuthStatus]);
+
+    useEffect(() => {
+        const handleAuthStateChanged = (event) => {
+            console.log('ProductoCard: evento authStateChanged recibido', event.detail);
+            checkAuthStatus();
+        };
+
+        const handleUserLoggedIn = () => {
+            console.log('ProductoCard: usuario logueado, actualizando estado...');
+            // Pequeño delay para asegurar que localStorage se actualizó
+            setTimeout(() => {
+                checkAuthStatus();
+            }, 100);
+        };
+
+        // Escuchar eventos globales
+        window.addEventListener('authStateChanged', handleAuthStateChanged);
+        window.addEventListener('userLoggedIn', handleUserLoggedIn);
+        
+        return () => {
+            window.removeEventListener('authStateChanged', handleAuthStateChanged);
+            window.removeEventListener('userLoggedIn', handleUserLoggedIn);
+        };
+    }, [checkAuthStatus]);
 
     const precio = parseFloat(producto.precio);
     const tieneStock = producto.stock_actual > 0;
@@ -41,17 +80,21 @@ export default function ProductoCard({ producto, empresaId }) {
     };
 
     const handleAgregarCarrito = async () => {
-        // Verificar si está logueado como cliente
-        const token = localStorage.getItem('access');
-        const userRole = localStorage.getItem('userRole');
+        // Solo vendedores/admin_empresa pueden agregar al carrito
+        if (!isVendedor) return;
 
-        if (!token || userRole !== 'cliente') {
+        // Verificar si está logueado
+        const token = localStorage.getItem('access');
+
+        if (!token) {
+            // Mostrar modal de login para vendedores
             setShowCartModal(true);
             return;
         }
 
-        // Si está logueado, crear la reserva
+        // Si está logueado como vendedor, crear la reserva
         try {
+            setIsAdding(true);
             const response = await fetch('http://localhost:8000/api/reservas/crear/', {
                 method: 'POST',
                 headers: {
@@ -69,16 +112,26 @@ export default function ProductoCard({ producto, empresaId }) {
             if (response.ok) {
                 alert(`¡${cantidad} ${producto.nombre} reservado(s) exitosamente!`);
                 setCantidad(1);
+                // Emitir evento al padre para que recargue el carrito
+                if (onProductAdded) {
+                    console.log('Producto añadido, notificando al padre...');
+                    onProductAdded();
+                }
+                
+                // También puedes emitir un evento global
+                /* window.dispatchEvent(new CustomEvent('cartUpdated', {
+                    detail: { productoId: producto.id_producto, cantidad }
+                })); */
             } else {
                 alert(data.detail || data.error || 'Error al reservar producto');
             }
         } catch (error) {
             console.error('Error reservando producto:', error);
             alert('Error al reservar producto');
+        } finally {
+            setIsAdding(false);
         }
     };
-
-
 
     return (
         <div className={styles.productoCard}>
@@ -160,36 +213,43 @@ export default function ProductoCard({ producto, empresaId }) {
                     <p className={styles.productoDescripcion}>{producto.descripcion}</p>
                 </div>
 
-                <div className={styles.cantidadContainer}>
-                    <div className={styles.cantidadControls}>
-                        <button
-                            className={styles.cantidadButton}
-                            onClick={decrementarCantidad}
-                            disabled={cantidad <= 1}
-                        >
-                            -
-                        </button>
-                        <span className={styles.cantidadValue}>{cantidad}</span>
-                        <button
-                            className={styles.cantidadButton}
-                            onClick={incrementarCantidad}
-                            disabled={cantidad >= producto.stock_actual}
-                        >
-                            +
-                        </button>
+                {/* Mostrar controles de cantidad solo para vendedores/admin_empresa */}
+                {isVendedor && (
+                    <div className={styles.cantidadContainer}>
+                        <div className={styles.cantidadControls}>
+                            <button
+                                className={styles.cantidadButton}
+                                onClick={decrementarCantidad}
+                                disabled={cantidad <= 1}
+                            >
+                                -
+                            </button>
+                            <span className={styles.cantidadValue}>{cantidad}</span>
+                            <button
+                                className={styles.cantidadButton}
+                                onClick={incrementarCantidad}
+                                disabled={cantidad >= producto.stock_actual}
+                            >
+                                +
+                            </button>
+                        </div>
+                        <span className={`${styles.stockBadge} ${producto.stock_actual > 10 ? styles.inStock : styles.lowStock}`}>
+                            {producto.stock_actual > 10 ? 'Disponible' : 'Pocas unidades'}
+                        </span>
                     </div>
-                    <span className={`${styles.stockBadge} ${producto.stock_actual > 10 ? styles.inStock : styles.lowStock}`}>
-                        {producto.stock_actual > 10 ? 'Disponible' : 'Pocas unidades'}
-                    </span>
-                </div>
+                )}
 
-                <button
-                    className={styles.agregarButton}
-                    onClick={handleAgregarCarrito}
-                    disabled={!tieneStock}
-                >
-                    {tieneStock ? '🛒 Agregar al carrito' : 'Agotado'}
-                </button>
+                {/* Mostrar botón de agregar solo para vendedores/admin_empresa */}
+                {isVendedor && (
+                    <button
+                        className={styles.agregarButton}
+                        onClick={handleAgregarCarrito}
+                        disabled={!tieneStock || isAdding}
+                    >
+                        {isAdding ? '🔄 Agregando...' :
+                        tieneStock ? '🛒 Agregar al carrito' : 'Agotado'}
+                    </button>
+                )}
 
                 {/* Información adicional */}
                 <div className={styles.productoFooter}>
@@ -203,16 +263,20 @@ export default function ProductoCard({ producto, empresaId }) {
                     )}
                 </div>
 
-                <CartModal
-                    isOpen={showCartModal}
-                    onClose={() => setShowCartModal(false)}
-                    empresaId={empresaId}
-                    onLoginSuccess={() => {
-                        // Después de login exitoso, intentar reservar de nuevo
-                        setShowCartModal(false);
-                        handleAgregarCarrito();
-                    }}
-                />
+                {showCartModal && (
+                    <CartModal
+                        isOpen={showCartModal}
+                        onClose={() => setShowCartModal(false)}
+                        empresaId={empresaId}
+                        onLoginSuccess={() => {
+                            setShowCartModal(false);
+                            // Refrescar el estado de usuario
+                            const role = localStorage.getItem('rol');
+                            setUserRole(role);
+                            setIsVendedor(role === 'vendedor' || role === 'admin_empresa');
+                        }}
+                    />
+                )}
             </div>
         </div>
     );

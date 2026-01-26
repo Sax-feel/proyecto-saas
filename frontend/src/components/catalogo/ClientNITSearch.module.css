@@ -1,0 +1,389 @@
+/* frontend/src/components/catalogo/ClientNITSearch.module.css */
+.clientSearch {
+    background: white;
+    border-radius: 12px;
+    padding: 24px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.653);
+    border: 1px solid #e5e7eb;
+}
+
+.searchHeader {
+    margin-bottom: 20px;
+}
+
+.searchTitle {
+    margin: 0 0 8px 0;
+    font-size: 1.25rem;
+    font-weight: 600;
+    color: #1f2937;
+}
+
+.searchSubtitle {
+    margin: 0;
+    color: #6b7280;
+    font-size: 0.9rem;
+}
+
+.searchBox {
+    margin-bottom: 20px;
+}
+
+.inputGroup {
+    display: flex;
+    gap: 12px;
+    margin-bottom: 8px;
+}
+
+.inputWithIcon {
+    flex: 1;
+    position: relative;
+    display: flex;
+    align-items: center;
+}
+
+.searchIcon {
+    position: relative;
+    margin-right: 5px;
+    color: #6b7280;
+}
+
+.nitInput {
+    width: 100%;
+    padding: 12px 40px 12px 40px;
+    border: 2px solid #e5e7eb;
+    border-radius: 8px;
+    font-size: 16px;
+    transition: border-color 0.2s;
+}
+
+.nitInput:focus {
+    outline: none;
+    border-color: #3b82f6;
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+.clearInputButton {
+    position: absolute;
+    right: 12px;
+    background: none;
+    border: none;
+    color: #9ca3af;
+    cursor: pointer;
+    font-size: 18px;
+    padding: 0;
+    width: 24px;
+    height: 24px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+}
+
+.clearInputButton:hover {
+    background-color: #f3f4f6;
+    color: #374151;
+}
+
+.searchButton {
+    padding: 12px 24px;
+    background-color: #3b82f6;
+    color: white;
+    border: none;
+    border-radius: 8px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: background-color 0.2s;
+    min-width: 100px;
+}
+
+.searchButton:hover:not(:disabled) {
+    background-color: #2563eb;
+}
+
+.searchButton:disabled {
+    background-color: #9ca3af;
+    cursor: not-allowed;
+}
+
+.nitInfo {
+    color: #6b7280;
+    font-size: 0.85rem;
+    margin-top: 4px;
+}
+
+/* Loading State */
+.loadingState {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 16px;
+    background-color: #f9fafb;
+    border-radius: 8px;
+    margin: 16px 0;
+}
+
+.spinner {
+    width: 20px;
+    height: 20px;
+    border: 2px solid #e5e7eb;
+    border-top-color: #3b82f6;
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+/* Error Section */
+.errorSection {
+    background-color: #fef2f2;
+    border: 1px solid #fecaca;
+    border-radius: 8px;
+    padding: 16px;
+    margin: 16px 0;
+}
+
+.errorMessage {
+    color: #dc2626;
+    margin-bottom: 12px;
+    size: 10px;
+    margin: 0px;
+}
+
+.actionButtons {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.actionButton {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 16px;
+    background: linear-gradient(135deg, #10b981 0%, #03a253 100%);
+    color: white;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    font-weight: 500;
+    margin-top: 10px;
+    transition: all 0.2s;
+}
+
+.actionButton:hover:not(:disabled) {
+    box-shadow: 0 4px 12px rgba(59, 130, 246, 0.4);
+
+}
+
+.actionButton:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+/* Register Form */
+.registerForm {
+    background-color: #f9fafb;
+    border: 1px solid #e5e7eb;
+    border-radius: 8px;
+    padding: 20px;
+    margin-top: 20px;
+}
+
+.formHeader {
+    margin-bottom: 20px;
+}
+
+.formHeader h5 {
+    margin: 0 0 8px 0;
+    color: #1f2937;
+    font-size: 1.1rem;
+}
+
+.formHeader p {
+    margin: 0;
+    color: #6b7280;
+    font-size: 0.9rem;
+}
+
+.formGroup {
+    margin-bottom: 16px;
+}
+
+.formLabel {
+    display: block;
+    font-size: 0.875rem;
+    font-weight: 600;
+    color: #1f2937;
+    letter-spacing: 0.01em;
+}
+
+.nitPreview {
+    display: inline-block;
+    margin-left: 8px;
+    padding: 4px 12px;
+    background-color: #dbeafe;
+    color: #1e40af;
+    border-radius: 4px;
+    font-weight: 600;
+}
+
+.formRow {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+}
+
+.formInput {
+    width: 100%;
+    padding: 10px 12px;
+    border: 1px solid #d1d5db;
+    border-radius: 6px;
+    font-size: 14px;
+    transition: border-color 0.2s;
+}
+
+.formInput:focus {
+    outline: none;
+    border-color: #3b82f6;
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+.formActions {
+    display: flex;
+    gap: 12px;
+    margin-top: 0px;
+}
+
+.primaryButton {
+    flex: 1;
+    padding: 12px 24px;
+    background-color: #10b981;
+    color: white;
+    border: none;
+    border-radius: 6px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: background-color 0.2s;
+}
+
+.primaryButton:hover:not(:disabled) {
+    background-color: #059669;
+}
+
+.primaryButton:disabled {
+    background-color: #9ca3af;
+    cursor: not-allowed;
+}
+
+.secondaryButton {
+    flex: 1;
+    padding: 12px 24px;
+    background-color: #ff4040;
+    color: white;
+    border: none;
+    border-radius: 6px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: background-color 0.2s;
+}
+
+.secondaryButton:hover:not(:disabled) {
+    background-color: #d53434;
+}
+
+/* Client Found */
+.clientFound {
+    background-color: #d1fae5;
+    border: 1px solid #a7f3d0;
+    border-radius: 8px;
+    padding: 20px;
+    margin-top: 20px;
+}
+
+.clientHeader {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 16px;
+}
+
+.clientHeader h5 {
+    margin: 0;
+    color: #065f46;
+    font-size: 1.1rem;
+}
+
+.badgeSuccess {
+    padding: 4px 12px;
+    background-color: #10b981;
+    color: white;
+    border-radius: 20px;
+    font-size: 0.8rem;
+    font-weight: 500;
+}
+
+.clientInfoGrid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 12px;
+    margin-bottom: 20px;
+}
+
+.infoItem {
+    display: flex;
+    flex-direction: column;
+}
+
+.infoLabel {
+    font-size: 0.85rem;
+    color: #374151;
+    font-weight: 500;
+    margin-bottom: 4px;
+}
+
+.infoValue {
+    font-size: 0.95rem;
+    color: #111827;
+    font-weight: 600;
+}
+
+.selectClientButton {
+    width: 100%;
+    padding: 12px;
+    background-color: #3b82f6;
+    color: white;
+    border: none;
+    border-radius: 6px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: background-color 0.2s;
+}
+
+.selectClientButton:hover {
+    background-color: #2563eb;
+}
+
+.clientNote {
+    margin-top: 12px;
+    text-align: center;
+    color: #4b5563;
+}
+
+/* Help Section */
+.helpSection {
+    
+    padding: 16px;
+    background-color: #f3f4f6;
+    border-radius: 8px;
+}
+
+.helpText {
+    margin: 0;
+    color: #4b5563;
+    font-size: 0.9rem;
+    line-height: 1.5;
+}

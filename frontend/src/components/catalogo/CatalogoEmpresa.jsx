@@ -57,6 +57,26 @@ export default function CatalogoEmpresa({ empresaId }) {
             setLoading(false);
         }
     };
+    // Escuchar eventos de actualización del carrito
+    useEffect(() => {
+        const handleCartUpdate = () => {
+            console.log('Evento cartUpdate recibido, actualizando carrito...');
+            // Si el carrito está abierto, podrías recargar las reservas aquí
+        };
+
+        window.addEventListener('cartUpdated', handleCartUpdate);
+        
+        return () => {
+            window.removeEventListener('cartUpdated', handleCartUpdate);
+        };
+    }, []);
+
+    const handleProductAdded = () => {
+        console.log('Producto añadido al carrito, recargando carrito...');
+        
+        // Disparar evento para que el carrito se actualice si está abierto
+        window.dispatchEvent(new Event('refreshCart'));
+    };
 
     const filtrarProductos = () => {
         let filtrados = [...productos];
@@ -172,6 +192,7 @@ export default function CatalogoEmpresa({ empresaId }) {
                     <ProductosGrid
                         productos={productosFiltrados}
                         empresaId={empresaId}
+                        onProductAdded={handleProductAdded}
                     />
 
                     {productosFiltrados.length === 0 && (

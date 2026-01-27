@@ -1,17 +1,32 @@
-/* Contenedor principal */
-.container {
-  padding: 2rem;
-  font-family: Arial, sans-serif;
-  background-color: #f1f5f9;
+/* Dashboard container */
+.dashboardContainer {
+  display: flex;
   min-height: 100vh;
-  color: #1f2937;
+  background-color: #f1f5f9;
 }
 
-/* Títulos */
+.mainContent {
+  flex: 1;
+  padding: 2rem;
+  margin-left: 280px;
+  transition: margin-left 0.3s ease;
+  min-height: 100vh;
+}
+
+.mainContent.collapsed {
+  margin-left: 80px;
+}
+
+/* Header section */
+.headerSection {
+  margin-bottom: 2rem;
+}
+
 .title {
   font-size: 2rem;
   font-weight: bold;
   margin-bottom: 0.5rem;
+  color: #1f2937;
 }
 
 .subtitle {
@@ -19,10 +34,162 @@
   color: #4b5563;
 }
 
+/* Suscripción actual card */
+.suscripcionActualCard {
+  background-color: #ffffff;
+  padding: 1.5rem;
+  border-radius: 12px;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.05);
+  margin-bottom: 2rem;
+  border-left: 4px solid #3b82f6;
+}
+
+.suscripcionTitle {
+  margin-bottom: 1rem;
+  color: #1f2937;
+  font-size: 1.25rem;
+}
+
+.infoGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+
+.infoItem {
+  display: flex;
+  flex-direction: column;
+}
+
+.infoLabel {
+  font-size: 0.875rem;
+  color: #6b7280;
+  margin-bottom: 0.25rem;
+}
+
+.infoValue {
+  font-weight: 500;
+  color: #1f2937;
+}
+
+/* Estados */
+.estadoActivo {
+  background-color: #d1fae5;
+  color: #059669;
+  padding: 0.25rem 0.75rem;
+  border-radius: 9999px;
+  font-size: 0.875rem;
+  font-weight: 600;
+}
+
+.estadoPendiente {
+  background-color: #fef3c7;
+  color: #d97706;
+  padding: 0.25rem 0.75rem;
+  border-radius: 9999px;
+  font-size: 0.875rem;
+  font-weight: 600;
+}
+
+.estadoInactivo {
+  background-color: #f3f4f6;
+  color: #6b7280;
+  padding: 0.25rem 0.75rem;
+  border-radius: 9999px;
+  font-size: 0.875rem;
+  font-weight: 600;
+}
+
+.mensajePendiente,
+.mensajeActivo {
+  padding: 0.75rem;
+  border-radius: 8px;
+  margin-top: 1rem;
+  font-size: 0.875rem;
+}
+
+.mensajePendiente {
+  background-color: #fef3c7;
+  border-left: 4px solid #f59e0b;
+  color: #92400e;
+}
+
+.mensajeActivo {
+  background-color: #d1fae5;
+  border-left: 4px solid #10b981;
+  color: #065f46;
+}
+
+/* Historial section */
+.historialSection {
+  margin-bottom: 2rem;
+}
+
+.historialSection h3 {
+  margin-bottom: 1rem;
+  color: #1f2937;
+}
+
+.historialGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: 1rem;
+}
+
+.historialCard {
+  background-color: #ffffff;
+  padding: 1rem;
+  border-radius: 8px;
+  border: 1px solid #e5e7eb;
+}
+
+.historialHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.5rem;
+}
+
+.historialPlan {
+  font-weight: 600;
+  color: #1f2937;
+}
+
+.historialEstado {
+  font-size: 0.75rem;
+  padding: 0.125rem 0.5rem;
+  border-radius: 9999px;
+}
+
+.historialActivo {
+  background-color: #d1fae5;
+  color: #059669;
+}
+
+.historialPendiente {
+  background-color: #fef3c7;
+  color: #d97706;
+}
+
+.historialInactivo {
+  background-color: #f3f4f6;
+  color: #6b7280;
+}
+
+.historialBody {
+  font-size: 0.875rem;
+  color: #4b5563;
+}
+
+.historialBody p {
+  margin: 0.25rem 0;
+}
+
 /* Grid de planes */
 .planesGrid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
   gap: 1.5rem;
 }
 
@@ -32,12 +199,14 @@
   padding: 1.5rem;
   border-radius: 12px;
   box-shadow: 0 10px 25px rgba(0, 0, 0, 0.05);
-  text-align: center;
-  transition: transform 0.2s;
+  display: flex;
+  flex-direction: column;
+  transition: transform 0.2s, box-shadow 0.2s;
 }
 
 .planCard:hover {
   transform: translateY(-3px);
+  box-shadow: 0 15px 30px rgba(0, 0, 0, 0.1);
 }
 
 .planCard h2 {
@@ -50,9 +219,54 @@
   font-size: 0.875rem;
   margin-bottom: 1rem;
   color: #6b7280;
+  flex-grow: 1;
 }
 
-/* Modal */
+.planDetails {
+  margin-bottom: 1.5rem;
+}
+
+.planDetails p {
+  margin: 0.25rem 0;
+  font-size: 0.875rem;
+  color: #4b5563;
+}
+
+.suscribirseBtn {
+  margin-top: auto;
+}
+
+.mensajeCambio {
+  font-size: 0.75rem;
+  color: #6b7280;
+  margin-top: 0.5rem;
+  text-align: center;
+}
+
+/* Loading */
+.cargando {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 50vh;
+}
+
+.spinner {
+  width: 40px;
+  height: 40px;
+  border: 4px solid #e5e7eb;
+  border-top-color: #3b82f6;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+  margin-bottom: 1rem;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+/* Modal (mantén los estilos existentes del modal) */
 .modalOverlay {
   position: fixed;
   top: 0;
@@ -78,6 +292,25 @@
   color: #1f2937;
 }
 
+.closeButton {
+  position: absolute;
+  top: 1rem;
+  right: 1rem;
+  background: none;
+  border: none;
+  font-size: 1.5rem;
+  cursor: pointer;
+  color: #6b7280;
+}
+
+.alertaActualizacion {
+  background-color: #fef3c7;
+  padding: 0.75rem;
+  border-radius: 8px;
+  margin: 1rem 0;
+  font-size: 0.875rem;
+}
+
 /* QR y detalles */
 .qrContainer {
   text-align: center;
@@ -88,12 +321,24 @@
   border: 1px solid #e5e7eb;
 }
 
-.qrContainer img {
+.qrImage {
   width: 150px;
   height: 150px;
   border-radius: 8px;
   background-color: #fff;
   padding: 0.5rem;
+}
+
+.monto {
+  font-size: 1.25rem;
+  margin-top: 1rem;
+  color: #111827;
+}
+
+.gratuito {
+  color: #059669;
+  font-size: 0.875rem;
+  margin-top: 0.5rem;
 }
 
 /* Formularios dentro del modal */
@@ -152,7 +397,7 @@
   overflow: hidden;
 }
 
-.fileSelected span:last-child {
+.fileName {
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -176,12 +421,6 @@
 
 .fileRemove:hover {
   background: #dc2626;
-}
-
-.fileHelpText {
-  font-size: 0.75rem;
-  color: #6b7280;
-  margin-top: 0.5rem;
 }
 
 /* Textarea */
@@ -211,11 +450,9 @@
   margin-top: 2rem;
 }
 
-.modalButtons button:first-child:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-}
-
-.modalButtons button:first-child:disabled:hover {
-  transform: none;
+.nota {
+  font-size: 0.75rem;
+  color: #6b7280;
+  margin-top: 1rem;
+  text-align: center;
 }

@@ -4,6 +4,7 @@ import Link from "next/link"
 import { usePathname } from "next/navigation"
 import {
   Building2,
+  PackageOpen,
   Users,
   UserCheck,
   Package,
@@ -45,6 +46,7 @@ const allNavigation = {
     { name: "Vendedores", href: "/usuario_empresa/vendedora", icon: UserCheck },
     { name: "Proveedores", href: "/usuario_empresa/proveedores", icon: Users },
     { name: "Historial de Compras", href: "/usuario_empresa/compras", icon: LibraryBig },
+    { name: "Compras de Stock", href: "/usuario_empresa/compras-stock", icon: PackageOpen },
   ],
 
   // Rutas para vendedor

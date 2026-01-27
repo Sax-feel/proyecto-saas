@@ -56,17 +56,6 @@ export default function ActionMenu({
                         <span className={styles.menuIcon}><SquarePen /></span>Editar
                     </button>
                     <button
-                        className={styles.menuItem}
-                        onClick={() => {
-                            onAñadirStock(producto); // Pasamos el producto completo
-                            setMenuAbierto(false);
-                        }}
-                        aria-label="Añadir Stock"
-                    >
-                        <span className={styles.menuIcon}><CirclePlus /></span>Añadir Stock
-                    </button>
-
-                    <button
                         className={`${styles.menuItem} ${styles.menuItemDanger}`}
                         onClick={() => {
                             onEliminar(id);

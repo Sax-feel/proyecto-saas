@@ -69,6 +69,12 @@ class SolicitarSuscripcionView(generics.GenericAPIView):
                 observaciones=observaciones,
                 fecha_solicitud=fecha_inicio
             )
+
+            self._crear_notificacion_admins(
+                suscripcion=suscripcion,
+                empresa=empresa,
+                admin_solicitante=admin_empresa_user
+            )
             
             # 4. ACTUALIZAR ESTADO DE LA EMPRESA A 'pendiente'
             empresa.estado = 'pendiente'
@@ -118,6 +124,52 @@ class SolicitarSuscripcionView(generics.GenericAPIView):
                 'detail': str(e),
                 'status': 'error'
             }, status=status.HTTP_400_BAD_REQUEST)
+    
+    def _crear_notificacion_suscripcion_admins(self, suscripcion):
+        """
+        Crea notificación solo para los administradores del sistema
+        sobre una nueva solicitud de suscripción
+        """
+        try:
+            from notificaciones.models import Notificacion
+            from relacion_notifica.models import Notifica
+            from usuarios.models import User
+
+            # 1. Obtener admins activos
+            admins = User.objects.filter(
+                rol__rol='admin',
+                estado='activo'
+            )
+
+            if not admins.exists():
+                logger.warning("No hay administradores activos para notificar")
+                return
+
+            # 2. Crear resumen de la suscripción (plan + empresa)
+            resumen = f'Empresa: {suscripcion.empresa.nombre}, Plan: {suscripcion.plan.nombre}'
+
+            # 3. Crear la notificación
+            notificacion = Notificacion.objects.create(
+                titulo=f'Nueva solicitud de suscripción #{suscripcion.id_suscripcion}',
+                mensaje=(
+                    f'Se ha solicitado una nueva suscripción.\n'
+                    f'{resumen}.\n'
+                    f'Estado: {suscripcion.estado.upper()}.'
+                ),
+                tipo='info'
+            )
+
+            # 4. Asociar notificación a todos los admins
+            for admin in admins:
+                Notifica.objects.create(
+                    id_usuario=admin,
+                    id_notificacion=notificacion
+                )
+
+            logger.info(f"Notificación de suscripción creada para {admins.count()} admins")
+
+        except Exception as e:
+            logger.error(f"Error al crear notificación de suscripción para admins: {str(e)}")
     
     def _obtener_empresa_del_admin(self, admin_empresa_user):
         """Obtiene la empresa asociada al admin_empresa"""

@@ -3,6 +3,7 @@ from django.conf import settings
 from django.core.mail import send_mail
 from django.template.loader import render_to_string
 from django.utils.html import strip_tags
+from backend.security.recaptcha import verify_recaptcha
 from rest_framework import generics, status, serializers
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated, AllowAny
@@ -111,6 +112,19 @@ class LoginView(generics.GenericAPIView):
     permission_classes = [AllowAny]
 
     def post(self, request, *args, **kwargs):
+        recaptcha_token = request.data.get("recaptcha_token")
+
+        if not recaptcha_token:
+            return Response(
+                {"detail": "Captcha requerido"},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        if not verify_recaptcha(recaptcha_token):
+            return Response(
+                {"detail": "Captcha inválido"},
+                status=status.HTTP_400_BAD_REQUEST
+            )
         
         logger.info(f"Intento de login desde IP: {self._get_client_ip(request)}")
         serializer = self.get_serializer(data=request.data)

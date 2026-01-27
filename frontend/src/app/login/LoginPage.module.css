@@ -1,18 +1,19 @@
 /* LAYOUT */
 .container {
-  height: 100vh;
+  min-height: 100vh;
   display: flex;
   align-items: center;
   justify-content: center;
-  background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+  background-color: #f9f9fb;
+  color: #1f2937;
   padding: 1rem;
 }
 
 .contentWrapper {
   display: flex;
   width: 100%;
-  max-width: 900px;
-  min-height: 500px;
+  max-width: 800px;
+  min-height: 300px;
   background: white;
   border-radius: 12px;
   box-shadow: 0 10px 25px rgba(0, 0, 0, 0.05);

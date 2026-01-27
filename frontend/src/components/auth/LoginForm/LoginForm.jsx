@@ -4,12 +4,15 @@
 import { useState } from 'react';
 import styles from './LoginForm.module.css';
 import FormField from "../../ui/FormField/FormField"
+import ReCAPTCHA from "react-google-recaptcha"
 
 export default function LoginForm({ onSuccess, showRoleSelector = false }) {
     const [formData, setFormData] = useState({
         email: '',
         password: ''
     });
+    
+    const [captchaToken, setCaptchaToken] = useState('');
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
 
@@ -24,6 +27,12 @@ export default function LoginForm({ onSuccess, showRoleSelector = false }) {
         e.preventDefault();
         setLoading(true);
         setError('');
+        
+        if (!captchaToken) {
+            setError("Por favor confirme que no es un robot");
+            setLoading(false);
+            return;
+        }
 
         try {
             const response = await fetch('http://localhost:8000/api/auth/login/', {
@@ -31,7 +40,11 @@ export default function LoginForm({ onSuccess, showRoleSelector = false }) {
                 headers: {
                     'Content-Type': 'application/json'
                 },
-                body: JSON.stringify(formData)
+                body: JSON.stringify({
+                    email: formData.email,
+                    password: formData.password,
+                    recaptcha_token: captchaToken
+                })
             });
 
             const data = await response.json();
@@ -93,6 +106,11 @@ export default function LoginForm({ onSuccess, showRoleSelector = false }) {
                         label={"Contraseña"}
                     />
                 </div>
+
+                <ReCAPTCHA
+                    sitekey={process.env.NEXT_PUBLIC_RECAPTCHA_SITE_KEY}
+                    onChange={(token) => setCaptchaToken(token)}
+                />
 
                 <button
                     type="submit"

@@ -1,0 +1,346 @@
+.productoCard {
+    background: white;
+    border-radius: 12px;
+    overflow: hidden;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+    transition: all 0.3s ease;
+    border: 1px solid #e5e7eb;
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+}
+.producto{
+    display: flex;
+    flex-direction: column;
+}
+
+.productoCard:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.1);
+    border-color: #4f46e5;
+}
+
+.productoHeader {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    padding: 0.75rem;
+    background: linear-gradient(to right, #f8fafc, #f1f5f9);
+}
+
+.descuentoBadge {
+    background: #ef4444;
+    color: white;
+    font-size: 0.75rem;
+    font-weight: 600;
+    padding: 0.25rem 0.5rem;
+    border-radius: 4px;
+}
+
+.stockBadge {
+    font-size: 0.75rem;
+    font-weight: 500;
+    padding: 0.25rem 0.5rem;
+    border-radius: 4px;
+}
+
+.inStock {
+    background: #d1fae5;
+    color: #065f46;
+}
+
+.outOfStock {
+    background: #fee2e2;
+    color: #991b1b;
+}
+
+.productoImagenContainer {
+    position: relative;
+    height: 200px;
+    background: #f8fafc;
+    overflow: hidden;
+}
+
+.productoImagen {
+    width: 100%;
+    height: 100%;
+    background-size: contain;
+    background-position: center;
+    background-repeat: no-repeat;
+}
+
+.placeholderImagen {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    color: #9ca3af;
+    gap: 0.5rem;
+}
+
+.placeholderImagen span:first-child {
+    font-size: 2rem;
+}
+
+.imagenNavButton {
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+    background: rgba(0, 0, 0, 0.5);
+    color: white;
+    border: none;
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: background 0.2s;
+    font-size: 1.25rem;
+    z-index: 10;
+}
+
+.imagenNavButton:hover {
+    background: rgba(0, 0, 0, 0.7);
+}
+
+.prevButton {
+    left: 0.75rem;
+}
+
+.nextButton {
+    right: 0.75rem;
+}
+
+.imagenIndicators {
+    position: absolute;
+    bottom: 0.75rem;
+    left: 0;
+    right: 0;
+    display: flex;
+    justify-content: center;
+    gap: 0.25rem;
+}
+
+.imagenIndicator {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.5);
+    border: none;
+    cursor: pointer;
+    padding: 0;
+    transition: background 0.2s;
+}
+
+.imagenIndicator.active {
+    background: white;
+}
+
+.productoInfo {
+    padding: 1.25rem;
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+}
+
+.productoNombre {
+    font-size: 1.125rem;
+    font-weight: 600;
+    color: #111827;
+    margin: 0 0 0.5rem 0;
+    line-height: 1.3;
+}
+
+.productoDescripcion {
+    font-size: 0.875rem;
+    color: #6b7280;
+    margin: 0 0 1rem 0;
+    line-height: 1.5;
+    margin-left: auto;
+}
+
+.productoMeta {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1rem;
+    padding-bottom: 1rem;
+    border-bottom: 1px solid #e5e7eb;
+}
+
+.productoCategoria {
+    font-size: 0.75rem;
+    color: #4f46e5;
+    background: #eef2ff;
+    padding: 0.25rem 0.5rem;
+    border-radius: 4px;
+    font-weight: 500;
+}
+
+.productoProveedor {
+    font-size: 0.75rem;
+    color: #6b7280;
+}
+
+.precioContainer {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    margin-bottom: 1rem;
+}
+
+.precioActual {
+    display: flex;
+    align-items: baseline;
+    gap: 0.25rem;
+}
+
+.precioSymbol {
+    font-size: 0.875rem;
+    color: #111827;
+    font-weight: 500;
+}
+
+.precioValor {
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: #111827;
+}
+
+.precioAnterior {
+    display: flex;
+    align-items: baseline;
+    gap: 0.25rem;
+    text-decoration: line-through;
+}
+
+.precioAnteriorSymbol {
+    font-size: 0.75rem;
+    color: #9ca3af;
+}
+
+.precioAnteriorValor {
+    font-size: 1rem;
+    color: #9ca3af;
+}
+
+.cantidadContainer {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1rem;
+    padding-bottom: 1rem;
+    border-bottom: 1px solid #e5e7eb;
+}
+
+.cantidadControls {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    background: #f3f4f6;
+    border-radius: 6px;
+    padding: 0.25rem;
+}
+
+.cantidadButton {
+    width: 28px;
+    height: 28px;
+    border: none;
+    background: white;
+    border-radius: 4px;
+    font-size: 1rem;
+    font-weight: 600;
+    color: #374151;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s;
+}
+
+.cantidadButton:hover:not(:disabled) {
+    background: #e5e7eb;
+}
+
+.cantidadButton:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.cantidadValue {
+    min-width: 36px;
+    text-align: center;
+    font-size: 0.875rem;
+    font-weight: 600;
+    color: #111827;
+}
+
+.stockDisponible {
+    font-size: 0.75rem;
+    color: #6b7280;
+}
+
+.agregarButton {
+    width: 100%;
+    background: linear-gradient(to right, #4f46e5, #4338ca);
+    color: white;
+    border: none;
+    padding: 0.875rem;
+    border-radius: 8px;
+    font-size: 0.875rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+    margin-bottom: 1rem;
+}
+
+.agregarButton:hover:not(.disabled) {
+    background: linear-gradient(to right, #4338ca, #3730a3);
+    transform: translateY(-1px);
+}
+
+.agregarButton.disabled {
+    background: #9ca3af;
+    cursor: not-allowed;
+    opacity: 0.7;
+}
+
+.productoFooter {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 0.75rem;
+    color: #6b7280;
+    margin-top: auto;
+}
+
+.productoEstado {
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+}
+
+.estadoBadge {
+    padding: 0.125rem 0.375rem;
+    border-radius: 4px;
+    font-size: 0.75rem;
+    font-weight: 500;
+}
+
+.estadoBadge.activo {
+    background: #d1fae5;
+    color: #065f46;
+}
+
+.estadoBadge.inactivo {
+    background: #fee2e2;
+    color: #991b1b;
+}
+
+.productoFecha {
+    font-size: 0.75rem;
+}

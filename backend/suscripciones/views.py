@@ -11,6 +11,8 @@ from rest_framework.permissions import IsAuthenticated, AllowAny
 from django_filters.rest_framework import DjangoFilterBackend
 from .models import Suscripcion
 from admins.models import Admin
+from django.db import transaction
+from datetime import timedelta
 from .serializers import (
     SolicitudSuscripcionSerializer,
     SuscripcionSerializer,
@@ -70,10 +72,8 @@ class SolicitarSuscripcionView(generics.GenericAPIView):
                 fecha_solicitud=fecha_inicio
             )
 
-            self._crear_notificacion_admins(
+            self._crear_notificacion_suscripcion_admins(
                 suscripcion=suscripcion,
-                empresa=empresa,
-                admin_solicitante=admin_empresa_user
             )
             
             # 4. ACTUALIZAR ESTADO DE LA EMPRESA A 'pendiente'
@@ -485,3 +485,283 @@ class MisSuscripcionesView(generics.ListAPIView):
             ).select_related('plan', 'empresa').order_by('-fecha_solicitud')  # Cambiado
         except Exception:
             return Suscripcion.objects.none()
+
+
+class ActivarSuscripcionView(generics.GenericAPIView):
+    """
+    Vista para que un admin active una suscripción pendiente
+    Desactiva automáticamente otras suscripciones de la misma empresa
+    """
+    permission_classes = [IsAuthenticated]
+    
+    def post(self, request, id_suscripcion, *args, **kwargs):
+        """
+        Activa una suscripción pendiente
+        POST /api/suscripciones/{id_suscripcion}/activar/
+        """
+        try:
+            # 1. Verificar que el usuario sea admin
+            if not request.user.rol or request.user.rol.rol != 'admin':
+                return Response({
+                    'error': 'Permiso denegado',
+                    'detail': 'Solo administradores del sistema pueden activar suscripciones',
+                    'status': 'error'
+                }, status=status.HTTP_403_FORBIDDEN)
+            
+            # 2. Obtener la suscripción
+            try:
+                suscripcion = Suscripcion.objects.select_related('plan', 'empresa').get(
+                    id_suscripcion=id_suscripcion
+                )
+            except Suscripcion.DoesNotExist:
+                return Response({
+                    'error': 'Suscripción no encontrada',
+                    'detail': f'La suscripción con ID {id_suscripcion} no existe',
+                    'status': 'error'
+                }, status=status.HTTP_404_NOT_FOUND)
+            
+            # 3. Verificar que la suscripción esté pendiente
+            if suscripcion.estado != 'pendiente':
+                return Response({
+                    'error': 'Suscripción no pendiente',
+                    'detail': f'La suscripción está en estado "{suscripcion.estado}" y no puede ser activada',
+                    'suscripcion': {
+                        'id': suscripcion.id_suscripcion,
+                        'estado': suscripcion.estado,
+                        'plan': suscripcion.plan.nombre,
+                        'empresa': suscripcion.empresa.nombre
+                    },
+                    'estados_aceptables': ['pendiente'],
+                    'status': 'error'
+                }, status=status.HTTP_400_BAD_REQUEST)
+            
+            # 4. Validar fechas (opcional: si quieres que la fecha fin sea futura)
+            hoy = timezone.now()
+            if suscripcion.fecha_fin <= hoy:
+                # Ajustar fecha fin automáticamente
+                suscripcion.fecha_fin = hoy + timedelta(days=suscripcion.plan.duracion_dias)
+                logger.info(f"Fecha fin ajustada para suscripción {id_suscripcion}")
+            
+            # 5. Activar la suscripción usando atomic transaction
+            with transaction.atomic():
+                resultado = suscripcion.activar_suscripcion(admin_aprobador=request.user)
+                
+                if not resultado['success']:
+                    return Response({
+                        'error': 'Error al activar suscripción',
+                        'detail': resultado['message'],
+                        'status': 'error'
+                    }, status=status.HTTP_400_BAD_REQUEST)
+            
+            # 6. Enviar notificación a la empresa
+            self._enviar_notificacion_activacion(suscripcion, request.user)
+            
+            # 7. Registrar en logs
+            logger.info(f"Suscripción {id_suscripcion} activada por admin {request.user.email}")
+            
+            # 8. Retornar respuesta exitosa
+            return Response({
+                'message': resultado['message'],
+                'suscripcion_activada': resultado['suscripcion'],
+                'suscripciones_desactivadas': resultado['suscripciones_desactivadas'],
+                'total_desactivadas': resultado['total_desactivadas'],
+                'empresa_actualizada': {
+                    'id': suscripcion.empresa.id_empresa,
+                    'nombre': suscripcion.empresa.nombre,
+                    'estado': suscripcion.empresa.estado,
+                    'estado_anterior': 'pendiente',
+                    'fecha_actualizacion': suscripcion.empresa.fecha_actualizacion.isoformat()
+                },
+                'status': 'success'
+            }, status=status.HTTP_200_OK)
+            
+        except Exception as e:
+            logger.error(f"Error activando suscripción {id_suscripcion}: {str(e)}", exc_info=True)
+            return Response({
+                'error': 'Error interno del servidor',
+                'detail': str(e),
+                'status': 'error'
+            }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+    
+    def _enviar_notificacion_activacion(self, suscripcion, admin_aprobador):
+        """
+        Envía notificación a la empresa sobre la activación
+        """
+        try:
+            # 1. Obtener admin_empresa de la empresa
+            from usuario_empresa.models import Usuario_Empresa
+            usuarios_empresa = Usuario_Empresa.objects.filter(
+                empresa=suscripcion.empresa,
+                id_usuario__rol__rol='admin_empresa'
+            ).select_related('id_usuario')
+            
+            if not usuarios_empresa.exists():
+                logger.warning(f"No hay admin_empresa para notificar activación de suscripción {suscripcion.id_suscripcion}")
+                return
+            
+            # 2. Crear notificación
+            from notificaciones.models import Notificacion
+            from relacion_notifica.models import Notifica
+            
+            titulo = f"✅ Suscripción #{suscripcion.id_suscripcion} Activada"
+            mensaje = f"""
+            Tu solicitud de suscripción ha sido aprobada.
+            
+            📋 Detalles:
+            • Plan: {suscripcion.plan.nombre}
+            • Precio: ${suscripcion.plan.precio}
+            • Fecha de inicio: {suscripcion.fecha_inicio.strftime('%d/%m/%Y')}
+            • Fecha de fin: {suscripcion.fecha_fin.strftime('%d/%m/%Y')}
+            • Estado: ACTIVA
+            
+            Aprobado por: {admin_aprobador.email}
+            Fecha de aprobación: {suscripcion.fecha_aprobacion.strftime('%d/%m/%Y %H:%M')}
+            
+            ¡Ya puedes acceder a todas las funcionalidades del plan!
+            """
+            
+            notificacion = Notificacion.objects.create(
+                titulo=titulo,
+                mensaje=mensaje.strip(),
+                tipo='success'
+            )
+            
+            # 3. Enviar notificación a todos los admin_empresa de la empresa
+            for usuario_empresa in usuarios_empresa:
+                Notifica.objects.create(
+                    id_usuario=usuario_empresa.id_usuario,
+                    id_notificacion=notificacion
+                )
+            
+            logger.info(f"Notificación enviada a {usuarios_empresa.count()} admin_empresa por activación de suscripción")
+            
+        except Exception as e:
+            logger.error(f"Error enviando notificación de activación: {str(e)}")
+
+# Añade esta vista también si la necesitas:
+class ActivarSuscripcionRecienteEmpresaView(generics.GenericAPIView):
+    """
+    Vista para activar la suscripción más reciente de una empresa específica
+    Útil cuando hay múltiples solicitudes pendientes
+    """
+    permission_classes = [IsAuthenticated]
+    
+    def post(self, request, id_empresa, *args, **kwargs):
+        """
+        Activa la suscripción más reciente de una empresa
+        POST /api/suscripciones/empresa/{id_empresa}/activar-reciente/
+        """
+        try:
+            # 1. Verificar que el usuario sea admin
+            if not request.user.rol or request.user.rol.rol != 'admin':
+                return Response({
+                    'error': 'Permiso denegado',
+                    'detail': 'Solo administradores del sistema pueden activar suscripciones',
+                    'status': 'error'
+                }, status=status.HTTP_403_FORBIDDEN)
+            
+            # 2. Obtener la empresa
+            from empresas.models import Empresa
+            try:
+                empresa = Empresa.objects.get(id_empresa=id_empresa)
+            except Empresa.DoesNotExist:
+                return Response({
+                    'error': 'Empresa no encontrada',
+                    'detail': f'La empresa con ID {id_empresa} no existe',
+                    'status': 'error'
+                }, status=status.HTTP_404_NOT_FOUND)
+            
+            # 3. Obtener la suscripción más reciente pendiente
+            suscripcion_reciente = Suscripcion.objects.filter(
+                empresa=empresa,
+                estado='pendiente'
+            ).order_by('-fecha_solicitud').first()
+            
+            if not suscripcion_reciente:
+                # Verificar si hay alguna suscripción pendiente (en cualquier estado excepto activa)
+                suscripciones_empresa = Suscripcion.objects.filter(
+                    empresa=empresa
+                ).exclude(estado='activo').order_by('-fecha_solicitud')
+                
+                if not suscripciones_empresa.exists():
+                    return Response({
+                        'error': 'No hay suscripciones pendientes',
+                        'detail': f'La empresa {empresa.nombre} no tiene suscripciones pendientes',
+                        'estado_actual_empresa': empresa.estado,
+                        'status': 'error'
+                    }, status=status.HTTP_400_BAD_REQUEST)
+                
+                suscripcion_reciente = suscripciones_empresa.first()
+            
+            # 4. Activar la suscripción más reciente
+            with transaction.atomic():
+                resultado = suscripcion_reciente.activar_suscripcion(admin_aprobador=request.user)
+                
+                if not resultado['success']:
+                    return Response({
+                        'error': 'Error al activar suscripción',
+                        'detail': resultado['message'],
+                        'status': 'error'
+                    }, status=status.HTTP_400_BAD_REQUEST)
+            
+            # 5. Registrar en logs
+            logger.info(f"Suscripción más reciente de empresa {id_empresa} activada por admin {request.user.email}")
+            
+            return Response({
+                'message': f'Suscripción más reciente de {empresa.nombre} activada',
+                'suscripcion_seleccionada': {
+                    'id': suscripcion_reciente.id_suscripcion,
+                    'motivo': 'Más reciente por fecha de solicitud',
+                    'fecha_solicitud': suscripcion_reciente.fecha_solicitud.strftime('%Y-%m-%d %H:%M:%S')
+                },
+                'suscripcion_activada': resultado['suscripcion'],
+                'suscripciones_desactivadas': resultado['suscripciones_desactivadas'],
+                'empresa_actualizada': {
+                    'id': empresa.id_empresa,
+                    'nombre': empresa.nombre,
+                    'estado': empresa.estado,
+                    'estado_anterior': 'pendiente',
+                    'fecha_actualizacion': empresa.fecha_actualizacion.isoformat()
+                },
+                'status': 'success'
+            }, status=status.HTTP_200_OK)
+            
+        except Exception as e:
+            logger.error(f"Error activando suscripción reciente para empresa {id_empresa}: {str(e)}", exc_info=True)
+            return Response({
+                'error': 'Error interno del servidor',
+                'detail': str(e),
+                'status': 'error'
+            }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+class SuscripcionesPorEmpresaView(generics.ListAPIView):
+    """
+    Vista SIMPLIFICADA para obtener suscripciones de una empresa específica
+    """
+    serializer_class = SuscripcionSerializer
+    permission_classes = [IsAuthenticated]
+    
+    def get_queryset(self):
+        empresa_id = self.kwargs.get('id_empresa')
+        return Suscripcion.objects.filter(
+            empresa_id=empresa_id
+        ).select_related('plan', 'empresa').order_by('-fecha_solicitud')
+    
+    def list(self, request, *args, **kwargs):
+        try:
+            queryset = self.get_queryset()
+            serializer = self.get_serializer(queryset, many=True)
+            
+            return Response({
+                'suscripciones': serializer.data,
+                'total': queryset.count(),
+                'status': 'success'
+            })
+            
+        except Exception as e:
+            logger.error(f"Error obteniendo suscripciones por empresa: {str(e)}")
+            return Response({
+                'error': 'Error al obtener suscripciones',
+                'detail': str(e),
+                'status': 'error'
+            }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)

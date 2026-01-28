@@ -656,3 +656,82 @@
 .statCard:nth-child(3) {
   border-left: 3px solid #8b5cf6;
 }
+
+/* Estilos para la suscripción */
+.suscripcionContainer {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.estadoSuscripcion {
+  font-size: 0.75rem;
+  padding: 0.125rem 0.5rem;
+  border-radius: 9999px;
+  font-weight: 500;
+  width: fit-content;
+}
+
+.suscripcionActiva {
+  background-color: #d1fae5;
+  color: #059669;
+}
+
+.suscripcionPendiente {
+  background-color: #fef3c7;
+  color: #d97706;
+}
+
+.suscripcionInactiva {
+  background-color: #f3f4f6;
+  color: #6b7280;
+}
+
+.suscripcionDefault {
+  background-color: #f3f4f6;
+  color: #6b7280;
+
+
+}
+
+/* Contenedor para acciones personalizadas */
+.customActionMenu {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+/* Botón para activar suscripción */
+.activarSuscripcionBtn {
+  background-color: #10b981;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  padding: 0.375rem 0.75rem;
+  font-size: 0.75rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background-color 0.2s;
+  white-space: nowrap;
+}
+
+.activarSuscripcionBtn:hover {
+  background-color: #059669;
+}
+
+.activarSuscripcionBtn:active {
+  transform: scale(0.98);
+}
+
+.suscripcionHeader {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 0.25rem;
+}
+
+.fechaSolicitud {
+  font-size: 0.7rem;
+  color: #6b7280;
+  display: block;
+}

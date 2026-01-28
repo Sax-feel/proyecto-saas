@@ -121,34 +121,87 @@ export default function EmpresasPage() {
   };
 
   // ----------------- Fetch Empresas -----------------
-  const fetchEmpresas = async () => {
-    setLoading(true);
-    try {
-      const token = getToken();
-      if (!token) throw new Error("No hay token de autenticación");
+  // Usa esta versión simplificada que obtiene todas las suscripciones de una vez
+const fetchEmpresas = async () => {
+  setLoading(true);
+  try {
+    const token = getToken();
+    if (!token) throw new Error("No hay token de autenticación");
 
-      const res = await fetch("http://localhost:8000/api/empresas/listar/", {
-        headers: {
-          Authorization: `Bearer ${token}`,
-          "Content-Type": "application/json",
-        },
-      });
+    // 1. Obtener empresas
+    const empresasRes = await fetch("http://localhost:8000/api/empresas/listar/", {
+      headers: {
+        Authorization: `Bearer ${token}`,
+        "Content-Type": "application/json",
+      },
+    });
 
-      if (!res.ok) {
-        const errorData = await res.json();
-        throw new Error(errorData.detail || `Error ${res.status}`);
-      }
-
-      const data = await res.json();
-      setEmpresas(data || []);
-      setError(null);
-    } catch (err) {
-      setError(`Error al cargar empresas: ${err.message}`);
-      console.error("Error fetching empresas:", err);
-    } finally {
-      setLoading(false);
+    if (!empresasRes.ok) {
+      const errorData = await empresasRes.json();
+      throw new Error(errorData.detail || `Error ${empresasRes.status}`);
     }
-  };
+
+    const empresasData = await empresasRes.json();
+    
+    // 2. Obtener TODAS las suscripciones de una vez
+    const suscripcionesRes = await fetch("http://localhost:8000/api/suscripciones/todas/", {
+      headers: {
+        Authorization: `Bearer ${token}`,
+        "Content-Type": "application/json",
+      },
+    });
+
+    let todasSuscripciones = [];
+    if (suscripcionesRes.ok) {
+      const suscripcionesJson = await suscripcionesRes.json();
+      // El endpoint devuelve {suscripciones: [...], status: 'success'}
+      todasSuscripciones = suscripcionesJson.suscripciones || suscripcionesJson || [];
+    }
+
+    // 3. Organizar suscripciones por empresa
+    const suscripcionesPorEmpresa = {};
+    console.log("qqqqqqqq",todasSuscripciones)
+    todasSuscripciones.forEach(susc => {
+      if (susc.empresa_nombre) {
+        const empresaId = susc.empresa_nombre;
+        if (!suscripcionesPorEmpresa[empresaId]) {
+          suscripcionesPorEmpresa[empresaId] = [];
+        }
+        suscripcionesPorEmpresa[empresaId].push(susc);
+      }
+    });
+    console.log("www",suscripcionesPorEmpresa)
+    // 4. Para cada empresa, encontrar su suscripción más reciente
+    console.log("rrrrr",empresasData)
+    const empresasConSuscripcion = empresasData.map(empresa => {
+      const suscripcionesEmpresa = suscripcionesPorEmpresa[empresa.nombre] || [];
+      
+
+      console.log("ttttttt", suscripcionesEmpresa)
+      // Ordenar por fecha_solicitud descendente y tomar la más reciente
+      const suscripcionesOrdenadas = [...suscripcionesEmpresa].sort(
+        (a, b) => new Date(b.fecha_solicitud) - new Date(a.fecha_solicitud)
+      );
+      
+      const suscripcionReciente = suscripcionesOrdenadas[0];
+
+      return {
+        ...empresa,
+        suscripcion: suscripcionReciente || null,
+        plan_nombre: suscripcionReciente?.plan?.nombre || "Sin plan",
+        estado_suscripcion: suscripcionReciente?.estado || "sin_suscripcion",
+      };
+    });
+
+    setEmpresas(empresasConSuscripcion);
+    setError(null);
+  } catch (err) {
+    setError(`Error al cargar empresas: ${err.message}`);
+    console.error("Error fetching empresas:", err);
+  } finally {
+    setLoading(false);
+  }
+};
 
   useEffect(() => {
     fetchEmpresas();
@@ -180,7 +233,7 @@ export default function EmpresasPage() {
 
     if (!empresaForm.email.trim()) {
       errors.email = "El email es obligatorio";
-    } 
+    }
 
     if (empresaForm.telefono.trim()) {
       errors.telefono = "Teléfono inválido";
@@ -223,7 +276,7 @@ export default function EmpresasPage() {
     e.preventDefault();
     console.log("asdfasdf");
 
-    
+
 
     setSubmitting(true);
     setError(null);
@@ -337,6 +390,51 @@ export default function EmpresasPage() {
 
   // ----------------- Configuración de Tabla -----------------
   const columns = [
+    {
+      key: "suscripcion_info",
+      label: "Suscripción",
+      render: (row) => {
+        const suscripcion = row.suscripcion;
+        console.log("row",row)
+        if (!suscripcion) {
+          return (
+            <div className={styles.suscripcionContainer}>
+              <span className={`${styles.planBadge} ${styles.planDefault}`}>
+                Sin suscripción
+              </span>
+            </div>
+          );
+        }
+
+        const planNombre = suscripcion.plan_nombre || "Sin plan";
+        const estado = suscripcion.estado || "pendiente";
+        const fechaSolicitud = suscripcion.fecha_solicitud
+          ? formatDate(suscripcion.fecha_solicitud)
+          : "";
+
+        return (
+          <div className={styles.suscripcionContainer}>
+            <div className={styles.suscripcionHeader}>
+              <span className={`${styles.planBadge} ${getPlanClass(planNombre)}`}>
+                {planNombre}
+              </span>
+              <span className={`${styles.estadoSuscripcion} ${estado === 'activo' ? styles.suscripcionActiva :
+                  estado === 'pendiente' ? styles.suscripcionPendiente :
+                    estado === 'inactivo' ? styles.suscripcionInactiva :
+                      styles.suscripcionDefault
+                }`}>
+                {estado}
+              </span>
+            </div>
+            {fechaSolicitud && (
+              <small className={styles.fechaSolicitud}>
+                Solicitado: {fechaSolicitud}
+              </small>
+            )}
+          </div>
+        );
+      },
+    },
     { key: "nombre", label: "Nombre" },
     { key: "nit", label: "NIT" },
     {
@@ -354,45 +452,79 @@ export default function EmpresasPage() {
         </span>
       ),
     },
-    {
-      key: "plan_nombre",
-      label: "Plan",
-      render: (row) => (
-        <span className={`${styles.planBadge} ${getPlanClass(row.plan_nombre)}`}>
-          {row.plan_nombre || "Free"}
-        </span>
-      ),
-    },
-    {
-      key: "fecha_creacion",
-      label: "Registro",
-      render: (row) => formatDate(row.fecha_creacion),
-    },
   ];
 
   const [editForm, setEditForm] = useState({});
   const [editingEmpresa, setEditingEmpresa] = useState(null);
-  const renderActions = (row) => (
-    <ActionMenu
-      id={row.id_empresa}
-      estado={row.estado}
-      onToggle={() => toggleEmpresaEstado(row.id_empresa, row.estado)}
-      onEliminar={() => deleteEmpresa(row.id_empresa)}
-      onEditar={() => {
-        setEditingEmpresa(row);
-        
-        setEditForm({
-          nombre: row.nombre,
-          nit: row.nit,
-          direccion: row.direccion,
-          rubro: row.rubro,
-          telefono: row.telefono,
-          email: row.email,
-        });
-      }}
-    />
-  );
+  const renderActions = (row) => {
+    const tieneSuscripcionPendiente = row.suscripcion?.estado === 'pendiente';
 
+    return (
+      <div className={styles.customActionMenu}>
+        <ActionMenu
+          id={row.id_empresa}
+          estado={row.estado}
+          onToggle={() => toggleEmpresaEstado(row.id_empresa, row.estado)}
+          onEliminar={() => deleteEmpresa(row.id_empresa)}
+          onEditar={() => {
+            setEditingEmpresa(row);
+            setEditForm({
+              nombre: row.nombre,
+              nit: row.nit,
+              direccion: row.direccion,
+              rubro: row.rubro,
+              telefono: row.telefono,
+              email: row.email,
+            });
+          }}
+        />
+
+        {/* Botón adicional para activar suscripción */}
+        {tieneSuscripcionPendiente && (
+          <button
+            onClick={() => activarSuscripcionReciente(row.id_empresa)}
+            className={styles.activarSuscripcionBtn}
+            title="Activar suscripción más reciente"
+          >
+            ✅ Activar
+          </button>
+        )}
+      </div>
+    );
+  };
+  // Nueva función para activar suscripción más reciente
+  // Añade esta función junto con las otras funciones CRUD
+  const activarSuscripcionReciente = async (empresaId) => {
+    if (!confirm("¿Activar la suscripción más reciente de esta empresa?")) {
+      return;
+    }
+
+    try {
+      const token = getToken();
+      const response = await fetch(
+        `http://localhost:8000/api/suscripciones/empresa/${empresaId}/activar-reciente/`,
+        {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "application/json",
+          },
+        }
+      );
+
+      const data = await response.json();
+
+      if (response.ok) {
+        alert(`✅ ${data.message}`);
+        fetchEmpresas(); // Recargar datos
+      } else {
+        alert(`❌ Error: ${data.detail || data.error}`);
+      }
+    } catch (error) {
+      console.error("Error activando suscripción:", error);
+      alert("Error del servidor");
+    }
+  };
 
   // ----------------- Render -----------------
   return (
@@ -708,12 +840,12 @@ export default function EmpresasPage() {
             onSave={async (formData) => {
               try {
                 const token = getToken();
-                
+
                 const res = await fetch(`http://localhost:8000/api/empresas/${editingEmpresa.id_empresa}/`, {
                   method: "PUT",
-                  headers: { 
-                    Authorization: `Bearer ${token}`, 
-                    "Content-Type": "application/json" 
+                  headers: {
+                    Authorization: `Bearer ${token}`,
+                    "Content-Type": "application/json"
                   },
                   body: JSON.stringify(formData),
                 });
